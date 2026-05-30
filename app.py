@@ -10,7 +10,7 @@ import plotly.express as px
 import streamlit as st
 
 st.set_page_config(
-    page_title="CreativeStyle Finance • 2025",
+    page_title="Dashboard Financeiro",
     layout="wide",
     page_icon="🌄",
 )
@@ -638,7 +638,7 @@ def gerar_relatorio_pdf(df_transacoes, df_investimentos):
     saldo = df_transacoes["valor"].sum() if len(df_transacoes) else 0
     investimentos = df_investimentos["valor"].sum() if len(df_investimentos) else 0
 
-    adicionar("CreativeStyle Finance - Relatório Financeiro Detalhado", "titulo", 62)
+    adicionar("Dashboard Financeiro - Relatório Financeiro Detalhado", "titulo", 62)
     adicionar(f"Emitido em {date.today().strftime('%d/%m/%Y')}", "pequeno")
     adicionar()
     adicionar("Resumo financeiro", "secao")
@@ -860,7 +860,7 @@ hero_total_investido = df_investimentos["valor"].sum() if len(df_investimentos) 
 
 # ====================== HERO ======================
 st.markdown(
-    f"""<section class="hero"><div class="hero-card"><div class="hero-top"><span>Creativestyle_</span><span class="pill">Finance 2025</span></div><h1>CreativeStyle<br>Finance</h1><p class="hero-subtitle">Organize decisões, acompanhe seu patrimônio e transforme pequenas escolhas financeiras em progresso consistente.</p><blockquote class="hero-quote">“Preço é o que você paga; valor é o que você recebe.”<cite>Benjamin Graham</cite></blockquote></div><aside class="utility-card"><div class="utility-head"><strong>Visão geral</strong><span>Atualizado agora</span></div><div class="utility-grid"><div class="utility-item"><div class="utility-label">Saldo atual</div><div class="utility-value">{brl(hero_saldo)}</div></div><div class="utility-item"><div class="utility-label">Entradas</div><div class="utility-value">{brl(hero_total_entradas)}</div></div><div class="utility-item"><div class="utility-label">Saídas</div><div class="utility-value">{brl(hero_total_saidas)}</div></div><div class="utility-item"><div class="utility-label">Investimentos</div><div class="utility-value">{brl(hero_total_investido)}</div></div></div></aside></section>""",
+    f"""<section class="hero"><div class="hero-card"><div class="hero-top"><span>Dashboard_</span><span class="pill">Financeiro 2025</span></div><h1>Dashboard<br>Financeiro</h1><p class="hero-subtitle">Organize decisões, acompanhe seu patrimônio e transforme pequenas escolhas financeiras em progresso consistente.</p><blockquote class="hero-quote">“Preço é o que você paga; valor é o que você recebe.”<cite>Benjamin Graham</cite></blockquote></div><aside class="utility-card"><div class="utility-head"><strong>Visão geral</strong><span>Atualizado agora</span></div><div class="utility-grid"><div class="utility-item"><div class="utility-label">Saldo atual</div><div class="utility-value">{brl(hero_saldo)}</div></div><div class="utility-item"><div class="utility-label">Entradas</div><div class="utility-value">{brl(hero_total_entradas)}</div></div><div class="utility-item"><div class="utility-label">Saídas</div><div class="utility-value">{brl(hero_total_saidas)}</div></div><div class="utility-item"><div class="utility-label">Investimentos</div><div class="utility-value">{brl(hero_total_investido)}</div></div></div></aside></section>""",
     unsafe_allow_html=True,
 )
 
@@ -1175,4 +1175,4 @@ with aba[3]:
     else:
         st.info("Nenhum registro ainda.")
 
-st.caption("CreativeStyle Finance • Visão financeira clara • Vidro fosco premium")
+st.caption("Dashboard Financeiro • Visão financeira clara • Vidro fosco premium")
