@@ -1,5 +1,6 @@
 import base64
 import sqlite3
+import textwrap
 from datetime import date
 from html import escape
 from pathlib import Path
@@ -15,9 +16,7 @@ st.set_page_config(
 )
 
 # ====================== IMAGEM DE FUNDO ======================
-BACKGROUND_IMAGE = Path(
-    "/Users/allyssonhenriquedasilvavieira/Downloads/8745915c6db9d82eeabe184d8d3df242.jpg"
-)
+BACKGROUND_IMAGE = Path(__file__).parent / "assets" / "background-blue-dunes.jpg"
 
 
 def image_to_base64(path):
@@ -452,29 +451,70 @@ st.markdown(
         grid-template-columns: minmax(0, 1fr) auto;
         gap: 0.85rem;
         align-items: center;
-        padding: 0.9rem 0;
-        border-bottom: 1px solid rgba(31, 29, 26, 0.10);
+        margin-bottom: 0.78rem;
+        padding: 1rem 1.08rem;
+        border: 1px solid rgba(255, 255, 255, 0.72);
+        border-radius: 18px;
+        background: rgba(248, 251, 255, 0.92);
+        box-shadow: 0 14px 34px rgba(1, 10, 37, 0.20);
+        backdrop-filter: blur(14px);
+        -webkit-backdrop-filter: blur(14px);
     }}
 
     .history-title {{
-        color: var(--black);
+        color: #101d39;
+        font-size: 1.02rem;
         font-weight: 800;
     }}
 
     .history-meta {{
-        color: rgba(31, 29, 26, 0.62);
+        color: rgba(16, 29, 57, 0.68);
         font-size: 0.88rem;
         margin-top: 0.18rem;
     }}
 
     .positive {{
-        color: #3d6d45;
+        color: #26704b;
         font-weight: 850;
     }}
 
     .negative {{
-        color: #9c4f2f;
+        color: #a3434c;
         font-weight: 850;
+    }}
+
+    .history-summary {{
+        margin: 0.7rem 0 1.1rem;
+        padding: 1rem 1.08rem;
+        border: 1px solid rgba(255, 255, 255, 0.62);
+        border-radius: 18px;
+        color: rgba(248, 251, 255, 0.92);
+        background: rgba(5, 25, 65, 0.68);
+        box-shadow: 0 16px 38px rgba(1, 10, 37, 0.22);
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
+    }}
+
+    .history-summary strong {{
+        color: #ffffff;
+    }}
+
+    div[data-testid="stDownloadButton"] button {{
+        min-height: 2.8rem;
+        border: 1px solid rgba(255, 255, 255, 0.62);
+        border-radius: 999px;
+        color: #101d39;
+        background: rgba(248, 251, 255, 0.94);
+        font-weight: 800;
+        box-shadow: 0 14px 30px rgba(1, 10, 37, 0.20);
+        transition: 0.25s ease;
+    }}
+
+    div[data-testid="stDownloadButton"] button:hover {{
+        border-color: rgba(225, 160, 157, 0.88);
+        color: #101d39;
+        background: #ffffff;
+        transform: translateY(-2px);
     }}
 
     .investment-grid {{
@@ -565,6 +605,166 @@ DB_FILE = "financeiro.db"
 def brl(valor):
     texto = f"R$ {valor:,.2f}"
     return texto.replace(",", "X").replace(".", ",").replace("X", ".")
+
+
+def data_br(valor):
+    data_convertida = pd.to_datetime(valor, errors="coerce")
+    if pd.isna(data_convertida):
+        return "Sem data"
+    return data_convertida.strftime("%d/%m/%Y")
+
+
+def _pdf_texto(texto):
+    return (
+        str(texto)
+        .replace("\\", "\\\\")
+        .replace("(", "\\(")
+        .replace(")", "\\)")
+        .encode("latin-1", errors="replace")
+        .decode("latin-1")
+    )
+
+
+def gerar_relatorio_pdf(df_transacoes, df_investimentos):
+    linhas = []
+
+    def adicionar(texto="", estilo="corpo", largura=92):
+        partes = textwrap.wrap(str(texto), width=largura) or [""]
+        for parte in partes:
+            linhas.append((parte, estilo))
+
+    entradas = df_transacoes[df_transacoes["valor"] > 0]["valor"].sum() if len(df_transacoes) else 0
+    saidas = abs(df_transacoes[df_transacoes["valor"] < 0]["valor"].sum()) if len(df_transacoes) else 0
+    saldo = df_transacoes["valor"].sum() if len(df_transacoes) else 0
+    investimentos = df_investimentos["valor"].sum() if len(df_investimentos) else 0
+
+    adicionar("CreativeStyle Finance - Relatório Financeiro Detalhado", "titulo", 62)
+    adicionar(f"Emitido em {date.today().strftime('%d/%m/%Y')}", "pequeno")
+    adicionar()
+    adicionar("Resumo financeiro", "secao")
+    adicionar(f"Entradas totais: {brl(entradas)}")
+    adicionar(f"Saídas totais: {brl(saidas)}")
+    adicionar(f"Saldo atual: {brl(saldo)}")
+    adicionar(f"Patrimônio investido: {brl(investimentos)}")
+    adicionar(f"Movimentações registradas: {len(df_transacoes)}")
+    adicionar()
+    adicionar("Movimentações", "secao")
+
+    if len(df_transacoes):
+        for _, row in df_transacoes.iterrows():
+            adicionar(
+                f"{data_br(row['data'])} | {row['descricao'] or 'Sem descrição'} | "
+                f"{row['categoria'] or 'Sem categoria'} | {brl(row['valor'])}",
+                "corpo",
+            )
+            adicionar(
+                f"Tipo: {row['tipo'] or 'Não informado'} | "
+                f"Forma de pagamento: {row['cartao'] or 'Não informada'}",
+                "pequeno",
+            )
+            adicionar("-" * 92, "pequeno")
+    else:
+        adicionar("Nenhuma movimentação cadastrada.")
+
+    adicionar()
+    adicionar("Investimentos", "secao")
+
+    if len(df_investimentos):
+        for _, investimento in df_investimentos.iterrows():
+            adicionar(
+                f"{data_br(investimento['data'])} | "
+                f"{investimento['descricao'] or 'Sem descrição'} | "
+                f"{investimento['tipo'] or 'Sem categoria'} | "
+                f"{brl(investimento['valor'])}",
+                "corpo",
+            )
+            adicionar(
+                f"Status: {investimento['status'] or 'Não informado'} | "
+                f"Rentabilidade: {investimento['rentabilidade'] or 'Não informada'}",
+                "pequeno",
+            )
+            adicionar("-" * 92, "pequeno")
+    else:
+        adicionar("Nenhum investimento cadastrado.")
+
+    paginas = []
+    pagina_atual = []
+    altura_usada = 0
+    alturas = {"titulo": 28, "secao": 22, "corpo": 16, "pequeno": 13}
+
+    for linha in linhas:
+        altura = alturas[linha[1]]
+        if altura_usada + altura > 720:
+            paginas.append(pagina_atual)
+            pagina_atual = []
+            altura_usada = 0
+        pagina_atual.append(linha)
+        altura_usada += altura
+
+    if pagina_atual:
+        paginas.append(pagina_atual)
+
+    objetos = {
+        1: b"<< /Type /Catalog /Pages 2 0 R >>",
+        3: b"<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>",
+        4: b"<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>",
+    }
+    referencias_paginas = []
+
+    for indice, pagina in enumerate(paginas):
+        numero_pagina = 5 + indice * 2
+        numero_conteudo = numero_pagina + 1
+        referencias_paginas.append(f"{numero_pagina} 0 R")
+        comandos = []
+        y = 795
+
+        for texto, estilo in pagina:
+            fonte = "F2" if estilo in {"titulo", "secao"} else "F1"
+            tamanho = {"titulo": 17, "secao": 13, "corpo": 10, "pequeno": 8}[estilo]
+            comandos.append(
+                f"BT /{fonte} {tamanho} Tf 50 {y} Td ({_pdf_texto(texto)}) Tj ET"
+            )
+            y -= alturas[estilo]
+
+        comandos.append(
+            f"BT /F1 8 Tf 50 30 Td (Pagina {indice + 1} de {len(paginas)}) Tj ET"
+        )
+        fluxo = "\n".join(comandos).encode("latin-1")
+        objetos[numero_pagina] = (
+            f"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] "
+            f"/Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> "
+            f"/Contents {numero_conteudo} 0 R >>"
+        ).encode("latin-1")
+        objetos[numero_conteudo] = (
+            f"<< /Length {len(fluxo)} >>\nstream\n".encode("latin-1")
+            + fluxo
+            + b"\nendstream"
+        )
+
+    objetos[2] = (
+        f"<< /Type /Pages /Kids [{' '.join(referencias_paginas)}] "
+        f"/Count {len(paginas)} >>"
+    ).encode("latin-1")
+
+    pdf = bytearray(b"%PDF-1.4\n")
+    offsets = [0]
+
+    for numero in range(1, max(objetos) + 1):
+        offsets.append(len(pdf))
+        pdf.extend(f"{numero} 0 obj\n".encode("latin-1"))
+        pdf.extend(objetos[numero])
+        pdf.extend(b"\nendobj\n")
+
+    xref = len(pdf)
+    pdf.extend(f"xref\n0 {len(offsets)}\n".encode("latin-1"))
+    pdf.extend(b"0000000000 65535 f \n")
+    for offset in offsets[1:]:
+        pdf.extend(f"{offset:010d} 00000 n \n".encode("latin-1"))
+    pdf.extend(
+        f"trailer\n<< /Size {len(offsets)} /Root 1 0 R >>\n"
+        f"startxref\n{xref}\n%%EOF".encode("latin-1")
+    )
+    return bytes(pdf)
 
 
 def init_db():
@@ -678,7 +878,7 @@ with aba[0]:
         col1, col2 = st.columns(2)
 
         with col1:
-            data = st.date_input("Data", value=date.today())
+            data = st.date_input("Data", value=date.today(), format="DD/MM/YYYY")
             descricao = st.text_input("Descrição")
 
             if tipo_limpo == "Entrada":
@@ -794,7 +994,11 @@ with aba[2]:
         col1, col2, col3 = st.columns(3)
 
         with col1:
-            data_investimento = st.date_input("Data do investimento", value=date.today())
+            data_investimento = st.date_input(
+                "Data do investimento",
+                value=date.today(),
+                format="DD/MM/YYYY",
+            )
             tipo_investimento = st.selectbox(
                 "Tipo de investimento",
                 [
@@ -921,7 +1125,7 @@ with aba[2]:
         for _, investimento in df_investimentos.iterrows():
             titulo = escape(str(investimento["descricao"] or "Investimento sem descrição"))
             tipo_item = escape(str(investimento["tipo"] or "Sem categoria"))
-            data_item = escape(str(investimento["data"] or "Sem data"))
+            data_item = escape(data_br(investimento["data"]))
             status_item = escape(str(investimento["status"] or "Sem status"))
             retorno_item = escape(str(investimento["rentabilidade"] or "Não informada"))
 
@@ -939,13 +1143,29 @@ with aba[2]:
 # ====================== ABA 4 ======================
 with aba[3]:
     st.subheader("Histórico")
+    relatorio_pdf = gerar_relatorio_pdf(df, df_investimentos)
+
+    st.markdown(
+        f"""<div class="history-summary"><strong>Relatório financeiro detalhado</strong><br>Baixe um PDF com o resumo do período, todas as movimentações e os investimentos cadastrados. Registros incluídos: {len(df)} movimentações e {len(df_investimentos)} investimentos.</div>""",
+        unsafe_allow_html=True,
+    )
+    st.download_button(
+        "⬇️ Baixar relatório detalhado em PDF",
+        data=relatorio_pdf,
+        file_name=f"relatorio-financeiro-{date.today().strftime('%d-%m-%Y')}.pdf",
+        mime="application/pdf",
+    )
 
     if len(df) > 0:
         for _, row in df.iterrows():
             classe = "positive" if row["valor"] >= 0 else "negative"
+            descricao_historico = escape(str(row["descricao"] or "Sem descrição"))
+            categoria_historico = escape(str(row["categoria"] or "Sem categoria"))
+            data_historico = escape(data_br(row["data"]))
+            cartao_historico = escape(str(row["cartao"] or "Sem forma de pagamento"))
 
             st.markdown(
-                f"""<div class="history-item"><div><div class="history-title">{row["descricao"] or "Sem descrição"}</div><div class="history-meta">{row["categoria"]} • {row["data"]} • {row["cartao"] or "Sem forma de pagamento"}</div></div><div class="{classe}">{brl(row["valor"])}</div></div>""",
+                f"""<div class="history-item"><div><div class="history-title">{descricao_historico}</div><div class="history-meta">{categoria_historico} • {data_historico} • {cartao_historico}</div></div><div class="{classe}">{brl(row["valor"])}</div></div>""",
                 unsafe_allow_html=True,
             )
 
@@ -956,4 +1176,3 @@ with aba[3]:
         st.info("Nenhum registro ainda.")
 
 st.caption("CreativeStyle Finance • Visão financeira clara • Vidro fosco premium")
-
