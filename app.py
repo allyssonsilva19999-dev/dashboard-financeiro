@@ -614,6 +614,162 @@ def data_br(valor):
     return data_convertida.strftime("%d/%m/%Y")
 
 
+def normalizar_coluna(nome):
+    texto = str(nome).strip().lower()
+    trocas = {
+        "á": "a",
+        "à": "a",
+        "ã": "a",
+        "â": "a",
+        "é": "e",
+        "ê": "e",
+        "í": "i",
+        "ó": "o",
+        "ô": "o",
+        "õ": "o",
+        "ú": "u",
+        "ç": "c",
+    }
+    for origem, destino in trocas.items():
+        texto = texto.replace(origem, destino)
+    return " ".join(texto.replace("_", " ").replace("-", " ").split())
+
+
+def ler_planilha_movimentacoes(arquivo):
+    nome = arquivo.name.lower()
+    if nome.endswith(".csv"):
+        try:
+            return pd.read_csv(arquivo, sep=None, engine="python")
+        except UnicodeDecodeError:
+            arquivo.seek(0)
+            return pd.read_csv(arquivo, sep=None, engine="python", encoding="latin-1")
+
+    if nome.endswith(".xlsx"):
+        return pd.read_excel(arquivo, engine="openpyxl")
+
+    if nome.endswith(".xls"):
+        return pd.read_excel(arquivo, engine="xlrd")
+
+    raise ValueError("Envie uma planilha nos formatos CSV, XLSX ou XLS.")
+
+
+def converter_valor(valor):
+    if pd.isna(valor):
+        return None
+    if isinstance(valor, (int, float)):
+        return float(valor)
+
+    texto = str(valor).strip()
+    if not texto:
+        return None
+
+    negativo = texto.startswith("(") and texto.endswith(")")
+    texto = (
+        texto.replace("R$", "")
+        .replace(" ", "")
+        .replace("\u00a0", "")
+        .replace("(", "")
+        .replace(")", "")
+    )
+    texto = "".join(caractere for caractere in texto if caractere.isdigit() or caractere in ",.-")
+
+    if "," in texto and "." in texto:
+        texto = texto.replace(".", "").replace(",", ".")
+    elif "," in texto:
+        texto = texto.replace(",", ".")
+
+    try:
+        numero = float(texto)
+    except ValueError:
+        return None
+
+    return -abs(numero) if negativo else numero
+
+
+def preparar_movimentacoes_importadas(df_planilha):
+    aliases = {
+        "data": ["data", "dt", "dia", "date"],
+        "descricao": ["descricao", "descrição", "historico", "histórico", "lancamento", "lançamento", "detalhe"],
+        "categoria": ["categoria", "grupo", "classificacao", "classificação"],
+        "valor": ["valor", "valor r$", "valor rs", "amount", "preco", "preço"],
+        "tipo": ["tipo", "natureza", "entrada saida", "receita despesa"],
+        "cartao": ["cartao", "cartão", "forma de pagamento", "pagamento", "conta", "banco"],
+    }
+
+    colunas_normais = {normalizar_coluna(coluna): coluna for coluna in df_planilha.columns}
+    mapa_colunas = {}
+
+    for destino, opcoes in aliases.items():
+        for opcao in opcoes:
+            chave = normalizar_coluna(opcao)
+            if chave in colunas_normais:
+                mapa_colunas[destino] = colunas_normais[chave]
+                break
+
+    if "valor" not in mapa_colunas:
+        raise ValueError("A planilha precisa ter uma coluna de valor.")
+
+    linhas = []
+    ignoradas = 0
+
+    for _, linha in df_planilha.iterrows():
+        valor_original = converter_valor(linha.get(mapa_colunas["valor"]))
+        if valor_original is None or valor_original == 0:
+            ignoradas += 1
+            continue
+
+        data_original = linha.get(mapa_colunas.get("data"), date.today())
+        data_convertida = pd.to_datetime(data_original, errors="coerce", dayfirst=True)
+        if pd.isna(data_convertida):
+            data_convertida = pd.Timestamp(date.today())
+
+        tipo_original = str(linha.get(mapa_colunas.get("tipo"), "")).strip().lower()
+        if any(palavra in tipo_original for palavra in ["saida", "saída", "despesa", "debito", "débito", "gasto"]):
+            tipo = "Saída"
+        elif any(palavra in tipo_original for palavra in ["entrada", "receita", "credito", "crédito", "salario", "salário"]):
+            tipo = "Entrada"
+        else:
+            tipo = "Entrada" if valor_original > 0 else "Saída"
+
+        valor_final = abs(valor_original) if tipo == "Entrada" else -abs(valor_original)
+        descricao = str(linha.get(mapa_colunas.get("descricao"), "")).strip()
+        categoria = str(linha.get(mapa_colunas.get("categoria"), "")).strip()
+        cartao = str(linha.get(mapa_colunas.get("cartao"), "")).strip()
+
+        linhas.append(
+            {
+                "data": data_convertida.date().isoformat(),
+                "descricao": descricao if descricao and descricao.lower() != "nan" else "Importado da planilha",
+                "categoria": categoria if categoria and categoria.lower() != "nan" else "Importado",
+                "valor": valor_final,
+                "tipo": tipo,
+                "cartao": cartao if cartao and cartao.lower() != "nan" else "Planilha",
+            }
+        )
+
+    return pd.DataFrame(linhas), ignoradas
+
+
+def importar_movimentacoes(df_importado):
+    if df_importado.empty:
+        return 0
+
+    conn = sqlite3.connect(DB_FILE)
+    conn.executemany(
+        """
+        INSERT INTO transacoes (data, descricao, categoria, valor, tipo, cartao)
+        VALUES (?, ?, ?, ?, ?, ?)
+        """,
+        df_importado[["data", "descricao", "categoria", "valor", "tipo", "cartao"]].itertuples(
+            index=False,
+            name=None,
+        ),
+    )
+    conn.commit()
+    conn.close()
+    return len(df_importado)
+
+
 def _pdf_texto(texto):
     return (
         str(texto)
@@ -934,6 +1090,69 @@ with aba[1]:
         f"""<div class="metric-grid"><div class="metric-card"><div class="metric-label">Entradas</div><div class="metric-value">{brl(total_entradas)}</div><div class="metric-foot">Receitas registradas</div></div><div class="metric-card"><div class="metric-label">Saídas</div><div class="metric-value">{brl(total_saidas)}</div><div class="metric-foot">Despesas acumuladas</div></div><div class="metric-card"><div class="metric-label">Saldo</div><div class="metric-value">{brl(saldo)}</div><div class="metric-foot">Resultado atual</div></div><div class="metric-card"><div class="metric-label">Registros</div><div class="metric-value">{len(df)}</div><div class="metric-foot">Movimentações salvas</div></div></div>""",
         unsafe_allow_html=True,
     )
+
+    with st.expander("📤 Subir planilha de movimentações", expanded=False):
+        st.caption(
+            "Aceita CSV, XLSX ou XLS. Use colunas como data, descrição, categoria, valor, tipo e forma de pagamento."
+        )
+
+        modelo_planilha = pd.DataFrame(
+            [
+                {
+                    "data": date.today().strftime("%d/%m/%Y"),
+                    "descricao": "Exemplo de receita",
+                    "categoria": "Salário",
+                    "valor": "3500,00",
+                    "tipo": "Entrada",
+                    "forma de pagamento": "Conta corrente",
+                },
+                {
+                    "data": date.today().strftime("%d/%m/%Y"),
+                    "descricao": "Exemplo de despesa",
+                    "categoria": "Mercado",
+                    "valor": "250,00",
+                    "tipo": "Saída",
+                    "forma de pagamento": "Cartão",
+                },
+            ]
+        )
+
+        st.download_button(
+            "Baixar modelo CSV",
+            data=modelo_planilha.to_csv(index=False, sep=";").encode("utf-8-sig"),
+            file_name="modelo-importacao-dashboard-financeiro.csv",
+            mime="text/csv",
+        )
+
+        arquivo_planilha = st.file_uploader(
+            "Escolha a planilha",
+            type=["csv", "xlsx", "xls"],
+            accept_multiple_files=False,
+        )
+
+        if arquivo_planilha is not None:
+            try:
+                df_planilha = ler_planilha_movimentacoes(arquivo_planilha)
+                df_importado, linhas_ignoradas = preparar_movimentacoes_importadas(df_planilha)
+
+                if df_importado.empty:
+                    st.warning("Não encontrei movimentações válidas nessa planilha.")
+                else:
+                    previa = df_importado.copy()
+                    previa["data"] = previa["data"].apply(data_br)
+                    previa["valor"] = previa["valor"].apply(brl)
+
+                    st.markdown(f"**Prévia da importação:** {len(df_importado)} movimentações prontas.")
+                    if linhas_ignoradas:
+                        st.caption(f"{linhas_ignoradas} linhas foram ignoradas por não terem valor válido.")
+                    st.dataframe(previa, use_container_width=True, hide_index=True)
+
+                    if st.button("Importar movimentações", type="primary"):
+                        total_importado = importar_movimentacoes(df_importado)
+                        st.success(f"{total_importado} movimentações importadas com sucesso!")
+                        st.rerun()
+            except Exception as erro:
+                st.error(f"Não consegui importar essa planilha: {erro}")
 
     if len(df) > 0:
         df_chart = df.copy()
