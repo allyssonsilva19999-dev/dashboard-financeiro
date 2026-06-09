@@ -845,6 +845,14 @@ def texto_planilha(valor, padrao=""):
 
 
 def data_planilha_mensal(valor, numero_mes):
+    texto_data = texto_planilha(valor)
+    data_sem_ano = re.fullmatch(r"(\d{1,2})/(\d{1,2})", texto_data)
+    if data_sem_ano:
+        dia = int(data_sem_ano.group(1))
+        ano = date.today().year
+        ultimo_dia = pd.Period(year=ano, month=numero_mes, freq="M").days_in_month
+        return date(ano, numero_mes, min(dia, ultimo_dia)).isoformat()
+
     if isinstance(valor, (int, float)) and valor > 30000:
         data_convertida = pd.to_datetime(valor, unit="D", origin="1899-12-30", errors="coerce")
     else:
@@ -855,9 +863,10 @@ def data_planilha_mensal(valor, numero_mes):
         ano = hoje.year
         return date(ano, numero_mes, 1).isoformat()
 
-    ultimo_dia = pd.Period(year=data_convertida.year, month=numero_mes, freq="M").days_in_month
+    ano = data_convertida.year if data_convertida.year > 1970 else date.today().year
+    ultimo_dia = pd.Period(year=ano, month=numero_mes, freq="M").days_in_month
     dia = min(data_convertida.day, ultimo_dia)
-    return date(data_convertida.year, numero_mes, dia).isoformat()
+    return date(ano, numero_mes, dia).isoformat()
 
 
 def adicionar_movimentacao_mensal(
@@ -922,48 +931,98 @@ def preparar_modelo_organizacao_financeira(planilhas):
 
     linhas = []
     for nome_mes, (df_mes, numero_mes) in abas_mensais.items():
-        blocos = [
-            {
-                "linhas": range(9, 21),
-                "colunas": {"descricao": 2, "data": 5, "pagamento": 6, "categoria": 7, "valor": 8},
-                "tipo": "Saída",
-                "categoria": "Gasto fixo",
-                "pagamento": "Planilha mensal",
-            },
-            {
-                "linhas": range(27, 55),
-                "colunas": {"descricao": 2, "data": 5, "pagamento": 6, "categoria": 7, "valor": 8},
-                "tipo": "Saída",
-                "categoria": "Cartão de crédito",
-                "pagamento": "Cartão",
-            },
-            {
-                "linhas": range(9, 55),
-                "colunas": {"descricao": 10, "data": 11, "pagamento": 12, "categoria": 13, "valor": 14},
-                "tipo": "Saída",
-                "categoria": "Gasto do mês",
-                "pagamento": "Planilha mensal",
-            },
-            {
-                "linhas": range(8, 14),
-                "colunas": {"descricao": 16, "valor": 17},
-                "tipo": "Entrada",
-                "categoria": "Receita",
-                "pagamento": "Planilha mensal",
-            },
-        ]
+        tabelas_encontradas = []
+        for numero_linha in range(len(df_mes.index)):
+            colunas_nome = [
+                coluna
+                for coluna in range(len(df_mes.columns))
+                if normalizar_coluna(celula_planilha(df_mes, numero_linha, coluna)) == "nome"
+            ]
+            colunas_valor = [
+                coluna
+                for coluna in range(len(df_mes.columns))
+                if normalizar_coluna(celula_planilha(df_mes, numero_linha, coluna)) == "valor"
+            ]
 
-        for bloco in blocos:
-            for numero_linha in bloco["linhas"]:
+            for coluna_nome in colunas_nome:
+                coluna_valor = next(
+                    (
+                        coluna
+                        for coluna in colunas_valor
+                        if coluna_nome < coluna <= coluna_nome + 8
+                    ),
+                    None,
+                )
+                if coluna_valor is None:
+                    continue
+
+                colunas = {"descricao": coluna_nome, "valor": coluna_valor}
+                for chave in ("data", "tipo", "categoria"):
+                    coluna = next(
+                        (
+                            coluna
+                            for coluna in range(coluna_nome + 1, coluna_valor)
+                            if normalizar_coluna(
+                                celula_planilha(df_mes, numero_linha, coluna)
+                            )
+                            == chave
+                        ),
+                        None,
+                    )
+                    if coluna is not None:
+                        colunas[chave] = coluna
+                tabelas_encontradas.append((numero_linha, colunas))
+
+        for linha_cabecalho, colunas in tabelas_encontradas:
+            linhas_vazias = 0
+            for numero_linha in range(linha_cabecalho + 1, len(df_mes.index)):
+                descricao = texto_planilha(celula_planilha(df_mes, numero_linha, colunas["descricao"]))
+                valor = converter_valor(celula_planilha(df_mes, numero_linha, colunas["valor"]))
+                if not descricao and (valor is None or valor == 0):
+                    linhas_vazias += 1
+                    if linhas_vazias >= 2:
+                        break
+                    continue
+                linhas_vazias = 0
+
+                descricao_normalizada = normalizar_coluna(descricao)
+                if descricao_normalizada.startswith("total"):
+                    continue
+
+                tipo_original = texto_planilha(
+                    celula_planilha(df_mes, numero_linha, colunas.get("tipo", -1)),
+                    "Débito",
+                )
+                tipo = (
+                    "Entrada"
+                    if normalizar_coluna(tipo_original) in {"receita", "entrada"}
+                    else "Saída"
+                )
                 adicionar_movimentacao_mensal(
                     linhas,
                     df_mes,
                     numero_linha,
-                    bloco["colunas"],
+                    {
+                        **colunas,
+                        "pagamento": colunas.get("tipo", -1),
+                    },
                     numero_mes,
-                    bloco["tipo"],
-                    bloco["categoria"],
-                    bloco["pagamento"],
+                    tipo,
+                    "Receita" if tipo == "Entrada" else "Outros",
+                    tipo_original,
+                )
+
+        if len(df_mes.columns) > 17:
+            for numero_linha in range(8, min(14, len(df_mes.index))):
+                adicionar_movimentacao_mensal(
+                    linhas,
+                    df_mes,
+                    numero_linha,
+                    {"descricao": 16, "valor": 17},
+                    numero_mes,
+                    "Entrada",
+                    "Receita",
+                    "Planilha mensal",
                 )
 
     return pd.DataFrame(linhas), 0
