@@ -1,6 +1,8 @@
 import base64
+import re
 import sqlite3
 import textwrap
+import zipfile
 from datetime import date
 from html import escape
 from io import BytesIO
@@ -727,12 +729,57 @@ def ler_planilha_movimentacoes(arquivo):
             return pd.read_csv(arquivo, sep=None, engine="python", encoding="latin-1")
 
     if nome.endswith(".xlsx"):
-        return pd.read_excel(arquivo, sheet_name=None, header=None, engine="openpyxl")
+        dados = arquivo.read()
+        try:
+            return pd.read_excel(BytesIO(dados), sheet_name=None, header=None, engine="openpyxl")
+        except ValueError as erro:
+            if "could not convert string to float" not in str(erro):
+                raise
+            arquivo_corrigido = corrigir_xlsx_malformado(dados)
+            return pd.read_excel(arquivo_corrigido, sheet_name=None, header=None, engine="openpyxl")
 
     if nome.endswith(".xls"):
         return pd.read_excel(arquivo, sheet_name=None, header=None, engine="xlrd")
 
     raise ValueError("Envie uma planilha nos formatos CSV, XLSX ou XLS.")
+
+
+def corrigir_xlsx_malformado(dados):
+    origem = zipfile.ZipFile(BytesIO(dados), "r")
+    destino = BytesIO()
+
+    def corrigir_celula(correspondencia):
+        celula = correspondencia.group(0)
+        valor = re.search(r"<v>(.*?)</v>", celula, flags=re.DOTALL)
+        if valor is None:
+            return celula
+        try:
+            float(valor.group(1))
+            return celula
+        except ValueError:
+            if 't="n"' in celula:
+                return celula.replace('t="n"', 't="str"', 1)
+            if re.search(r"<c\b[^>]*\bt=", celula):
+                return celula
+            return celula.replace(">", ' t="str">', 1)
+
+    with zipfile.ZipFile(destino, "w", zipfile.ZIP_DEFLATED) as arquivo_saida:
+        for item in origem.infolist():
+            conteudo = origem.read(item.filename)
+            if item.filename.startswith("xl/worksheets/") and item.filename.endswith(".xml"):
+                texto = conteudo.decode("utf-8")
+                texto = re.sub(
+                    r"<c\b[^>]*>.*?</c>",
+                    corrigir_celula,
+                    texto,
+                    flags=re.DOTALL,
+                )
+                conteudo = texto.encode("utf-8")
+            arquivo_saida.writestr(item, conteudo)
+
+    origem.close()
+    destino.seek(0)
+    return destino
 
 
 def converter_valor(valor):
