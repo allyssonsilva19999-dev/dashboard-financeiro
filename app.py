@@ -3,11 +3,15 @@ import sqlite3
 import textwrap
 from datetime import date
 from html import escape
+from io import BytesIO
 from pathlib import Path
 
 import pandas as pd
 import plotly.express as px
 import streamlit as st
+from openpyxl import Workbook
+from openpyxl.styles import Alignment, Font, PatternFill
+from openpyxl.worksheet.table import Table, TableStyleInfo
 
 st.set_page_config(
     page_title="Dashboard Financeiro",
@@ -614,6 +618,84 @@ def data_br(valor):
     return data_convertida.strftime("%d/%m/%Y")
 
 
+def gerar_modelo_excel():
+    arquivo = BytesIO()
+    workbook = Workbook()
+    movimentacoes = workbook.active
+    movimentacoes.title = "Movimentações"
+
+    cabecalhos = [
+        "Data",
+        "Descrição",
+        "Categoria",
+        "Valor",
+        "Tipo",
+        "Forma de Pagamento",
+    ]
+    exemplos = [
+        [date.today(), "Salário mensal", "Salário", 3500.00, "Entrada", "Conta corrente"],
+        [date.today(), "Compras do mês", "Mercado", 250.00, "Saída", "Cartão"],
+        [date.today(), "Conta de internet", "Contas", 99.90, "Saída", "Pix"],
+    ]
+
+    movimentacoes.append(cabecalhos)
+    for exemplo in exemplos:
+        movimentacoes.append(exemplo)
+
+    tabela = Table(displayName="TabelaMovimentacoes", ref=f"A1:F{len(exemplos) + 1}")
+    tabela.tableStyleInfo = TableStyleInfo(
+        name="TableStyleMedium2",
+        showFirstColumn=False,
+        showLastColumn=False,
+        showRowStripes=True,
+        showColumnStripes=False,
+    )
+    movimentacoes.add_table(tabela)
+    movimentacoes.freeze_panes = "A2"
+    movimentacoes.auto_filter.ref = f"A1:F{len(exemplos) + 1}"
+
+    larguras = {"A": 14, "B": 28, "C": 20, "D": 18, "E": 14, "F": 24}
+    for coluna, largura in larguras.items():
+        movimentacoes.column_dimensions[coluna].width = largura
+
+    for celula in movimentacoes["A"][1:]:
+        celula.number_format = "dd/mm/yyyy"
+    for celula in movimentacoes["D"][1:]:
+        celula.number_format = 'R$ #,##0.00;[Red]-R$ #,##0.00'
+
+    resumo = workbook.create_sheet("Resumo de Valores")
+    resumo.append(["Tabela de Valores", "Valor"])
+    resumo.append(["Total de Entradas", '=SUMIF(Movimentações!E:E,"Entrada",Movimentações!D:D)'])
+    resumo.append(["Total de Saídas", '=SUMIF(Movimentações!E:E,"Saída",Movimentações!D:D)'])
+    resumo.append(["Saldo Previsto", "=B2-B3"])
+    resumo.append(["Quantidade de Registros", "=COUNTA(Movimentações!A:A)-1"])
+
+    resumo_tabela = Table(displayName="TabelaResumoValores", ref="A1:B5")
+    resumo_tabela.tableStyleInfo = TableStyleInfo(
+        name="TableStyleMedium2",
+        showFirstColumn=False,
+        showLastColumn=False,
+        showRowStripes=True,
+        showColumnStripes=False,
+    )
+    resumo.add_table(resumo_tabela)
+    resumo.column_dimensions["A"].width = 28
+    resumo.column_dimensions["B"].width = 22
+
+    for celula in resumo["B"][1:4]:
+        celula.number_format = 'R$ #,##0.00;[Red]-R$ #,##0.00'
+
+    for planilha in [movimentacoes, resumo]:
+        for celula in planilha[1]:
+            celula.font = Font(bold=True, color="FFFFFF")
+            celula.fill = PatternFill("solid", fgColor="15294B")
+            celula.alignment = Alignment(horizontal="center")
+
+    workbook.save(arquivo)
+    arquivo.seek(0)
+    return arquivo.getvalue()
+
+
 def normalizar_coluna(nome):
     texto = str(nome).strip().lower()
     trocas = {
@@ -1093,35 +1175,14 @@ with aba[1]:
 
     with st.expander("📤 Subir planilha de movimentações", expanded=False):
         st.caption(
-            "Aceita CSV, XLSX ou XLS. Use colunas como data, descrição, categoria, valor, tipo e forma de pagamento."
-        )
-
-        modelo_planilha = pd.DataFrame(
-            [
-                {
-                    "data": date.today().strftime("%d/%m/%Y"),
-                    "descricao": "Exemplo de receita",
-                    "categoria": "Salário",
-                    "valor": "3500,00",
-                    "tipo": "Entrada",
-                    "forma de pagamento": "Conta corrente",
-                },
-                {
-                    "data": date.today().strftime("%d/%m/%Y"),
-                    "descricao": "Exemplo de despesa",
-                    "categoria": "Mercado",
-                    "valor": "250,00",
-                    "tipo": "Saída",
-                    "forma de pagamento": "Cartão",
-                },
-            ]
+            "Aceita CSV, XLSX ou XLS. O modelo Excel inclui uma tabela de movimentações e um resumo automático de valores."
         )
 
         st.download_button(
-            "Baixar modelo CSV",
-            data=modelo_planilha.to_csv(index=False, sep=";").encode("utf-8-sig"),
-            file_name="modelo-importacao-dashboard-financeiro.csv",
-            mime="text/csv",
+            "Baixar modelo Excel com tabela de valores",
+            data=gerar_modelo_excel(),
+            file_name="modelo-dashboard-financeiro.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         )
 
         arquivo_planilha = st.file_uploader(
@@ -1138,14 +1199,43 @@ with aba[1]:
                 if df_importado.empty:
                     st.warning("Não encontrei movimentações válidas nessa planilha.")
                 else:
-                    previa = df_importado.copy()
-                    previa["data"] = previa["data"].apply(data_br)
-                    previa["valor"] = previa["valor"].apply(brl)
+                    entradas_importadas = df_importado[df_importado["valor"] > 0]["valor"].sum()
+                    saidas_importadas = abs(df_importado[df_importado["valor"] < 0]["valor"].sum())
+                    saldo_importado = df_importado["valor"].sum()
 
-                    st.markdown(f"**Prévia da importação:** {len(df_importado)} movimentações prontas.")
+                    col_valor1, col_valor2, col_valor3, col_valor4 = st.columns(4)
+                    col_valor1.metric("Entradas da planilha", brl(entradas_importadas))
+                    col_valor2.metric("Saídas da planilha", brl(saidas_importadas))
+                    col_valor3.metric("Saldo da planilha", brl(saldo_importado))
+                    col_valor4.metric("Registros válidos", len(df_importado))
+
+                    previa = df_importado.rename(
+                        columns={
+                            "data": "Data",
+                            "descricao": "Descrição",
+                            "categoria": "Categoria",
+                            "valor": "Valor (R$)",
+                            "tipo": "Tipo",
+                            "cartao": "Forma de Pagamento",
+                        }
+                    )
+                    previa["Data"] = pd.to_datetime(previa["Data"], errors="coerce")
+
+                    st.markdown("**Tabela de valores para importação**")
                     if linhas_ignoradas:
                         st.caption(f"{linhas_ignoradas} linhas foram ignoradas por não terem valor válido.")
-                    st.dataframe(previa, use_container_width=True, hide_index=True)
+                    st.dataframe(
+                        previa,
+                        use_container_width=True,
+                        hide_index=True,
+                        column_config={
+                            "Data": st.column_config.DateColumn("Data", format="DD/MM/YYYY"),
+                            "Valor (R$)": st.column_config.NumberColumn(
+                                "Valor (R$)",
+                                format="R$ %.2f",
+                            ),
+                        },
+                    )
 
                     if st.button("Importar movimentações", type="primary"):
                         total_importado = importar_movimentacoes(df_importado)
