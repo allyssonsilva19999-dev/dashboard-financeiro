@@ -727,10 +727,10 @@ def ler_planilha_movimentacoes(arquivo):
             return pd.read_csv(arquivo, sep=None, engine="python", encoding="latin-1")
 
     if nome.endswith(".xlsx"):
-        return pd.read_excel(arquivo, engine="openpyxl")
+        return pd.read_excel(arquivo, sheet_name=None, header=None, engine="openpyxl")
 
     if nome.endswith(".xls"):
-        return pd.read_excel(arquivo, engine="xlrd")
+        return pd.read_excel(arquivo, sheet_name=None, header=None, engine="xlrd")
 
     raise ValueError("Envie uma planilha nos formatos CSV, XLSX ou XLS.")
 
@@ -768,7 +768,173 @@ def converter_valor(valor):
     return -abs(numero) if negativo else numero
 
 
+MESES_PLANILHA = {
+    "janeiro": 1,
+    "fevereiro": 2,
+    "marco": 3,
+    "abril": 4,
+    "maio": 5,
+    "junho": 6,
+    "julho": 7,
+    "agosto": 8,
+    "setembro": 9,
+    "outubro": 10,
+    "novembro": 11,
+    "dezembro": 12,
+}
+
+
+def celula_planilha(df_planilha, linha, coluna):
+    if linha < 0 or coluna < 0 or linha >= len(df_planilha.index) or coluna >= len(df_planilha.columns):
+        return None
+    return df_planilha.iat[linha, coluna]
+
+
+def texto_planilha(valor, padrao=""):
+    if pd.isna(valor):
+        return padrao
+    texto = str(valor).strip()
+    return texto if texto and texto.lower() != "nan" else padrao
+
+
+def data_planilha_mensal(valor, numero_mes):
+    if isinstance(valor, (int, float)) and valor > 30000:
+        data_convertida = pd.to_datetime(valor, unit="D", origin="1899-12-30", errors="coerce")
+    else:
+        data_convertida = pd.to_datetime(valor, errors="coerce", dayfirst=True)
+
+    if pd.isna(data_convertida):
+        hoje = date.today()
+        ano = hoje.year
+        return date(ano, numero_mes, 1).isoformat()
+
+    ultimo_dia = pd.Period(year=data_convertida.year, month=numero_mes, freq="M").days_in_month
+    dia = min(data_convertida.day, ultimo_dia)
+    return date(data_convertida.year, numero_mes, dia).isoformat()
+
+
+def adicionar_movimentacao_mensal(
+    linhas,
+    df_mes,
+    linha,
+    colunas,
+    numero_mes,
+    tipo,
+    categoria_padrao,
+    pagamento_padrao,
+):
+    valor_original = converter_valor(celula_planilha(df_mes, linha, colunas["valor"]))
+    if valor_original is None or valor_original == 0:
+        return False
+
+    descricao = texto_planilha(
+        celula_planilha(df_mes, linha, colunas.get("descricao", -1)),
+        "Movimentação importada",
+    )
+    if normalizar_coluna(descricao) in {
+        "total",
+        "total de gastos",
+        "total de fixos",
+        "total de cartao de credito",
+    }:
+        return False
+
+    categoria = texto_planilha(
+        celula_planilha(df_mes, linha, colunas.get("categoria", -1)),
+        categoria_padrao,
+    )
+    pagamento = texto_planilha(
+        celula_planilha(df_mes, linha, colunas.get("pagamento", -1)),
+        pagamento_padrao,
+    )
+    data_original = celula_planilha(df_mes, linha, colunas.get("data", -1))
+    data_final = data_planilha_mensal(data_original, numero_mes)
+    valor_final = abs(valor_original) if tipo == "Entrada" else -abs(valor_original)
+
+    linhas.append(
+        {
+            "data": data_final,
+            "descricao": descricao,
+            "categoria": categoria,
+            "valor": valor_final,
+            "tipo": tipo,
+            "cartao": pagamento,
+        }
+    )
+    return True
+
+
+def preparar_modelo_organizacao_financeira(planilhas):
+    abas_mensais = {
+        nome: (df_mes, MESES_PLANILHA[normalizar_coluna(nome)])
+        for nome, df_mes in planilhas.items()
+        if normalizar_coluna(nome) in MESES_PLANILHA
+    }
+    if not abas_mensais:
+        return None
+
+    linhas = []
+    for nome_mes, (df_mes, numero_mes) in abas_mensais.items():
+        blocos = [
+            {
+                "linhas": range(9, 21),
+                "colunas": {"descricao": 2, "data": 5, "pagamento": 6, "categoria": 7, "valor": 8},
+                "tipo": "Saída",
+                "categoria": "Gasto fixo",
+                "pagamento": "Planilha mensal",
+            },
+            {
+                "linhas": range(27, 55),
+                "colunas": {"descricao": 2, "data": 5, "pagamento": 6, "categoria": 7, "valor": 8},
+                "tipo": "Saída",
+                "categoria": "Cartão de crédito",
+                "pagamento": "Cartão",
+            },
+            {
+                "linhas": range(9, 55),
+                "colunas": {"descricao": 10, "data": 11, "pagamento": 12, "categoria": 13, "valor": 14},
+                "tipo": "Saída",
+                "categoria": "Gasto do mês",
+                "pagamento": "Planilha mensal",
+            },
+            {
+                "linhas": range(8, 14),
+                "colunas": {"descricao": 16, "valor": 17},
+                "tipo": "Entrada",
+                "categoria": "Receita",
+                "pagamento": "Planilha mensal",
+            },
+        ]
+
+        for bloco in blocos:
+            for numero_linha in bloco["linhas"]:
+                adicionar_movimentacao_mensal(
+                    linhas,
+                    df_mes,
+                    numero_linha,
+                    bloco["colunas"],
+                    numero_mes,
+                    bloco["tipo"],
+                    bloco["categoria"],
+                    bloco["pagamento"],
+                )
+
+    return pd.DataFrame(linhas), 0
+
+
 def preparar_movimentacoes_importadas(df_planilha):
+    if isinstance(df_planilha, dict):
+        modelo_organizado = preparar_modelo_organizacao_financeira(df_planilha)
+        if modelo_organizado is not None:
+            return modelo_organizado
+
+        primeira_aba = next(iter(df_planilha.values()), pd.DataFrame())
+        if primeira_aba.empty:
+            return pd.DataFrame(), 0
+        primeira_aba = primeira_aba.copy()
+        primeira_aba.columns = primeira_aba.iloc[0]
+        df_planilha = primeira_aba.iloc[1:].reset_index(drop=True)
+
     aliases = {
         "data": ["data", "dt", "dia", "date"],
         "descricao": ["descricao", "descrição", "historico", "histórico", "lancamento", "lançamento", "detalhe"],
@@ -789,7 +955,9 @@ def preparar_movimentacoes_importadas(df_planilha):
                 break
 
     if "valor" not in mapa_colunas:
-        raise ValueError("A planilha precisa ter uma coluna de valor.")
+        raise ValueError(
+            "Não encontrei uma coluna de valor nem abas mensais no formato da Organização Financeira."
+        )
 
     linhas = []
     ignoradas = 0
@@ -1175,7 +1343,7 @@ with aba[1]:
 
     with st.expander("📤 Subir planilha de movimentações", expanded=False):
         st.caption(
-            "Aceita CSV, XLSX ou XLS. O modelo Excel inclui uma tabela de movimentações e um resumo automático de valores."
+            "Aceita CSV, XLSX, XLS e a planilha completa Organização Financeira com abas mensais."
         )
 
         st.download_button(
