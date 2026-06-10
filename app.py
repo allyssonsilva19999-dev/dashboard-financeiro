@@ -453,6 +453,54 @@ st.markdown(
         border: 1px solid rgba(255, 255, 255, 0.58);
     }}
 
+    div[data-testid="stExpander"] {{
+        overflow: hidden;
+        border: 1px solid rgba(255, 255, 255, 0.62);
+        border-radius: 22px;
+        background: rgba(238, 245, 250, 0.82);
+        box-shadow: 0 18px 44px rgba(1, 10, 37, 0.18);
+        backdrop-filter: blur(18px) saturate(140%);
+        -webkit-backdrop-filter: blur(18px) saturate(140%);
+    }}
+
+    div[data-testid="stExpander"] summary p,
+    div[data-testid="stExpander"] [data-testid="stCaptionContainer"] p,
+    div[data-testid="stExpander"] p {{
+        color: #101d39 !important;
+    }}
+
+    div[data-testid="stPlotlyChart"] {{
+        overflow: hidden;
+        border: 1px solid rgba(255, 255, 255, 0.74);
+        border-radius: 22px;
+        background: rgba(248, 251, 255, 0.94);
+        box-shadow: 0 20px 48px rgba(1, 10, 37, 0.24);
+    }}
+
+    div[data-testid="stDataFrame"] {{
+        overflow: hidden;
+        border: 1px solid rgba(255, 255, 255, 0.74);
+        border-radius: 18px;
+        background: rgba(248, 251, 255, 0.96);
+        box-shadow: 0 16px 36px rgba(1, 10, 37, 0.18);
+    }}
+
+    .chart-intro {{
+        margin: 1.25rem 0 0.8rem;
+        padding: 0.95rem 1.05rem;
+        border-radius: 18px;
+        color: rgba(248, 251, 255, 0.92);
+        background: rgba(5, 25, 65, 0.72);
+        border: 1px solid rgba(255, 255, 255, 0.34);
+        box-shadow: 0 16px 38px rgba(1, 10, 37, 0.20);
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
+    }}
+
+    .chart-intro strong {{
+        color: #ffffff;
+    }}
+
     .history-item {{
         display: grid;
         grid-template-columns: minmax(0, 1fr) auto;
@@ -1676,19 +1724,36 @@ def salvar_investimento(data_investimento, tipo, valor, rentabilidade, descricao
 def style_plot(fig):
     fig.update_layout(
         paper_bgcolor="rgba(255,255,255,0)",
-        plot_bgcolor="rgba(255,255,255,0)",
-        font=dict(color="#1f1d1a"),
-        title=dict(font=dict(size=20, color="#1f1d1a")),
-        legend=dict(bgcolor="rgba(255,255,255,0)", font=dict(color="#29251f")),
-        margin=dict(l=20, r=20, t=60, b=20),
+        plot_bgcolor="rgba(238,245,250,0.52)",
+        font=dict(color="#101d39", size=12),
+        title=dict(font=dict(size=19, color="#101d39"), x=0.04, xanchor="left"),
+        legend=dict(
+            bgcolor="rgba(255,255,255,0)",
+            font=dict(color="#101d39"),
+            orientation="h",
+            yanchor="bottom",
+            y=1.01,
+            xanchor="right",
+            x=1,
+        ),
+        hoverlabel=dict(bgcolor="#f8fbff", font_color="#101d39"),
+        margin=dict(l=28, r=24, t=78, b=34),
+        height=410,
+        separators=",.",
     )
     fig.update_xaxes(
-        gridcolor="rgba(31,29,26,0.10)",
-        zerolinecolor="rgba(31,29,26,0.12)",
+        gridcolor="rgba(16,29,57,0.09)",
+        linecolor="rgba(16,29,57,0.12)",
+        zerolinecolor="rgba(16,29,57,0.12)",
+        title_font=dict(color="#315d7b"),
+        tickfont=dict(color="#315d7b"),
     )
     fig.update_yaxes(
-        gridcolor="rgba(31,29,26,0.10)",
-        zerolinecolor="rgba(31,29,26,0.12)",
+        gridcolor="rgba(16,29,57,0.09)",
+        linecolor="rgba(16,29,57,0.12)",
+        zerolinecolor="rgba(16,29,57,0.12)",
+        title_font=dict(color="#315d7b"),
+        tickfont=dict(color="#315d7b"),
     )
     return fig
 
@@ -1852,7 +1917,10 @@ with aba[1]:
 
                         if st.button("Integrar movimentações ao dashboard", type="primary"):
                             total_importado, total_duplicadas = importar_movimentacoes(df_importado)
-                            mensagem = f"{total_importado} movimentações integradas com sucesso."
+                            mensagem = (
+                                f"{total_importado} movimentações integradas. "
+                                "Totais, gráficos e histórico foram atualizados."
+                            )
                             if total_duplicadas:
                                 mensagem += f" {total_duplicadas} duplicadas foram ignoradas."
                             st.session_state["resultado_importacao"] = mensagem
@@ -1863,6 +1931,7 @@ with aba[1]:
     if len(df) > 0:
         df_chart = df.copy()
         df_chart["valor_abs"] = df_chart["valor"].abs()
+        df_chart["data_convertida"] = pd.to_datetime(df_chart["data"], errors="coerce")
 
         categoria_total = (
             df_chart.groupby("categoria", as_index=False)["valor_abs"]
@@ -1871,6 +1940,23 @@ with aba[1]:
         )
 
         fluxo_total = df_chart.groupby(["categoria", "tipo"], as_index=False)["valor_abs"].sum()
+        fluxo_mensal = (
+            df_chart.dropna(subset=["data_convertida"])
+            .assign(
+                mes=lambda dados: dados["data_convertida"].dt.to_period("M").dt.to_timestamp(),
+                entradas=lambda dados: dados["valor"].clip(lower=0),
+                saidas=lambda dados: dados["valor"].clip(upper=0).abs(),
+            )
+            .groupby("mes", as_index=False)[["entradas", "saidas"]]
+            .sum()
+        )
+
+        st.markdown(
+            f"""<div class="chart-intro"><strong>Visão consolidada</strong><br>
+            Os {len(df)} lançamentos cadastrados manualmente e integrados por planilha alimentam
+            automaticamente os gráficos e o histórico abaixo.</div>""",
+            unsafe_allow_html=True,
+        )
 
         col_g1, col_g2 = st.columns(2)
 
@@ -1882,16 +1968,21 @@ with aba[1]:
                 title="Distribuição por Categoria",
                 hole=0.58,
                 color_discrete_sequence=[
-                    "#1f1d1a",
-                    "#d99b45",
-                    "#f3dcc1",
-                    "#6f4d2d",
-                    "#b98244",
-                    "#efe4d5",
-                    "#3d6d45",
+                    "#173e73",
+                    "#df8f92",
+                    "#65a9b7",
+                    "#e0b35c",
+                    "#6b79b4",
+                    "#7dba91",
+                    "#b47baa",
                 ],
             )
-            fig.update_traces(textposition="inside", textinfo="percent+label")
+            fig.update_traces(
+                textposition="inside",
+                textinfo="percent+label",
+                marker=dict(line=dict(color="rgba(255,255,255,0.86)", width=2)),
+                hovertemplate="<b>%{label}</b><br>R$ %{value:,.2f}<br>%{percent}<extra></extra>",
+            )
             st.plotly_chart(style_plot(fig), use_container_width=True)
 
         with col_g2:
@@ -1902,11 +1993,40 @@ with aba[1]:
                 color="tipo",
                 title="Entradas x Saídas",
                 color_discrete_map={
-                    "Entrada": "#3d6d45",
-                    "Saída": "#9c4f2f",
+                    "Entrada": "#3f8b68",
+                    "Saída": "#c45c68",
                 },
+                labels={"categoria": "Categoria", "valor_abs": "Valor", "tipo": "Tipo"},
             )
+            fig2.update_traces(
+                marker_line_color="rgba(255,255,255,0.78)",
+                marker_line_width=1,
+                hovertemplate="<b>%{x}</b><br>R$ %{y:,.2f}<extra></extra>",
+            )
+            fig2.update_yaxes(tickprefix="R$ ")
             st.plotly_chart(style_plot(fig2), use_container_width=True)
+
+        if len(fluxo_mensal) > 0:
+            fig_mensal = px.bar(
+                fluxo_mensal,
+                x="mes",
+                y=["entradas", "saidas"],
+                barmode="group",
+                title="Evolução mensal consolidada",
+                color_discrete_map={"entradas": "#3f8b68", "saidas": "#c45c68"},
+                labels={"mes": "Mês", "value": "Valor", "variable": "Movimentação"},
+            )
+            fig_mensal.for_each_trace(
+                lambda trace: trace.update(
+                    name="Entradas" if trace.name == "entradas" else "Saídas",
+                    marker_line_color="rgba(255,255,255,0.76)",
+                    marker_line_width=1,
+                    hovertemplate="<b>%{x|%m/%Y}</b><br>R$ %{y:,.2f}<extra></extra>",
+                )
+            )
+            fig_mensal.update_xaxes(tickformat="%m/%Y")
+            fig_mensal.update_yaxes(tickprefix="R$ ")
+            st.plotly_chart(style_plot(fig_mensal), use_container_width=True)
     else:
         st.info("Adicione uma movimentação para visualizar os gráficos.")
 
@@ -2077,7 +2197,84 @@ with aba[3]:
     )
 
     if len(df) > 0:
-        for _, row in df.iterrows():
+        st.markdown("#### Histórico consolidado")
+        st.caption(
+            "Todos os registros manuais e importados por planilha ficam disponíveis nesta mesma visão."
+        )
+
+        col_busca, col_tipo, col_categoria = st.columns([2, 1, 1])
+        with col_busca:
+            busca_historico = st.text_input(
+                "Buscar movimentação",
+                placeholder="Descrição, categoria ou pagamento",
+                key="busca_historico",
+            )
+        with col_tipo:
+            tipo_historico = st.selectbox(
+                "Tipo",
+                ["Todos", "Entrada", "Saída"],
+                key="tipo_historico",
+            )
+        with col_categoria:
+            categorias_historico = sorted(
+                texto_planilha(categoria, "Sem categoria")
+                for categoria in df["categoria"].dropna().unique()
+            )
+            categoria_historico_filtro = st.selectbox(
+                "Categoria",
+                ["Todas", *categorias_historico],
+                key="categoria_historico",
+            )
+
+        df_historico = df.copy()
+        if busca_historico.strip():
+            termo = normalizar_coluna(busca_historico)
+            mascara = df_historico.apply(
+                lambda registro: termo
+                in normalizar_coluna(
+                    " ".join(
+                        [
+                            texto_planilha(registro.get("descricao")),
+                            texto_planilha(registro.get("categoria")),
+                            texto_planilha(registro.get("cartao")),
+                        ]
+                    )
+                ),
+                axis=1,
+            )
+            df_historico = df_historico[mascara]
+        if tipo_historico != "Todos":
+            df_historico = df_historico[df_historico["tipo"] == tipo_historico]
+        if categoria_historico_filtro != "Todas":
+            df_historico = df_historico[df_historico["categoria"] == categoria_historico_filtro]
+
+        tabela_historico = df_historico[
+            ["data", "descricao", "categoria", "tipo", "cartao", "valor"]
+        ].rename(
+            columns={
+                "data": "Data",
+                "descricao": "Descrição",
+                "categoria": "Categoria",
+                "tipo": "Tipo",
+                "cartao": "Forma de Pagamento",
+                "valor": "Valor",
+            }
+        )
+        tabela_historico["Data"] = tabela_historico["Data"].map(data_br)
+        tabela_historico["Valor"] = tabela_historico["Valor"].map(brl)
+        st.dataframe(
+            tabela_historico,
+            use_container_width=True,
+            hide_index=True,
+            column_config={
+                "Data": st.column_config.TextColumn("Data"),
+                "Valor": st.column_config.TextColumn("Valor"),
+            },
+        )
+        st.caption(f"{len(df_historico)} de {len(df)} movimentações exibidas.")
+
+        st.markdown("#### Detalhes e exclusão")
+        for _, row in df_historico.iterrows():
             classe = "positive" if row["valor"] >= 0 else "negative"
             descricao_historico = escape(str(row["descricao"] or "Sem descrição"))
             categoria_historico = escape(str(row["categoria"] or "Sem categoria"))
@@ -2092,6 +2289,8 @@ with aba[3]:
             if st.button("🗑️ Apagar", key=f"del{row['id']}"):
                 excluir_transacao(row["id"])
                 st.rerun()
+        if df_historico.empty:
+            st.info("Nenhuma movimentação corresponde aos filtros selecionados.")
     else:
         st.info("Nenhum registro ainda.")
 
