@@ -10,6 +10,7 @@ from pathlib import Path
 
 import pandas as pd
 import plotly.express as px
+import requests
 import streamlit as st
 from openpyxl import Workbook
 from openpyxl.styles import Alignment, Font, PatternFill
@@ -608,6 +609,174 @@ st.markdown(
 DB_FILE = "financeiro.db"
 
 
+def obter_segredo(secao, chave):
+    try:
+        return str(st.secrets.get(secao, {}).get(chave, "")).strip()
+    except Exception:
+        return ""
+
+
+SUPABASE_URL = obter_segredo("supabase", "url").rstrip("/")
+SUPABASE_ANON_KEY = obter_segredo("supabase", "anon_key")
+BANCO_REMOTO_ATIVO = bool(SUPABASE_URL and SUPABASE_ANON_KEY)
+
+
+def cabecalhos_supabase(token=None, prefer=None):
+    cabecalhos = {
+        "apikey": SUPABASE_ANON_KEY,
+        "Authorization": f"Bearer {token or SUPABASE_ANON_KEY}",
+        "Content-Type": "application/json",
+    }
+    if prefer:
+        cabecalhos["Prefer"] = prefer
+    return cabecalhos
+
+
+def requisicao_supabase(metodo, caminho, token=None, **kwargs):
+    prefer = kwargs.pop("prefer", None)
+    resposta = requests.request(
+        metodo,
+        f"{SUPABASE_URL}{caminho}",
+        headers=cabecalhos_supabase(token, prefer),
+        timeout=30,
+        **kwargs,
+    )
+    sessao = st.session_state.get("sessao_supabase")
+    if resposta.status_code == 401 and token and sessao and sessao.get("refresh_token"):
+        renovacao = requests.post(
+            f"{SUPABASE_URL}/auth/v1/token?grant_type=refresh_token",
+            headers=cabecalhos_supabase(),
+            json={"refresh_token": sessao["refresh_token"]},
+            timeout=30,
+        )
+        if renovacao.ok:
+            st.session_state["sessao_supabase"] = renovacao.json()
+            resposta = requests.request(
+                metodo,
+                f"{SUPABASE_URL}{caminho}",
+                headers=cabecalhos_supabase(renovacao.json()["access_token"], prefer),
+                timeout=30,
+                **kwargs,
+            )
+    if resposta.status_code >= 400:
+        try:
+            detalhe = resposta.json().get("message") or resposta.json().get("error_description")
+        except Exception:
+            detalhe = resposta.text
+        raise RuntimeError(detalhe or "Não foi possível acessar o banco online.")
+    if not resposta.content:
+        return None
+    return resposta.json()
+
+
+def sessao_usuario():
+    return st.session_state.get("sessao_supabase")
+
+
+def usuario_atual_id():
+    sessao = sessao_usuario()
+    if sessao:
+        return sessao["user"]["id"]
+    return "local"
+
+
+def token_usuario():
+    sessao = sessao_usuario()
+    return sessao.get("access_token") if sessao else None
+
+
+def entrar_usuario(email, senha):
+    sessao = requisicao_supabase(
+        "POST",
+        "/auth/v1/token?grant_type=password",
+        json={"email": email.strip(), "password": senha},
+    )
+    st.session_state["sessao_supabase"] = sessao
+
+
+def cadastrar_usuario(email, senha):
+    resposta = requisicao_supabase(
+        "POST",
+        "/auth/v1/signup",
+        json={"email": email.strip(), "password": senha},
+    )
+    if resposta.get("access_token"):
+        st.session_state["sessao_supabase"] = resposta
+        return True
+    return False
+
+
+def sair_usuario():
+    sessao = sessao_usuario()
+    if sessao:
+        try:
+            requisicao_supabase("POST", "/auth/v1/logout", token=sessao["access_token"])
+        except Exception:
+            pass
+    st.session_state.pop("sessao_supabase", None)
+
+
+def exigir_usuario():
+    if not BANCO_REMOTO_ATIVO:
+        st.warning(
+            "Modo local ativo: configure o banco online nos Secrets do Streamlit para "
+            "manter os dados após reinicializações e separar as informações por usuário."
+        )
+        return
+
+    sessao = sessao_usuario()
+    if sessao:
+        email = escape(sessao.get("user", {}).get("email", "Conta conectada"))
+        col_conta, col_sair = st.columns([5, 1])
+        col_conta.caption(f"Conta conectada: {email}")
+        if col_sair.button("Sair", use_container_width=True):
+            sair_usuario()
+            st.rerun()
+        return
+
+    st.markdown(
+        """
+        <section class="hero-card" style="max-width:680px;margin:4rem auto 1.5rem;">
+            <div class="hero-top"><span>Dashboard_</span><span class="pill">Acesso seguro</span></div>
+            <h1 style="font-size:3.4rem;">Dashboard<br>Financeiro</h1>
+            <p class="hero-subtitle">Entre na sua conta para acessar seus dados financeiros com segurança.</p>
+        </section>
+        """,
+        unsafe_allow_html=True,
+    )
+    aba_entrar, aba_cadastrar = st.tabs(["Entrar", "Criar conta"])
+
+    with aba_entrar:
+        with st.form("form_entrar"):
+            email = st.text_input("E-mail", key="login_email")
+            senha = st.text_input("Senha", type="password", key="login_senha")
+            if st.form_submit_button("Entrar", use_container_width=True):
+                try:
+                    entrar_usuario(email, senha)
+                    st.rerun()
+                except Exception as erro:
+                    st.error(f"Não foi possível entrar: {erro}")
+
+    with aba_cadastrar:
+        with st.form("form_cadastrar"):
+            email = st.text_input("E-mail", key="cadastro_email")
+            senha = st.text_input(
+                "Senha",
+                type="password",
+                key="cadastro_senha",
+                help="Use pelo menos 6 caracteres.",
+            )
+            if st.form_submit_button("Criar conta", use_container_width=True):
+                try:
+                    conectado = cadastrar_usuario(email, senha)
+                    if conectado:
+                        st.rerun()
+                    st.success("Conta criada. Confirme o e-mail recebido e depois entre.")
+                except Exception as erro:
+                    st.error(f"Não foi possível criar a conta: {erro}")
+    st.stop()
+
+
 def brl(valor):
     texto = f"R$ {valor:,.2f}"
     return texto.replace(",", "X").replace(".", ",").replace("X", ".")
@@ -1110,6 +1279,20 @@ def importar_movimentacoes(df_importado):
     if df_importado.empty:
         return 0
 
+    if BANCO_REMOTO_ATIVO:
+        registros = df_importado[
+            ["data", "descricao", "categoria", "valor", "tipo", "cartao"]
+        ].copy()
+        registros["user_id"] = usuario_atual_id()
+        requisicao_supabase(
+            "POST",
+            "/rest/v1/transacoes",
+            token=token_usuario(),
+            json=registros.to_dict(orient="records"),
+            prefer="return=minimal",
+        )
+        return len(registros)
+
     conn = sqlite3.connect(DB_FILE)
     conn.executemany(
         """
@@ -1280,6 +1463,8 @@ def gerar_relatorio_pdf(df_transacoes, df_investimentos):
 
 
 def init_db():
+    if BANCO_REMOTO_ATIVO:
+        return
     conn = sqlite3.connect(DB_FILE)
     conn.executescript(
         """
@@ -1309,6 +1494,17 @@ def init_db():
 
 
 def carregar_dados():
+    if BANCO_REMOTO_ATIVO:
+        dados = requisicao_supabase(
+            "GET",
+            "/rest/v1/transacoes?select=*&order=data.desc,id.desc",
+            token=token_usuario(),
+        )
+        return pd.DataFrame(
+            dados,
+            columns=["id", "data", "descricao", "categoria", "valor", "tipo", "cartao", "user_id"],
+        )
+
     conn = sqlite3.connect(DB_FILE)
     df = pd.read_sql_query(
         "SELECT * FROM transacoes ORDER BY data DESC, id DESC",
@@ -1319,6 +1515,15 @@ def carregar_dados():
 
 
 def excluir_transacao(tid):
+    if BANCO_REMOTO_ATIVO:
+        requisicao_supabase(
+            "DELETE",
+            f"/rest/v1/transacoes?id=eq.{tid}",
+            token=token_usuario(),
+            prefer="return=minimal",
+        )
+        return
+
     conn = sqlite3.connect(DB_FILE)
     conn.execute("DELETE FROM transacoes WHERE id = ?", (tid,))
     conn.commit()
@@ -1326,6 +1531,26 @@ def excluir_transacao(tid):
 
 
 def carregar_investimentos():
+    if BANCO_REMOTO_ATIVO:
+        dados = requisicao_supabase(
+            "GET",
+            "/rest/v1/investimentos?select=*&order=data.desc,id.desc",
+            token=token_usuario(),
+        )
+        return pd.DataFrame(
+            dados,
+            columns=[
+                "id",
+                "data",
+                "tipo",
+                "valor",
+                "rentabilidade",
+                "descricao",
+                "status",
+                "user_id",
+            ],
+        )
+
     conn = sqlite3.connect(DB_FILE)
     df_investimentos = pd.read_sql_query(
         "SELECT * FROM investimentos ORDER BY data DESC, id DESC",
@@ -1336,8 +1561,80 @@ def carregar_investimentos():
 
 
 def excluir_investimento(iid):
+    if BANCO_REMOTO_ATIVO:
+        requisicao_supabase(
+            "DELETE",
+            f"/rest/v1/investimentos?id=eq.{iid}",
+            token=token_usuario(),
+            prefer="return=minimal",
+        )
+        return
+
     conn = sqlite3.connect(DB_FILE)
     conn.execute("DELETE FROM investimentos WHERE id = ?", (iid,))
+    conn.commit()
+    conn.close()
+
+
+def salvar_transacao(data_movimentacao, descricao, categoria, valor, tipo, cartao):
+    if BANCO_REMOTO_ATIVO:
+        requisicao_supabase(
+            "POST",
+            "/rest/v1/transacoes",
+            token=token_usuario(),
+            json={
+                "user_id": usuario_atual_id(),
+                "data": data_movimentacao.isoformat(),
+                "descricao": descricao,
+                "categoria": categoria,
+                "valor": float(valor),
+                "tipo": tipo,
+                "cartao": cartao,
+            },
+            prefer="return=minimal",
+        )
+        return
+
+    conn = sqlite3.connect(DB_FILE)
+    conn.execute(
+        """
+        INSERT INTO transacoes (data, descricao, categoria, valor, tipo, cartao)
+        VALUES (?, ?, ?, ?, ?, ?)
+        """,
+        (data_movimentacao, descricao, categoria, valor, tipo, cartao),
+    )
+    conn.commit()
+    conn.close()
+
+
+def salvar_investimento(data_investimento, tipo, valor, rentabilidade, descricao, status):
+    if BANCO_REMOTO_ATIVO:
+        requisicao_supabase(
+            "POST",
+            "/rest/v1/investimentos",
+            token=token_usuario(),
+            json={
+                "user_id": usuario_atual_id(),
+                "data": data_investimento.isoformat(),
+                "tipo": tipo,
+                "valor": float(valor),
+                "rentabilidade": rentabilidade,
+                "descricao": descricao,
+                "status": status,
+            },
+            prefer="return=minimal",
+        )
+        return
+
+    conn = sqlite3.connect(DB_FILE)
+    conn.execute(
+        """
+        INSERT INTO investimentos
+            (data, tipo, valor, rentabilidade, descricao, status)
+        VALUES (?, ?, ?, ?, ?, ?)
+        """,
+        (data_investimento, tipo, valor, rentabilidade, descricao, status),
+    )
     conn.commit()
     conn.close()
 
@@ -1362,6 +1659,7 @@ def style_plot(fig):
     return fig
 
 
+exigir_usuario()
 init_db()
 df = carregar_dados()
 df_investimentos = carregar_investimentos()
@@ -1419,17 +1717,7 @@ with aba[0]:
 
         if st.form_submit_button("Salvar Movimentação"):
             valor_final = valor if tipo_limpo == "Entrada" else -abs(valor)
-
-            conn = sqlite3.connect(DB_FILE)
-            conn.execute(
-                """
-                INSERT INTO transacoes (data, descricao, categoria, valor, tipo, cartao)
-                VALUES (?, ?, ?, ?, ?, ?)
-                """,
-                (data, descricao, categoria, valor_final, tipo_limpo, cartao),
-            )
-            conn.commit()
-            conn.close()
+            salvar_transacao(data, descricao, categoria, valor_final, tipo_limpo, cartao)
 
             st.success("Movimentação salva com sucesso!")
             st.rerun()
@@ -1621,24 +1909,14 @@ with aba[2]:
             )
 
         if st.form_submit_button("Salvar investimento"):
-            conn = sqlite3.connect(DB_FILE)
-            conn.execute(
-                """
-                INSERT INTO investimentos
-                    (data, tipo, valor, rentabilidade, descricao, status)
-                VALUES (?, ?, ?, ?, ?, ?)
-                """,
-                (
-                    data_investimento,
-                    tipo_investimento,
-                    valor_investimento,
-                    rentabilidade,
-                    descricao_investimento,
-                    status_investimento,
-                ),
+            salvar_investimento(
+                data_investimento,
+                tipo_investimento,
+                valor_investimento,
+                rentabilidade,
+                descricao_investimento,
+                status_investimento,
             )
-            conn.commit()
-            conn.close()
 
             st.success("Investimento salvo com sucesso!")
             st.rerun()
