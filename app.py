@@ -718,10 +718,6 @@ def sair_usuario():
 
 def exigir_usuario():
     if not BANCO_REMOTO_ATIVO:
-        st.warning(
-            "Modo local ativo: configure o banco online nos Secrets do Streamlit para "
-            "manter os dados após reinicializações e separar as informações por usuário."
-        )
         return
 
     sessao = sessao_usuario()
@@ -1275,12 +1271,50 @@ def preparar_movimentacoes_importadas(df_planilha):
     return pd.DataFrame(linhas), ignoradas
 
 
-def importar_movimentacoes(df_importado):
+def chave_movimentacao(registro):
+    data_movimentacao = pd.to_datetime(registro.get("data"), errors="coerce", dayfirst=True)
+    data_normalizada = (
+        data_movimentacao.date().isoformat()
+        if not pd.isna(data_movimentacao)
+        else texto_planilha(registro.get("data"))
+    )
+    descricao = normalizar_coluna(texto_planilha(registro.get("descricao")))
+    tipo = normalizar_coluna(texto_planilha(registro.get("tipo")))
+    valor = converter_valor(registro.get("valor"))
+    valor_normalizado = round(float(valor or 0), 2)
+    return data_normalizada, descricao, valor_normalizado, tipo
+
+
+def conciliar_movimentacoes(df_importado, df_existente):
     if df_importado.empty:
-        return 0
+        return df_importado.copy(), 0
+
+    chaves_existentes = {
+        chave_movimentacao(registro)
+        for registro in df_existente.to_dict(orient="records")
+    }
+    chaves_novas = set()
+    indices_novos = []
+    duplicadas = 0
+
+    for indice, registro in df_importado.iterrows():
+        chave = chave_movimentacao(registro)
+        if chave in chaves_existentes or chave in chaves_novas:
+            duplicadas += 1
+            continue
+        chaves_novas.add(chave)
+        indices_novos.append(indice)
+
+    return df_importado.loc[indices_novos].reset_index(drop=True), duplicadas
+
+
+def importar_movimentacoes(df_importado):
+    df_novo, duplicadas = conciliar_movimentacoes(df_importado, carregar_dados())
+    if df_novo.empty:
+        return 0, duplicadas
 
     if BANCO_REMOTO_ATIVO:
-        registros = df_importado[
+        registros = df_novo[
             ["data", "descricao", "categoria", "valor", "tipo", "cartao"]
         ].copy()
         registros["user_id"] = usuario_atual_id()
@@ -1291,7 +1325,7 @@ def importar_movimentacoes(df_importado):
             json=registros.to_dict(orient="records"),
             prefer="return=minimal",
         )
-        return len(registros)
+        return len(registros), duplicadas
 
     conn = sqlite3.connect(DB_FILE)
     conn.executemany(
@@ -1299,14 +1333,14 @@ def importar_movimentacoes(df_importado):
         INSERT INTO transacoes (data, descricao, categoria, valor, tipo, cartao)
         VALUES (?, ?, ?, ?, ?, ?)
         """,
-        df_importado[["data", "descricao", "categoria", "valor", "tipo", "cartao"]].itertuples(
+        df_novo[["data", "descricao", "categoria", "valor", "tipo", "cartao"]].itertuples(
             index=False,
             name=None,
         ),
     )
     conn.commit()
     conn.close()
-    return len(df_importado)
+    return len(df_novo), duplicadas
 
 
 def _pdf_texto(texto):
@@ -1716,15 +1750,24 @@ with aba[0]:
             cartao = st.text_input("Forma de Pagamento")
 
         if st.form_submit_button("Salvar Movimentação"):
-            valor_final = valor if tipo_limpo == "Entrada" else -abs(valor)
-            salvar_transacao(data, descricao, categoria, valor_final, tipo_limpo, cartao)
-
-            st.success("Movimentação salva com sucesso!")
-            st.rerun()
+            if not descricao.strip():
+                st.error("Informe uma descrição para a movimentação.")
+            elif valor <= 0:
+                st.error("Informe um valor maior que zero.")
+            else:
+                valor_final = valor if tipo_limpo == "Entrada" else -abs(valor)
+                try:
+                    salvar_transacao(data, descricao.strip(), categoria, valor_final, tipo_limpo, cartao)
+                    st.success("Movimentação salva com sucesso!")
+                    st.rerun()
+                except Exception as erro:
+                    st.error(f"Não foi possível salvar a movimentação: {erro}")
 
 # ====================== ABA 2 ======================
 with aba[1]:
     st.subheader("Dashboard em Tempo Real")
+    if st.session_state.get("resultado_importacao"):
+        st.success(st.session_state.pop("resultado_importacao"))
 
     total_entradas = df[df["valor"] > 0]["valor"].sum() if len(df) > 0 else 0
     total_saidas = abs(df[df["valor"] < 0]["valor"].sum()) if len(df) > 0 else 0
@@ -1737,7 +1780,8 @@ with aba[1]:
 
     with st.expander("📤 Subir planilha de movimentações", expanded=False):
         st.caption(
-            "Aceita CSV, XLSX, XLS e a planilha completa Organização Financeira com abas mensais."
+            "Os registros novos serão integrados ao mesmo histórico, saldo e gráficos dos "
+            "cadastros manuais. Lançamentos já existentes não serão duplicados."
         )
 
         st.download_button(
@@ -1761,17 +1805,18 @@ with aba[1]:
                 if df_importado.empty:
                     st.warning("Não encontrei movimentações válidas nessa planilha.")
                 else:
-                    entradas_importadas = df_importado[df_importado["valor"] > 0]["valor"].sum()
-                    saidas_importadas = abs(df_importado[df_importado["valor"] < 0]["valor"].sum())
-                    saldo_importado = df_importado["valor"].sum()
+                    df_novo, duplicadas_encontradas = conciliar_movimentacoes(df_importado, df)
+                    entradas_importadas = df_novo[df_novo["valor"] > 0]["valor"].sum()
+                    saidas_importadas = abs(df_novo[df_novo["valor"] < 0]["valor"].sum())
+                    saldo_importado = df_novo["valor"].sum()
 
                     col_valor1, col_valor2, col_valor3, col_valor4 = st.columns(4)
-                    col_valor1.metric("Entradas da planilha", brl(entradas_importadas))
-                    col_valor2.metric("Saídas da planilha", brl(saidas_importadas))
-                    col_valor3.metric("Saldo da planilha", brl(saldo_importado))
-                    col_valor4.metric("Registros válidos", len(df_importado))
+                    col_valor1.metric("Novas entradas", brl(entradas_importadas))
+                    col_valor2.metric("Novas saídas", brl(saidas_importadas))
+                    col_valor3.metric("Impacto no saldo", brl(saldo_importado))
+                    col_valor4.metric("Novos registros", len(df_novo))
 
-                    previa = df_importado.rename(
+                    previa = df_novo.rename(
                         columns={
                             "data": "Data",
                             "descricao": "Descrição",
@@ -1782,27 +1827,36 @@ with aba[1]:
                         }
                     )
                     previa["Data"] = pd.to_datetime(previa["Data"], errors="coerce")
+                    previa["Valor (R$)"] = previa["Valor (R$)"].map(brl)
 
-                    st.markdown("**Tabela de valores para importação**")
+                    st.markdown("**Novos registros que serão integrados**")
                     if linhas_ignoradas:
                         st.caption(f"{linhas_ignoradas} linhas foram ignoradas por não terem valor válido.")
-                    st.dataframe(
-                        previa,
-                        use_container_width=True,
-                        hide_index=True,
-                        column_config={
-                            "Data": st.column_config.DateColumn("Data", format="DD/MM/YYYY"),
-                            "Valor (R$)": st.column_config.NumberColumn(
-                                "Valor (R$)",
-                                format="R$ %.2f",
-                            ),
-                        },
-                    )
+                    if duplicadas_encontradas:
+                        st.info(
+                            f"{duplicadas_encontradas} lançamentos já cadastrados foram "
+                            "reconhecidos e não serão duplicados."
+                        )
+                    if df_novo.empty:
+                        st.info("Todos os lançamentos dessa planilha já estão integrados ao dashboard.")
+                    else:
+                        st.dataframe(
+                            previa,
+                            use_container_width=True,
+                            hide_index=True,
+                            column_config={
+                                "Data": st.column_config.DateColumn("Data", format="DD/MM/YYYY"),
+                                "Valor (R$)": st.column_config.TextColumn("Valor (R$)"),
+                            },
+                        )
 
-                    if st.button("Importar movimentações", type="primary"):
-                        total_importado = importar_movimentacoes(df_importado)
-                        st.success(f"{total_importado} movimentações importadas com sucesso!")
-                        st.rerun()
+                        if st.button("Integrar movimentações ao dashboard", type="primary"):
+                            total_importado, total_duplicadas = importar_movimentacoes(df_importado)
+                            mensagem = f"{total_importado} movimentações integradas com sucesso."
+                            if total_duplicadas:
+                                mensagem += f" {total_duplicadas} duplicadas foram ignoradas."
+                            st.session_state["resultado_importacao"] = mensagem
+                            st.rerun()
             except Exception as erro:
                 st.error(f"Não consegui importar essa planilha: {erro}")
 
@@ -1909,17 +1963,22 @@ with aba[2]:
             )
 
         if st.form_submit_button("Salvar investimento"):
-            salvar_investimento(
-                data_investimento,
-                tipo_investimento,
-                valor_investimento,
-                rentabilidade,
-                descricao_investimento,
-                status_investimento,
-            )
-
-            st.success("Investimento salvo com sucesso!")
-            st.rerun()
+            if valor_investimento <= 0:
+                st.error("Informe um valor de investimento maior que zero.")
+            else:
+                try:
+                    salvar_investimento(
+                        data_investimento,
+                        tipo_investimento,
+                        valor_investimento,
+                        rentabilidade,
+                        descricao_investimento,
+                        status_investimento,
+                    )
+                    st.success("Investimento salvo com sucesso!")
+                    st.rerun()
+                except Exception as erro:
+                    st.error(f"Não foi possível salvar o investimento: {erro}")
 
     total_investido = df_investimentos["valor"].sum() if len(df_investimentos) > 0 else 0
     total_ativos = (
