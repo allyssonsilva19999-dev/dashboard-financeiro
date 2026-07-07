@@ -1,3 +1,4 @@
+
 import base64
 import re
 import sqlite3
@@ -799,7 +800,7 @@ def exigir_usuario():
                     entrar_usuario(email, senha)
                     st.rerun()
                 except Exception as erro:
-                    st.error(f"Não foi possível entrar: {erro}")
+                    st.error("Nao foi possivel entrar agora. Tente novamente em alguns minutos.")
 
     with aba_cadastrar:
         with st.form("form_cadastrar"):
@@ -817,7 +818,7 @@ def exigir_usuario():
                         st.rerun()
                     st.success("Conta criada. Confirme o e-mail recebido e depois entre.")
                 except Exception as erro:
-                    st.error(f"Não foi possível criar a conta: {erro}")
+                    st.error("Nao foi possivel criar a conta agora. Tente novamente em alguns minutos.")
     st.stop()
 
 
