@@ -1796,6 +1796,17 @@ def preparar_modelo_organizacao_financeira(planilhas):
                     if coluna is not None:
                         colunas[chave] = coluna
                 contexto = texto_contexto_planilha(df_mes, numero_linha, coluna_nome, coluna_valor)
+
+                # Blocos laterais de "Entradas" têm subtabelas de resumo logo abaixo
+                # ("Saídas", "Investimentos e reserva"). Eles são lidos por uma
+                # rotina própria para evitar que totais sejam importados como gastos.
+                if (
+                    normalizar_coluna(celula_planilha(df_mes, numero_linha, coluna_nome))
+                    == "descricao"
+                    and ("entradas" in contexto or "receitas" in contexto)
+                ):
+                    continue
+
                 tabelas_encontradas.append((numero_linha, colunas, contexto))
 
         for linha_cabecalho, colunas, contexto in tabelas_encontradas:
