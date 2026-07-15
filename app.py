@@ -1,4 +1,3 @@
-
 import base64
 import re
 import sqlite3
@@ -11,7 +10,6 @@ from pathlib import Path
 
 import pandas as pd
 import plotly.express as px
-import requests
 import streamlit as st
 from openpyxl import Workbook
 from openpyxl.styles import Alignment, Font, PatternFill
@@ -20,7 +18,7 @@ from openpyxl.worksheet.table import Table, TableStyleInfo
 st.set_page_config(
     page_title="Dashboard Financeiro",
     layout="wide",
-    page_icon="🌄",
+    page_icon="📊",
 )
 
 # ====================== IMAGEM DE FUNDO ======================
@@ -649,6 +647,428 @@ st.markdown(
         }}
 
     }}
+
+    /* Aparencia inspirada em site institucional premium: limpo, azul profundo e verde agua. */
+    :root {{
+        --ink: #071426;
+        --navy: #081b33;
+        --deep: #0d2744;
+        --blue: #17486f;
+        --aqua: #28c7b7;
+        --aqua-soft: #dff8f5;
+        --mint: #8be6d4;
+        --line: rgba(8, 27, 51, 0.10);
+        --muted: #6b7687;
+        --cream: #f7fbfa;
+        --white: #ffffff;
+        --card: rgba(255, 255, 255, 0.88);
+        --glass: rgba(255, 255, 255, 0.76);
+        --shadow: 0 24px 70px rgba(8, 27, 51, 0.16);
+        --shadow-soft: 0 14px 38px rgba(8, 27, 51, 0.10);
+    }}
+
+    html, body, [class*="css"] {{
+        font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }}
+
+    [data-testid="stAppViewContainer"] {{
+        background:
+            radial-gradient(circle at 8% 8%, rgba(40, 199, 183, 0.22), transparent 28rem),
+            radial-gradient(circle at 88% 16%, rgba(23, 72, 111, 0.16), transparent 24rem),
+            linear-gradient(180deg, #f8fcfb 0%, #edf7f6 44%, #f9fbfd 100%) !important;
+        color: var(--ink);
+    }}
+
+    [data-testid="stAppViewContainer"]::before {{
+        background:
+            linear-gradient(115deg, rgba(8, 27, 51, 0.035) 0 1px, transparent 1px 100%),
+            linear-gradient(245deg, rgba(40, 199, 183, 0.06), transparent 55%) !important;
+        background-size: 46px 46px, auto !important;
+    }}
+
+    .main .block-container {{
+        max-width: 1210px;
+        padding-top: 2rem;
+    }}
+
+    .site-nav {{
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        margin-bottom: 1rem;
+        padding: 0.62rem 0.72rem;
+        border: 1px solid rgba(8, 27, 51, 0.08);
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.82);
+        box-shadow: var(--shadow-soft);
+        backdrop-filter: blur(18px) saturate(150%);
+        -webkit-backdrop-filter: blur(18px) saturate(150%);
+    }}
+
+    .brand-lockup {{
+        display: flex;
+        align-items: center;
+        gap: 0.7rem;
+        color: var(--navy);
+        font-weight: 850;
+    }}
+
+    .brand-mark {{
+        width: 2.55rem;
+        height: 2.55rem;
+        border-radius: 50%;
+        display: grid;
+        place-items: center;
+        color: var(--white);
+        background: linear-gradient(135deg, var(--navy), var(--aqua));
+        box-shadow: 0 12px 30px rgba(40, 199, 183, 0.28);
+    }}
+
+    .nav-links {{
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 1.15rem;
+        color: #516174;
+        font-size: 0.88rem;
+        font-weight: 720;
+    }}
+
+    .nav-cta {{
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 2.45rem;
+        padding: 0.35rem 1rem;
+        border-radius: 999px;
+        color: var(--white);
+        background: var(--navy);
+        font-size: 0.88rem;
+        font-weight: 800;
+        box-shadow: 0 14px 32px rgba(8, 27, 51, 0.18);
+    }}
+
+    h1 {{
+        color: var(--white) !important;
+        font-size: clamp(2.55rem, 5.2vw, 5.25rem);
+        line-height: 0.98;
+        font-weight: 900;
+        text-shadow: none;
+    }}
+
+    .hero-card h1 {{
+        color: var(--white) !important;
+        -webkit-text-fill-color: var(--white) !important;
+    }}
+
+    h2, h3 {{
+        color: var(--navy) !important;
+        font-weight: 820;
+        text-shadow: none;
+    }}
+
+    .hero {{
+        min-height: 24rem;
+        grid-template-columns: minmax(0, 1.12fr) minmax(20rem, 0.72fr);
+        gap: 1.05rem;
+        margin-bottom: 1rem;
+    }}
+
+    .hero-card {{
+        position: relative;
+        overflow: hidden;
+        padding: clamp(1.45rem, 4vw, 2.75rem);
+        border-radius: 34px;
+        background:
+            radial-gradient(circle at 88% 18%, rgba(40, 199, 183, 0.42), transparent 16rem),
+            linear-gradient(135deg, #071426 0%, #0b2543 52%, #123c5d 100%);
+        border: 1px solid rgba(255, 255, 255, 0.14);
+        box-shadow: var(--shadow);
+        backdrop-filter: none;
+        -webkit-backdrop-filter: none;
+    }}
+
+    .hero-card::after {{
+        content: "";
+        position: absolute;
+        width: 18rem;
+        height: 18rem;
+        right: -6rem;
+        bottom: -8rem;
+        border-radius: 50%;
+        border: 1px solid rgba(139, 230, 212, 0.24);
+        background: rgba(139, 230, 212, 0.06);
+        pointer-events: none;
+    }}
+
+    .hero-top,
+    .hero-card > h1,
+    .hero-card > p,
+    .hero-card > blockquote {{
+        position: relative;
+        z-index: 1;
+    }}
+
+    .hero-top {{
+        margin-bottom: 3rem;
+        color: rgba(255, 255, 255, 0.72);
+        font-weight: 750;
+    }}
+
+    .eyebrow {{
+        display: inline-flex;
+        align-items: center;
+        gap: 0.42rem;
+        color: rgba(255, 255, 255, 0.72);
+        font-size: 0.9rem;
+    }}
+
+    .eyebrow::before {{
+        content: "";
+        width: 0.52rem;
+        height: 0.52rem;
+        border-radius: 50%;
+        background: var(--aqua);
+        box-shadow: 0 0 0 7px rgba(40, 199, 183, 0.12);
+    }}
+
+    .hero-subtitle {{
+        max-width: 42rem;
+        color: rgba(255, 255, 255, 0.82);
+        line-height: 1.72;
+        text-shadow: none;
+    }}
+
+    .pill {{
+        color: #06231f;
+        background: linear-gradient(135deg, #dff8f5, #8be6d4);
+        font-weight: 820;
+        box-shadow: 0 16px 34px rgba(40, 199, 183, 0.20);
+    }}
+
+    .hero-quote {{
+        border-left-color: var(--aqua);
+        color: rgba(255, 255, 255, 0.92);
+    }}
+
+    .hero-quote cite {{
+        color: rgba(223, 248, 245, 0.78);
+    }}
+
+    .utility-card {{
+        min-height: 24rem;
+        padding: 1.35rem;
+        border-radius: 34px;
+        background: rgba(255, 255, 255, 0.90);
+        border: 1px solid rgba(8, 27, 51, 0.08);
+        box-shadow: var(--shadow);
+    }}
+
+    .utility-head {{
+        color: var(--muted);
+    }}
+
+    .utility-head strong {{
+        color: var(--navy);
+        font-size: 1.15rem;
+    }}
+
+    .utility-item {{
+        min-height: 8.2rem;
+        border-radius: 22px;
+        background: linear-gradient(180deg, #f8fbfd, #eef6f5);
+        border: 1px solid rgba(8, 27, 51, 0.07);
+        box-shadow: 0 14px 34px rgba(8, 27, 51, 0.08);
+    }}
+
+    .utility-label,
+    .metric-label,
+    .metric-foot,
+    .history-meta,
+    .investment-meta,
+    .investment-return {{
+        color: var(--muted);
+    }}
+
+    .utility-value,
+    .metric-value {{
+        color: var(--ink);
+    }}
+
+    .metric-card {{
+        border-radius: 24px;
+        background: rgba(255, 255, 255, 0.88);
+        border: 1px solid rgba(8, 27, 51, 0.08);
+        box-shadow: var(--shadow-soft);
+        animation: none;
+    }}
+
+    div[data-testid="stTabs"] {{
+        margin-top: 1.1rem;
+    }}
+
+    div[data-testid="stTabs"] button {{
+        color: var(--navy);
+        font-weight: 800;
+        background: rgba(255, 255, 255, 0.86);
+        border: 1px solid rgba(8, 27, 51, 0.10);
+        padding: 0.42rem 1.08rem;
+        box-shadow: 0 10px 26px rgba(8, 27, 51, 0.08);
+    }}
+
+    div[data-testid="stTabs"] button[aria-selected="true"] {{
+        color: var(--white);
+        background: var(--navy);
+        border-color: var(--navy);
+    }}
+
+    div[data-testid="stForm"],
+    div[data-testid="stVerticalBlockBorderWrapper"] {{
+        border-radius: 26px;
+        border-color: rgba(8, 27, 51, 0.08);
+        background: rgba(255, 255, 255, 0.72);
+        box-shadow: var(--shadow-soft);
+    }}
+
+    div[data-testid="stForm"] label p,
+    div[data-testid="stTextInput"] label p,
+    div[data-testid="stNumberInput"] label p,
+    div[data-testid="stDateInput"] label p,
+    div[data-testid="stSelectbox"] label p,
+    div[data-testid="stTextArea"] label p,
+    div[data-testid="stRadio"] > label p,
+    div[role="radiogroup"] label p {{
+        color: var(--navy) !important;
+        font-weight: 800 !important;
+    }}
+
+    div[data-baseweb="input"],
+    div[data-baseweb="select"] > div,
+    textarea {{
+        border: 1px solid rgba(8, 27, 51, 0.10) !important;
+        border-radius: 16px !important;
+        background: rgba(255, 255, 255, 0.96) !important;
+        box-shadow: 0 10px 24px rgba(8, 27, 51, 0.07) !important;
+    }}
+
+    div[data-baseweb="input"]:focus-within,
+    div[data-baseweb="select"] > div:focus-within,
+    textarea:focus {{
+        border-color: rgba(40, 199, 183, 0.78) !important;
+        box-shadow: 0 0 0 4px rgba(40, 199, 183, 0.14), 0 12px 24px rgba(8, 27, 51, 0.10) !important;
+    }}
+
+    input,
+    textarea,
+    div[data-baseweb="select"] span,
+    div[data-baseweb="select"] div {{
+        color: var(--ink) !important;
+    }}
+
+    div[data-baseweb="select"] svg {{
+        fill: var(--blue) !important;
+    }}
+
+    input::placeholder,
+    textarea::placeholder {{
+        color: rgba(7, 20, 38, 0.42) !important;
+    }}
+
+    [data-testid="stNumberInput"] button {{
+        border-left: 1px solid rgba(8, 27, 51, 0.08) !important;
+        color: var(--navy) !important;
+        background: rgba(223, 248, 245, 0.88) !important;
+    }}
+
+    .stButton > button,
+    [data-testid="stFormSubmitButton"] button {{
+        color: var(--white);
+        background: var(--navy);
+        box-shadow: 0 14px 30px rgba(8, 27, 51, 0.18);
+    }}
+
+    .stButton > button:hover,
+    [data-testid="stFormSubmitButton"] button:hover {{
+        color: var(--white);
+        background: #0f395f;
+    }}
+
+    [data-testid="stAlert"],
+    div[data-testid="stExpander"],
+    div[data-testid="stPlotlyChart"],
+    div[data-testid="stDataFrame"] {{
+        border: 1px solid rgba(8, 27, 51, 0.08);
+        background: rgba(255, 255, 255, 0.88);
+        box-shadow: var(--shadow-soft);
+    }}
+
+    div[data-testid="stExpander"] summary p,
+    div[data-testid="stExpander"] [data-testid="stCaptionContainer"] p,
+    div[data-testid="stExpander"] p {{
+        color: var(--ink) !important;
+    }}
+
+    .chart-intro {{
+        color: var(--ink);
+        background: rgba(223, 248, 245, 0.72);
+        border: 1px solid rgba(40, 199, 183, 0.22);
+        box-shadow: var(--shadow-soft);
+    }}
+
+    .chart-intro strong,
+    .history-summary strong,
+    .history-title,
+    .investment-title {{
+        color: var(--navy);
+    }}
+
+    .history-item,
+    .investment-item {{
+        border: 1px solid rgba(8, 27, 51, 0.08);
+        background: rgba(255, 255, 255, 0.92);
+        box-shadow: var(--shadow-soft);
+    }}
+
+    .history-summary {{
+        color: var(--ink);
+        background: rgba(255, 255, 255, 0.80);
+        border: 1px solid rgba(40, 199, 183, 0.20);
+        box-shadow: var(--shadow-soft);
+    }}
+
+    .positive,
+    .investment-value {{
+        color: #0d906f;
+    }}
+
+    .negative {{
+        color: #cc4a5b;
+    }}
+
+    div[data-testid="stDownloadButton"] button {{
+        color: var(--navy);
+        background: rgba(255, 255, 255, 0.94);
+        border: 1px solid rgba(8, 27, 51, 0.08);
+        box-shadow: var(--shadow-soft);
+    }}
+
+    div[data-testid="stDownloadButton"] button:hover {{
+        color: var(--navy);
+        border-color: rgba(40, 199, 183, 0.60);
+        background: #ffffff;
+    }}
+
+    @media (max-width: 900px) {{
+        .site-nav {{
+            align-items: flex-start;
+            border-radius: 24px;
+        }}
+
+        .nav-links {{
+            display: none;
+        }}
+    }}
 </style>
 """,
     unsafe_allow_html=True,
@@ -657,169 +1077,16 @@ st.markdown(
 # ====================== BANCO ======================
 DB_FILE = "financeiro.db"
 
-
-def obter_segredo(secao, chave):
-    try:
-        return str(st.secrets.get(secao, {}).get(chave, "")).strip()
-    except Exception:
-        return ""
+# Versao sem login: o app abre direto no dashboard e usa banco local.
 
 
-SUPABASE_URL = obter_segredo("supabase", "url").rstrip("/")
-SUPABASE_ANON_KEY = obter_segredo("supabase", "anon_key")
-BANCO_REMOTO_ATIVO = bool(SUPABASE_URL and SUPABASE_ANON_KEY)
-
-
-def cabecalhos_supabase(token=None, prefer=None):
-    cabecalhos = {
-        "apikey": SUPABASE_ANON_KEY,
-        "Authorization": f"Bearer {token or SUPABASE_ANON_KEY}",
-        "Content-Type": "application/json",
-    }
-    if prefer:
-        cabecalhos["Prefer"] = prefer
-    return cabecalhos
-
-
-def requisicao_supabase(metodo, caminho, token=None, **kwargs):
-    prefer = kwargs.pop("prefer", None)
-    resposta = requests.request(
-        metodo,
-        f"{SUPABASE_URL}{caminho}",
-        headers=cabecalhos_supabase(token, prefer),
-        timeout=30,
-        **kwargs,
-    )
-    sessao = st.session_state.get("sessao_supabase")
-    if resposta.status_code == 401 and token and sessao and sessao.get("refresh_token"):
-        renovacao = requests.post(
-            f"{SUPABASE_URL}/auth/v1/token?grant_type=refresh_token",
-            headers=cabecalhos_supabase(),
-            json={"refresh_token": sessao["refresh_token"]},
-            timeout=30,
-        )
-        if renovacao.ok:
-            st.session_state["sessao_supabase"] = renovacao.json()
-            resposta = requests.request(
-                metodo,
-                f"{SUPABASE_URL}{caminho}",
-                headers=cabecalhos_supabase(renovacao.json()["access_token"], prefer),
-                timeout=30,
-                **kwargs,
-            )
-    if resposta.status_code >= 400:
-        try:
-            detalhe = resposta.json().get("message") or resposta.json().get("error_description")
-        except Exception:
-            detalhe = resposta.text
-        raise RuntimeError(detalhe or "Não foi possível acessar o banco online.")
-    if not resposta.content:
-        return None
-    return resposta.json()
-
-
-def sessao_usuario():
-    return st.session_state.get("sessao_supabase")
-
-
-def usuario_atual_id():
-    sessao = sessao_usuario()
-    if sessao:
-        return sessao["user"]["id"]
-    return "local"
-
-
-def token_usuario():
-    sessao = sessao_usuario()
-    return sessao.get("access_token") if sessao else None
-
-
-def entrar_usuario(email, senha):
-    sessao = requisicao_supabase(
-        "POST",
-        "/auth/v1/token?grant_type=password",
-        json={"email": email.strip(), "password": senha},
-    )
-    st.session_state["sessao_supabase"] = sessao
-
-
-def cadastrar_usuario(email, senha):
-    resposta = requisicao_supabase(
-        "POST",
-        "/auth/v1/signup",
-        json={"email": email.strip(), "password": senha},
-    )
-    if resposta.get("access_token"):
-        st.session_state["sessao_supabase"] = resposta
-        return True
-    return False
-
-
-def sair_usuario():
-    sessao = sessao_usuario()
-    if sessao:
-        try:
-            requisicao_supabase("POST", "/auth/v1/logout", token=sessao["access_token"])
-        except Exception:
-            pass
-    st.session_state.pop("sessao_supabase", None)
-
-
-def exigir_usuario():
-    if not BANCO_REMOTO_ATIVO:
-        return
-
-    sessao = sessao_usuario()
-    if sessao:
-        email = escape(sessao.get("user", {}).get("email", "Conta conectada"))
-        col_conta, col_sair = st.columns([5, 1])
-        col_conta.caption(f"Conta conectada: {email}")
-        if col_sair.button("Sair", use_container_width=True):
-            sair_usuario()
-            st.rerun()
-        return
-
-    st.markdown(
-        """
-        <section class="hero-card" style="max-width:680px;margin:4rem auto 1.5rem;">
-            <div class="hero-top"><span>Dashboard_</span><span class="pill">Acesso seguro</span></div>
-            <h1 style="font-size:3.4rem;">Dashboard<br>Financeiro</h1>
-            <p class="hero-subtitle">Entre na sua conta para acessar seus dados financeiros com segurança.</p>
-        </section>
-        """,
-        unsafe_allow_html=True,
-    )
-    aba_entrar, aba_cadastrar = st.tabs(["Entrar", "Criar conta"])
-
-    with aba_entrar:
-        with st.form("form_entrar"):
-            email = st.text_input("E-mail", key="login_email")
-            senha = st.text_input("Senha", type="password", key="login_senha")
-            if st.form_submit_button("Entrar", use_container_width=True):
-                try:
-                    entrar_usuario(email, senha)
-                    st.rerun()
-                except Exception as erro:
-                    st.error("Nao foi possivel entrar agora. Tente novamente em alguns minutos.")
-
-    with aba_cadastrar:
-        with st.form("form_cadastrar"):
-            email = st.text_input("E-mail", key="cadastro_email")
-            senha = st.text_input(
-                "Senha",
-                type="password",
-                key="cadastro_senha",
-                help="Use pelo menos 6 caracteres.",
-            )
-            if st.form_submit_button("Criar conta", use_container_width=True):
-                try:
-                    conectado = cadastrar_usuario(email, senha)
-                    if conectado:
-                        st.rerun()
-                    st.success("Conta criada. Confirme o e-mail recebido e depois entre.")
-                except Exception as erro:
-                    st.error("Nao foi possivel criar a conta agora. Tente novamente em alguns minutos.")
-    st.stop()
+def mensagem_erro_usuario(erro):
+    texto = str(erro or "").strip()
+    if not texto:
+        return "Nao conseguimos concluir agora. Tente novamente."
+    if len(texto) > 180:
+        return "Nao conseguimos concluir agora. Tente novamente em alguns minutos."
+    return texto
 
 
 def brl(valor):
@@ -1362,20 +1629,6 @@ def importar_movimentacoes(df_importado):
     if df_novo.empty:
         return 0, duplicadas
 
-    if BANCO_REMOTO_ATIVO:
-        registros = df_novo[
-            ["data", "descricao", "categoria", "valor", "tipo", "cartao"]
-        ].copy()
-        registros["user_id"] = usuario_atual_id()
-        requisicao_supabase(
-            "POST",
-            "/rest/v1/transacoes",
-            token=token_usuario(),
-            json=registros.to_dict(orient="records"),
-            prefer="return=minimal",
-        )
-        return len(registros), duplicadas
-
     conn = sqlite3.connect(DB_FILE)
     conn.executemany(
         """
@@ -1546,8 +1799,6 @@ def gerar_relatorio_pdf(df_transacoes, df_investimentos):
 
 
 def init_db():
-    if BANCO_REMOTO_ATIVO:
-        return
     conn = sqlite3.connect(DB_FILE)
     conn.executescript(
         """
@@ -1576,83 +1827,52 @@ def init_db():
     conn.close()
 
 
-def carregar_dados():
-    if BANCO_REMOTO_ATIVO:
-        dados = requisicao_supabase(
-            "GET",
-            "/rest/v1/transacoes?select=*&order=data.desc,id.desc",
-            token=token_usuario(),
-        )
-        return pd.DataFrame(
-            dados,
-            columns=["id", "data", "descricao", "categoria", "valor", "tipo", "cartao", "user_id"],
-        )
+def normalizar_dataframe_financeiro(df_dados, colunas_texto):
+    df_dados = df_dados.copy()
+    if "valor" in df_dados.columns:
+        df_dados["valor"] = pd.to_numeric(df_dados["valor"], errors="coerce").fillna(0.0)
+    if "data" in df_dados.columns:
+        df_dados["data"] = df_dados["data"].fillna("").astype(str)
+    for coluna in colunas_texto:
+        if coluna in df_dados.columns:
+            df_dados[coluna] = df_dados[coluna].fillna("").astype(str)
+    return df_dados
 
+
+def carregar_dados():
     conn = sqlite3.connect(DB_FILE)
     df = pd.read_sql_query(
         "SELECT * FROM transacoes ORDER BY data DESC, id DESC",
         conn,
     )
     conn.close()
-    return df
-
-
-def excluir_transacao(tid):
-    if BANCO_REMOTO_ATIVO:
-        requisicao_supabase(
-            "DELETE",
-            f"/rest/v1/transacoes?id=eq.{tid}",
-            token=token_usuario(),
-            prefer="return=minimal",
-        )
-        return
-
-    conn = sqlite3.connect(DB_FILE)
-    conn.execute("DELETE FROM transacoes WHERE id = ?", (tid,))
-    conn.commit()
-    conn.close()
+    return normalizar_dataframe_financeiro(
+        df,
+        ["descricao", "categoria", "tipo", "cartao"],
+    )
 
 
 def carregar_investimentos():
-    if BANCO_REMOTO_ATIVO:
-        dados = requisicao_supabase(
-            "GET",
-            "/rest/v1/investimentos?select=*&order=data.desc,id.desc",
-            token=token_usuario(),
-        )
-        return pd.DataFrame(
-            dados,
-            columns=[
-                "id",
-                "data",
-                "tipo",
-                "valor",
-                "rentabilidade",
-                "descricao",
-                "status",
-                "user_id",
-            ],
-        )
-
     conn = sqlite3.connect(DB_FILE)
     df_investimentos = pd.read_sql_query(
         "SELECT * FROM investimentos ORDER BY data DESC, id DESC",
         conn,
     )
     conn.close()
-    return df_investimentos
+    return normalizar_dataframe_financeiro(
+        df_investimentos,
+        ["tipo", "rentabilidade", "descricao", "status"],
+    )
+
+
+def excluir_transacao(tid):
+    conn = sqlite3.connect(DB_FILE)
+    conn.execute("DELETE FROM transacoes WHERE id = ?", (tid,))
+    conn.commit()
+    conn.close()
 
 
 def excluir_investimento(iid):
-    if BANCO_REMOTO_ATIVO:
-        requisicao_supabase(
-            "DELETE",
-            f"/rest/v1/investimentos?id=eq.{iid}",
-            token=token_usuario(),
-            prefer="return=minimal",
-        )
-        return
-
     conn = sqlite3.connect(DB_FILE)
     conn.execute("DELETE FROM investimentos WHERE id = ?", (iid,))
     conn.commit()
@@ -1660,24 +1880,6 @@ def excluir_investimento(iid):
 
 
 def salvar_transacao(data_movimentacao, descricao, categoria, valor, tipo, cartao):
-    if BANCO_REMOTO_ATIVO:
-        requisicao_supabase(
-            "POST",
-            "/rest/v1/transacoes",
-            token=token_usuario(),
-            json={
-                "user_id": usuario_atual_id(),
-                "data": data_movimentacao.isoformat(),
-                "descricao": descricao,
-                "categoria": categoria,
-                "valor": float(valor),
-                "tipo": tipo,
-                "cartao": cartao,
-            },
-            prefer="return=minimal",
-        )
-        return
-
     conn = sqlite3.connect(DB_FILE)
     conn.execute(
         """
@@ -1691,24 +1893,6 @@ def salvar_transacao(data_movimentacao, descricao, categoria, valor, tipo, carta
 
 
 def salvar_investimento(data_investimento, tipo, valor, rentabilidade, descricao, status):
-    if BANCO_REMOTO_ATIVO:
-        requisicao_supabase(
-            "POST",
-            "/rest/v1/investimentos",
-            token=token_usuario(),
-            json={
-                "user_id": usuario_atual_id(),
-                "data": data_investimento.isoformat(),
-                "tipo": tipo,
-                "valor": float(valor),
-                "rentabilidade": rentabilidade,
-                "descricao": descricao,
-                "status": status,
-            },
-            prefer="return=minimal",
-        )
-        return
-
     conn = sqlite3.connect(DB_FILE)
     conn.execute(
         """
@@ -1725,44 +1909,50 @@ def salvar_investimento(data_investimento, tipo, valor, rentabilidade, descricao
 def style_plot(fig):
     fig.update_layout(
         paper_bgcolor="rgba(255,255,255,0)",
-        plot_bgcolor="rgba(238,245,250,0.52)",
-        font=dict(color="#101d39", size=12),
-        title=dict(font=dict(size=19, color="#101d39"), x=0.04, xanchor="left"),
+        plot_bgcolor="rgba(255,255,255,0.62)",
+        font=dict(color="#071426", size=12),
+        title=dict(font=dict(size=19, color="#081b33"), x=0.04, xanchor="left"),
         legend=dict(
             bgcolor="rgba(255,255,255,0)",
-            font=dict(color="#101d39"),
+            font=dict(color="#071426"),
             orientation="h",
             yanchor="bottom",
             y=1.01,
             xanchor="right",
             x=1,
         ),
-        hoverlabel=dict(bgcolor="#f8fbff", font_color="#101d39"),
+        hoverlabel=dict(bgcolor="#ffffff", font_color="#071426"),
         margin=dict(l=28, r=24, t=78, b=34),
         height=410,
         separators=",.",
     )
     fig.update_xaxes(
-        gridcolor="rgba(16,29,57,0.09)",
-        linecolor="rgba(16,29,57,0.12)",
-        zerolinecolor="rgba(16,29,57,0.12)",
-        title_font=dict(color="#315d7b"),
-        tickfont=dict(color="#315d7b"),
+        gridcolor="rgba(8,27,51,0.08)",
+        linecolor="rgba(8,27,51,0.10)",
+        zerolinecolor="rgba(8,27,51,0.10)",
+        title_font=dict(color="#17486f"),
+        tickfont=dict(color="#17486f"),
     )
     fig.update_yaxes(
-        gridcolor="rgba(16,29,57,0.09)",
-        linecolor="rgba(16,29,57,0.12)",
-        zerolinecolor="rgba(16,29,57,0.12)",
-        title_font=dict(color="#315d7b"),
-        tickfont=dict(color="#315d7b"),
+        gridcolor="rgba(8,27,51,0.08)",
+        linecolor="rgba(8,27,51,0.10)",
+        zerolinecolor="rgba(8,27,51,0.10)",
+        title_font=dict(color="#17486f"),
+        tickfont=dict(color="#17486f"),
     )
     return fig
 
 
-exigir_usuario()
+# Acesso direto: o usuário entra no dashboard sem etapa de login.
 init_db()
-df = carregar_dados()
-df_investimentos = carregar_investimentos()
+try:
+    df = carregar_dados()
+    df_investimentos = carregar_investimentos()
+except Exception as erro:
+    st.error(f"Não foi possível carregar seus dados: {mensagem_erro_usuario(erro)}")
+    st.info("Atualize a página e tente novamente.")
+    st.stop()
+
 hero_total_entradas = df[df["valor"] > 0]["valor"].sum() if len(df) > 0 else 0
 hero_total_saidas = abs(df[df["valor"] < 0]["valor"].sum()) if len(df) > 0 else 0
 hero_saldo = df["valor"].sum() if len(df) > 0 else 0
@@ -1770,7 +1960,7 @@ hero_total_investido = df_investimentos["valor"].sum() if len(df_investimentos) 
 
 # ====================== HERO ======================
 st.markdown(
-    f"""<section class="hero"><div class="hero-card"><div class="hero-top"><span>Dashboard_</span><span class="pill">Financeiro 2025</span></div><h1>Dashboard<br>Financeiro</h1><p class="hero-subtitle">Organize decisões, acompanhe seu patrimônio e transforme pequenas escolhas financeiras em progresso consistente.</p><blockquote class="hero-quote">“Preço é o que você paga; valor é o que você recebe.”<cite>Benjamin Graham</cite></blockquote></div><aside class="utility-card"><div class="utility-head"><strong>Visão geral</strong><span>Atualizado agora</span></div><div class="utility-grid"><div class="utility-item"><div class="utility-label">Saldo atual</div><div class="utility-value">{brl(hero_saldo)}</div></div><div class="utility-item"><div class="utility-label">Entradas</div><div class="utility-value">{brl(hero_total_entradas)}</div></div><div class="utility-item"><div class="utility-label">Saídas</div><div class="utility-value">{brl(hero_total_saidas)}</div></div><div class="utility-item"><div class="utility-label">Investimentos</div><div class="utility-value">{brl(hero_total_investido)}</div></div></div></aside></section>""",
+    f"""<section class="site-nav"><div class="brand-lockup"><span class="brand-mark">DF</span><span>Dashboard Financeiro</span></div><div class="nav-links"><span>Organização</span><span>Dashboard</span><span>Investimentos</span><span>Histórico</span></div><span class="nav-cta">Controle financeiro</span></section><section class="hero"><div class="hero-card"><div class="hero-top"><span class="eyebrow">Painel inteligente</span><span class="pill">Financeiro 2025</span></div><h1>Dashboard<br>Financeiro</h1><p class="hero-subtitle">Organize decisões, acompanhe seu patrimônio e transforme pequenas escolhas financeiras em progresso consistente.</p><blockquote class="hero-quote">“Preço é o que você paga; valor é o que você recebe.”<cite>Benjamin Graham</cite></blockquote></div><aside class="utility-card"><div class="utility-head"><strong>Visão geral</strong><span>Atualizado agora</span></div><div class="utility-grid"><div class="utility-item"><div class="utility-label">Saldo atual</div><div class="utility-value">{brl(hero_saldo)}</div></div><div class="utility-item"><div class="utility-label">Entradas</div><div class="utility-value">{brl(hero_total_entradas)}</div></div><div class="utility-item"><div class="utility-label">Saídas</div><div class="utility-value">{brl(hero_total_saidas)}</div></div><div class="utility-item"><div class="utility-label">Investimentos</div><div class="utility-value">{brl(hero_total_investido)}</div></div></div></aside></section>""",
     unsafe_allow_html=True,
 )
 
@@ -1827,7 +2017,7 @@ with aba[0]:
                     st.success("Movimentação salva com sucesso!")
                     st.rerun()
                 except Exception as erro:
-                    st.error(f"Não foi possível salvar a movimentação: {erro}")
+                    st.error(f"Não foi possível salvar a movimentação: {mensagem_erro_usuario(erro)}")
 
 # ====================== ABA 2 ======================
 with aba[1]:
@@ -1927,7 +2117,7 @@ with aba[1]:
                             st.session_state["resultado_importacao"] = mensagem
                             st.rerun()
             except Exception as erro:
-                st.error(f"Não consegui importar essa planilha: {erro}")
+                st.error(f"Não consegui importar essa planilha: {mensagem_erro_usuario(erro)}")
 
     if len(df) > 0:
         df_chart = df.copy()
@@ -1969,13 +2159,13 @@ with aba[1]:
                 title="Distribuição por Categoria",
                 hole=0.58,
                 color_discrete_sequence=[
-                    "#173e73",
-                    "#df8f92",
-                    "#65a9b7",
-                    "#e0b35c",
-                    "#6b79b4",
-                    "#7dba91",
-                    "#b47baa",
+                    "#081b33",
+                    "#28c7b7",
+                    "#17486f",
+                    "#8be6d4",
+                    "#3a6388",
+                    "#0d906f",
+                    "#78a8c8",
                 ],
             )
             fig.update_traces(
@@ -1994,8 +2184,8 @@ with aba[1]:
                 color="tipo",
                 title="Entradas x Saídas",
                 color_discrete_map={
-                    "Entrada": "#3f8b68",
-                    "Saída": "#c45c68",
+                    "Entrada": "#0d906f",
+                    "Saída": "#cc4a5b",
                 },
                 labels={"categoria": "Categoria", "valor_abs": "Valor", "tipo": "Tipo"},
             )
@@ -2014,7 +2204,7 @@ with aba[1]:
                 y=["entradas", "saidas"],
                 barmode="group",
                 title="Evolução mensal consolidada",
-                color_discrete_map={"entradas": "#3f8b68", "saidas": "#c45c68"},
+                color_discrete_map={"entradas": "#0d906f", "saidas": "#cc4a5b"},
                 labels={"mes": "Mês", "value": "Valor", "variable": "Movimentação"},
             )
             fig_mensal.for_each_trace(
@@ -2099,7 +2289,7 @@ with aba[2]:
                     st.success("Investimento salvo com sucesso!")
                     st.rerun()
                 except Exception as erro:
-                    st.error(f"Não foi possível salvar o investimento: {erro}")
+                    st.error(f"Não foi possível salvar o investimento: {mensagem_erro_usuario(erro)}")
 
     total_investido = df_investimentos["valor"].sum() if len(df_investimentos) > 0 else 0
     total_ativos = (
@@ -2135,12 +2325,12 @@ with aba[2]:
                 title="Distribuição dos investimentos",
                 hole=0.58,
                 color_discrete_sequence=[
-                    "#1f1d1a",
-                    "#d99b45",
-                    "#f3dcc1",
-                    "#6f4d2d",
-                    "#b98244",
-                    "#3d6d45",
+                    "#081b33",
+                    "#28c7b7",
+                    "#17486f",
+                    "#8be6d4",
+                    "#0d906f",
+                    "#78a8c8",
                 ],
             )
             fig_investimentos.update_traces(textposition="inside", textinfo="percent")
@@ -2154,9 +2344,9 @@ with aba[2]:
                 color="status",
                 title="Valores por status",
                 color_discrete_map={
-                    "Ativo": "#3d6d45",
-                    "Planejado": "#d99b45",
-                    "Resgatado": "#6f4d2d",
+                    "Ativo": "#0d906f",
+                    "Planejado": "#28c7b7",
+                    "Resgatado": "#17486f",
                 },
             )
             st.plotly_chart(style_plot(fig_status), use_container_width=True)
@@ -2295,4 +2485,4 @@ with aba[3]:
     else:
         st.info("Nenhum registro ainda.")
 
-st.caption("Dashboard Financeiro • Visão financeira clara • Vidro fosco premium")
+st.caption("Dashboard Financeiro • Visão financeira clara • Experiência premium")
