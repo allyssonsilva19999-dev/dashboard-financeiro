@@ -623,11 +623,67 @@ st.markdown(
         text-align: right;
     }}
 
+    .debt-grid {{
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 0.9rem;
+        margin: 1rem 0 1.2rem;
+    }}
+
+    .debt-item {{
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 1rem;
+        align-items: center;
+        margin-bottom: 0.78rem;
+        padding: 1rem;
+        border: 1px solid rgba(255, 255, 255, 0.68);
+        border-radius: 18px;
+        background: rgba(255, 252, 247, 0.78);
+        box-shadow: 0 12px 28px rgba(64, 46, 26, 0.11);
+    }}
+
+    .debt-title {{
+        color: var(--black);
+        font-size: 1.04rem;
+        font-weight: 850;
+    }}
+
+    .debt-meta {{
+        margin-top: 0.28rem;
+        color: rgba(31, 29, 26, 0.65);
+        font-size: 0.88rem;
+        line-height: 1.45;
+    }}
+
+    .debt-note {{
+        margin-top: 0.65rem;
+        color: rgba(31, 29, 26, 0.74);
+        font-size: 0.9rem;
+        line-height: 1.55;
+    }}
+
+    .debt-value {{
+        color: #cc4a5b;
+        font-size: 1.03rem;
+        font-weight: 850;
+        text-align: right;
+    }}
+
+    .debt-return {{
+        margin-top: 0.3rem;
+        color: rgba(31, 29, 26, 0.58);
+        font-size: 0.83rem;
+        text-align: right;
+    }}
+
     @media (max-width: 900px) {{
         .hero,
         .metric-grid,
         .investment-grid,
+        .debt-grid,
         .investment-item,
+        .debt-item,
         .history-item {{
             grid-template-columns: 1fr;
         }}
@@ -887,7 +943,10 @@ st.markdown(
     .metric-foot,
     .history-meta,
     .investment-meta,
-    .investment-return {{
+    .investment-return,
+    .debt-meta,
+    .debt-note,
+    .debt-return {{
         color: var(--muted);
     }}
 
@@ -1019,12 +1078,14 @@ st.markdown(
     .chart-intro strong,
     .history-summary strong,
     .history-title,
-    .investment-title {{
+    .investment-title,
+    .debt-title {{
         color: var(--navy);
     }}
 
     .history-item,
-    .investment-item {{
+    .investment-item,
+    .debt-item {{
         border: 1px solid rgba(8, 27, 51, 0.08);
         background: rgba(255, 255, 255, 0.92);
         box-shadow: var(--shadow-soft);
@@ -1043,6 +1104,10 @@ st.markdown(
     }}
 
     .negative {{
+        color: #cc4a5b;
+    }}
+
+    .debt-value {{
         color: #cc4a5b;
     }}
 
@@ -1311,6 +1376,28 @@ MESES_PLANILHA = {
     "dezembro": 12,
 }
 
+PALAVRAS_ENTRADA_PLANILHA = {
+    "entrada",
+    "receita",
+    "recebimento",
+    "salario",
+    "renda",
+    "freelance",
+    "reembolso",
+    "venda",
+}
+
+PALAVRAS_SAIDA_PLANILHA = {
+    "saida",
+    "despesa",
+    "debito",
+    "credito",
+    "cartao",
+    "gasto",
+    "fixo",
+    "parcelado",
+}
+
 
 def celula_planilha(df_planilha, linha, coluna):
     if linha < 0 or coluna < 0 or linha >= len(df_planilha.index) or coluna >= len(df_planilha.columns):
@@ -1348,6 +1435,43 @@ def data_planilha_mensal(valor, numero_mes):
     ultimo_dia = pd.Period(year=ano, month=numero_mes, freq="M").days_in_month
     dia = min(data_convertida.day, ultimo_dia)
     return date(ano, numero_mes, dia).isoformat()
+
+
+def texto_contexto_planilha(df_planilha, linha, coluna_inicio, coluna_fim):
+    pedacos = []
+    linha_inicial = max(0, linha - 4)
+    linha_final = min(len(df_planilha.index), linha + 1)
+    coluna_inicial = max(0, coluna_inicio - 2)
+    coluna_final = min(len(df_planilha.columns), coluna_fim + 3)
+
+    for numero_linha in range(linha_inicial, linha_final):
+        for numero_coluna in range(coluna_inicial, coluna_final):
+            texto = texto_planilha(celula_planilha(df_planilha, numero_linha, numero_coluna))
+            if texto:
+                pedacos.append(normalizar_coluna(texto))
+
+    return " ".join(pedacos)
+
+
+def inferir_tipo_mensal(tipo_original, descricao, categoria, contexto):
+    texto_linha = normalizar_coluna(
+        " ".join(
+            [
+                texto_planilha(tipo_original),
+                texto_planilha(descricao),
+                texto_planilha(categoria),
+            ]
+        )
+    )
+    texto_contexto = normalizar_coluna(contexto)
+
+    if any(palavra in texto_linha for palavra in PALAVRAS_ENTRADA_PLANILHA):
+        return "Entrada"
+    if any(palavra in texto_linha for palavra in PALAVRAS_SAIDA_PLANILHA):
+        return "Saída"
+    if "entradas" in texto_contexto or "receitas" in texto_contexto:
+        return "Entrada"
+    return "Saída"
 
 
 def adicionar_movimentacao_mensal(
@@ -1401,6 +1525,70 @@ def adicionar_movimentacao_mensal(
     return True
 
 
+def adicionar_blocos_de_entrada(linhas, df_mes, numero_mes):
+    adicionadas = 0
+    for linha_bloco in range(len(df_mes.index)):
+        for coluna_bloco in range(len(df_mes.columns)):
+            if normalizar_coluna(celula_planilha(df_mes, linha_bloco, coluna_bloco)) != "entradas":
+                continue
+
+            coluna_descricao = coluna_bloco
+            coluna_valor = coluna_bloco + 1
+            linha_inicio = linha_bloco + 1
+
+            for linha_cabecalho in range(linha_bloco + 1, min(linha_bloco + 4, len(df_mes.index))):
+                cabecalho_nome = normalizar_coluna(celula_planilha(df_mes, linha_cabecalho, coluna_bloco))
+                if cabecalho_nome in {"nome", "descricao"}:
+                    coluna_descricao = coluna_bloco
+                    coluna_valor_cabecalho = next(
+                        (
+                            coluna
+                            for coluna in range(coluna_bloco + 1, min(coluna_bloco + 5, len(df_mes.columns)))
+                            if normalizar_coluna(celula_planilha(df_mes, linha_cabecalho, coluna)) == "valor"
+                        ),
+                        None,
+                    )
+                    if coluna_valor_cabecalho is not None:
+                        coluna_valor = coluna_valor_cabecalho
+                    linha_inicio = linha_cabecalho + 1
+                    break
+
+            if coluna_valor >= len(df_mes.columns):
+                continue
+
+            linhas_vazias = 0
+            for numero_linha in range(linha_inicio, len(df_mes.index)):
+                descricao = texto_planilha(celula_planilha(df_mes, numero_linha, coluna_descricao))
+                descricao_normalizada = normalizar_coluna(descricao)
+                valor = converter_valor(celula_planilha(df_mes, numero_linha, coluna_valor))
+
+                if descricao_normalizada in {"saidas", "saida", "investimentos", "reserva"}:
+                    break
+                if descricao_normalizada.startswith("total"):
+                    break
+
+                if not descricao and (valor is None or valor == 0):
+                    linhas_vazias += 1
+                    if linhas_vazias >= 2:
+                        break
+                    continue
+
+                linhas_vazias = 0
+                if adicionar_movimentacao_mensal(
+                    linhas,
+                    df_mes,
+                    numero_linha,
+                    {"descricao": coluna_descricao, "valor": coluna_valor},
+                    numero_mes,
+                    "Entrada",
+                    "Receita",
+                    "Planilha mensal",
+                ):
+                    adicionadas += 1
+
+    return adicionadas
+
+
 def preparar_modelo_organizacao_financeira(planilhas):
     abas_mensais = {
         nome: (df_mes, MESES_PLANILHA[normalizar_coluna(nome)])
@@ -1417,7 +1605,8 @@ def preparar_modelo_organizacao_financeira(planilhas):
             colunas_nome = [
                 coluna
                 for coluna in range(len(df_mes.columns))
-                if normalizar_coluna(celula_planilha(df_mes, numero_linha, coluna)) == "nome"
+                if normalizar_coluna(celula_planilha(df_mes, numero_linha, coluna))
+                in {"nome", "descricao"}
             ]
             colunas_valor = [
                 coluna
@@ -1452,9 +1641,10 @@ def preparar_modelo_organizacao_financeira(planilhas):
                     )
                     if coluna is not None:
                         colunas[chave] = coluna
-                tabelas_encontradas.append((numero_linha, colunas))
+                contexto = texto_contexto_planilha(df_mes, numero_linha, coluna_nome, coluna_valor)
+                tabelas_encontradas.append((numero_linha, colunas, contexto))
 
-        for linha_cabecalho, colunas in tabelas_encontradas:
+        for linha_cabecalho, colunas, contexto in tabelas_encontradas:
             linhas_vazias = 0
             for numero_linha in range(linha_cabecalho + 1, len(df_mes.index)):
                 descricao = texto_planilha(celula_planilha(df_mes, numero_linha, colunas["descricao"]))
@@ -1474,11 +1664,11 @@ def preparar_modelo_organizacao_financeira(planilhas):
                     celula_planilha(df_mes, numero_linha, colunas.get("tipo", -1)),
                     "Débito",
                 )
-                tipo = (
-                    "Entrada"
-                    if normalizar_coluna(tipo_original) in {"receita", "entrada"}
-                    else "Saída"
+                categoria_original = texto_planilha(
+                    celula_planilha(df_mes, numero_linha, colunas.get("categoria", -1)),
+                    "",
                 )
+                tipo = inferir_tipo_mensal(tipo_original, descricao, categoria_original, contexto)
                 adicionar_movimentacao_mensal(
                     linhas,
                     df_mes,
@@ -1493,20 +1683,16 @@ def preparar_modelo_organizacao_financeira(planilhas):
                     tipo_original,
                 )
 
-        if len(df_mes.columns) > 17:
-            for numero_linha in range(8, min(14, len(df_mes.index))):
-                adicionar_movimentacao_mensal(
-                    linhas,
-                    df_mes,
-                    numero_linha,
-                    {"descricao": 16, "valor": 17},
-                    numero_mes,
-                    "Entrada",
-                    "Receita",
-                    "Planilha mensal",
-                )
+        adicionar_blocos_de_entrada(linhas, df_mes, numero_mes)
 
-    return pd.DataFrame(linhas), 0
+    if not linhas:
+        return pd.DataFrame(linhas), 0
+
+    df_linhas = pd.DataFrame(linhas)
+    df_linhas = df_linhas.drop_duplicates(
+        subset=["data", "descricao", "valor", "tipo"],
+    ).reset_index(drop=True)
+    return df_linhas, 0
 
 
 def preparar_movimentacoes_importadas(df_planilha):
@@ -1656,7 +1842,10 @@ def _pdf_texto(texto):
     )
 
 
-def gerar_relatorio_pdf(df_transacoes, df_investimentos):
+def gerar_relatorio_pdf(df_transacoes, df_investimentos, df_dividas=None):
+    if df_dividas is None:
+        df_dividas = pd.DataFrame()
+
     linhas = []
 
     def adicionar(texto="", estilo="corpo", largura=92):
@@ -1668,6 +1857,11 @@ def gerar_relatorio_pdf(df_transacoes, df_investimentos):
     saidas = abs(df_transacoes[df_transacoes["valor"] < 0]["valor"].sum()) if len(df_transacoes) else 0
     saldo = df_transacoes["valor"].sum() if len(df_transacoes) else 0
     investimentos = df_investimentos["valor"].sum() if len(df_investimentos) else 0
+    total_dividas = (
+        df_dividas["saldo_negociado"].where(df_dividas["saldo_negociado"] > 0, df_dividas["saldo_original"]).sum()
+        if len(df_dividas)
+        else 0
+    )
 
     adicionar("Dashboard Financeiro - Relatório Financeiro Detalhado", "titulo", 62)
     adicionar(f"Emitido em {date.today().strftime('%d/%m/%Y')}", "pequeno")
@@ -1677,6 +1871,7 @@ def gerar_relatorio_pdf(df_transacoes, df_investimentos):
     adicionar(f"Saídas totais: {brl(saidas)}")
     adicionar(f"Saldo atual: {brl(saldo)}")
     adicionar(f"Patrimônio investido: {brl(investimentos)}")
+    adicionar(f"Dívidas monitoradas: {brl(total_dividas)}")
     adicionar(f"Movimentações registradas: {len(df_transacoes)}")
     adicionar()
     adicionar("Movimentações", "secao")
@@ -1717,6 +1912,29 @@ def gerar_relatorio_pdf(df_transacoes, df_investimentos):
             adicionar("-" * 92, "pequeno")
     else:
         adicionar("Nenhum investimento cadastrado.")
+
+    adicionar()
+    adicionar("Dívidas e negociações", "secao")
+
+    if len(df_dividas):
+        for _, divida in df_dividas.iterrows():
+            saldo_base = divida["saldo_negociado"] if divida["saldo_negociado"] > 0 else divida["saldo_original"]
+            adicionar(
+                f"{data_br(divida['data'])} | {divida['credor'] or 'Credor não informado'} | "
+                f"{divida['tipo'] or 'Tipo não informado'} | {brl(saldo_base)}",
+                "corpo",
+            )
+            adicionar(
+                f"Status: {divida['status'] or 'Não informado'} | "
+                f"Prioridade: {divida['prioridade'] or 'Não informada'} | "
+                f"Próxima ação: {divida['proxima_acao'] or 'Não informada'}",
+                "pequeno",
+            )
+            if divida.get("anotacoes"):
+                adicionar(f"Anotações: {divida['anotacoes']}", "pequeno")
+            adicionar("-" * 92, "pequeno")
+    else:
+        adicionar("Nenhuma dívida cadastrada.")
 
     paginas = []
     pagina_atual = []
@@ -1821,6 +2039,23 @@ def init_db():
             descricao TEXT,
             status TEXT
         );
+
+        CREATE TABLE IF NOT EXISTS dividas (
+            id INTEGER PRIMARY KEY,
+            data DATE,
+            credor TEXT,
+            tipo TEXT,
+            saldo_original REAL,
+            desconto REAL,
+            saldo_negociado REAL,
+            parcela_possivel REAL,
+            vencimento DATE,
+            prioridade TEXT,
+            consequencia TEXT,
+            status TEXT,
+            proxima_acao TEXT,
+            anotacoes TEXT
+        );
         """
     )
     conn.commit()
@@ -1834,6 +2069,28 @@ def normalizar_dataframe_financeiro(df_dados, colunas_texto):
     if "data" in df_dados.columns:
         df_dados["data"] = df_dados["data"].fillna("").astype(str)
     for coluna in colunas_texto:
+        if coluna in df_dados.columns:
+            df_dados[coluna] = df_dados[coluna].fillna("").astype(str)
+    return df_dados
+
+
+def normalizar_dataframe_dividas(df_dados):
+    df_dados = df_dados.copy()
+    for coluna in ["saldo_original", "desconto", "saldo_negociado", "parcela_possivel"]:
+        if coluna in df_dados.columns:
+            df_dados[coluna] = pd.to_numeric(df_dados[coluna], errors="coerce").fillna(0.0)
+    for coluna in ["data", "vencimento"]:
+        if coluna in df_dados.columns:
+            df_dados[coluna] = df_dados[coluna].fillna("").astype(str)
+    for coluna in [
+        "credor",
+        "tipo",
+        "prioridade",
+        "consequencia",
+        "status",
+        "proxima_acao",
+        "anotacoes",
+    ]:
         if coluna in df_dados.columns:
             df_dados[coluna] = df_dados[coluna].fillna("").astype(str)
     return df_dados
@@ -1865,6 +2122,16 @@ def carregar_investimentos():
     )
 
 
+def carregar_dividas():
+    conn = sqlite3.connect(DB_FILE)
+    df_dividas = pd.read_sql_query(
+        "SELECT * FROM dividas ORDER BY data DESC, id DESC",
+        conn,
+    )
+    conn.close()
+    return normalizar_dataframe_dividas(df_dividas)
+
+
 def excluir_transacao(tid):
     conn = sqlite3.connect(DB_FILE)
     conn.execute("DELETE FROM transacoes WHERE id = ?", (tid,))
@@ -1875,6 +2142,13 @@ def excluir_transacao(tid):
 def excluir_investimento(iid):
     conn = sqlite3.connect(DB_FILE)
     conn.execute("DELETE FROM investimentos WHERE id = ?", (iid,))
+    conn.commit()
+    conn.close()
+
+
+def excluir_divida(did):
+    conn = sqlite3.connect(DB_FILE)
+    conn.execute("DELETE FROM dividas WHERE id = ?", (did,))
     conn.commit()
     conn.close()
 
@@ -1901,6 +2175,52 @@ def salvar_investimento(data_investimento, tipo, valor, rentabilidade, descricao
         VALUES (?, ?, ?, ?, ?, ?)
         """,
         (data_investimento, tipo, valor, rentabilidade, descricao, status),
+    )
+    conn.commit()
+    conn.close()
+
+
+def salvar_divida(
+    data_divida,
+    credor,
+    tipo,
+    saldo_original,
+    desconto,
+    saldo_negociado,
+    parcela_possivel,
+    vencimento,
+    prioridade,
+    consequencia,
+    status,
+    proxima_acao,
+    anotacoes,
+):
+    conn = sqlite3.connect(DB_FILE)
+    conn.execute(
+        """
+        INSERT INTO dividas
+            (
+                data, credor, tipo, saldo_original, desconto, saldo_negociado,
+                parcela_possivel, vencimento, prioridade, consequencia,
+                status, proxima_acao, anotacoes
+            )
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """,
+        (
+            data_divida,
+            credor,
+            tipo,
+            saldo_original,
+            desconto,
+            saldo_negociado,
+            parcela_possivel,
+            vencimento,
+            prioridade,
+            consequencia,
+            status,
+            proxima_acao,
+            anotacoes,
+        ),
     )
     conn.commit()
     conn.close()
@@ -1948,6 +2268,7 @@ init_db()
 try:
     df = carregar_dados()
     df_investimentos = carregar_investimentos()
+    df_dividas = carregar_dividas()
 except Exception as erro:
     st.error(f"Não foi possível carregar seus dados: {mensagem_erro_usuario(erro)}")
     st.info("Atualize a página e tente novamente.")
@@ -1960,12 +2281,12 @@ hero_total_investido = df_investimentos["valor"].sum() if len(df_investimentos) 
 
 # ====================== HERO ======================
 st.markdown(
-    f"""<section class="site-nav"><div class="brand-lockup"><span class="brand-mark">DF</span><span>Dashboard Financeiro</span></div><div class="nav-links"><span>Organização</span><span>Dashboard</span><span>Investimentos</span><span>Histórico</span></div><span class="nav-cta">Controle financeiro</span></section><section class="hero"><div class="hero-card"><div class="hero-top"><span class="eyebrow">Painel inteligente</span><span class="pill">Financeiro 2025</span></div><h1>Dashboard<br>Financeiro</h1><p class="hero-subtitle">Organize decisões, acompanhe seu patrimônio e transforme pequenas escolhas financeiras em progresso consistente.</p><blockquote class="hero-quote">“Preço é o que você paga; valor é o que você recebe.”<cite>Benjamin Graham</cite></blockquote></div><aside class="utility-card"><div class="utility-head"><strong>Visão geral</strong><span>Atualizado agora</span></div><div class="utility-grid"><div class="utility-item"><div class="utility-label">Saldo atual</div><div class="utility-value">{brl(hero_saldo)}</div></div><div class="utility-item"><div class="utility-label">Entradas</div><div class="utility-value">{brl(hero_total_entradas)}</div></div><div class="utility-item"><div class="utility-label">Saídas</div><div class="utility-value">{brl(hero_total_saidas)}</div></div><div class="utility-item"><div class="utility-label">Investimentos</div><div class="utility-value">{brl(hero_total_investido)}</div></div></div></aside></section>""",
+    f"""<section class="site-nav"><div class="brand-lockup"><span class="brand-mark">DF</span><span>Dashboard Financeiro</span></div><div class="nav-links"><span>Organização</span><span>Dashboard</span><span>Dívidas</span><span>Histórico</span></div><span class="nav-cta">Controle financeiro</span></section><section class="hero"><div class="hero-card"><div class="hero-top"><span class="eyebrow">Painel inteligente</span><span class="pill">Financeiro 2025</span></div><h1>Dashboard<br>Financeiro</h1><p class="hero-subtitle">Organize decisões, acompanhe seu patrimônio e transforme pequenas escolhas financeiras em progresso consistente.</p><blockquote class="hero-quote">“Preço é o que você paga; valor é o que você recebe.”<cite>Benjamin Graham</cite></blockquote></div><aside class="utility-card"><div class="utility-head"><strong>Visão geral</strong><span>Atualizado agora</span></div><div class="utility-grid"><div class="utility-item"><div class="utility-label">Saldo atual</div><div class="utility-value">{brl(hero_saldo)}</div></div><div class="utility-item"><div class="utility-label">Entradas</div><div class="utility-value">{brl(hero_total_entradas)}</div></div><div class="utility-item"><div class="utility-label">Saídas</div><div class="utility-value">{brl(hero_total_saidas)}</div></div><div class="utility-item"><div class="utility-label">Investimentos</div><div class="utility-value">{brl(hero_total_investido)}</div></div></div></aside></section>""",
     unsafe_allow_html=True,
 )
 
 # ====================== NAVEGAÇÃO ======================
-aba = st.tabs(["➕ Nova Movimentação", "📊 Dashboard", "💼 Investimentos", "📋 Histórico"])
+aba = st.tabs(["➕ Nova Movimentação", "📊 Dashboard", "💼 Investimentos", "🤝 Dívidas", "📋 Histórico"])
 
 # ====================== ABA 1 ======================
 with aba[0]:
@@ -2169,12 +2490,31 @@ with aba[1]:
                 ],
             )
             fig.update_traces(
-                textposition="inside",
+                textposition="outside",
                 textinfo="percent+label",
+                insidetextorientation="radial",
                 marker=dict(line=dict(color="rgba(255,255,255,0.86)", width=2)),
+                pull=[0.018] * len(categoria_total),
                 hovertemplate="<b>%{label}</b><br>R$ %{value:,.2f}<br>%{percent}<extra></extra>",
             )
-            st.plotly_chart(style_plot(fig), use_container_width=True)
+            fig = style_plot(fig)
+            fig.update_layout(
+                height=500,
+                showlegend=True,
+                uniformtext_minsize=11,
+                uniformtext_mode="hide",
+                margin=dict(l=42, r=70, t=86, b=92),
+                legend=dict(
+                    orientation="h",
+                    yanchor="top",
+                    y=-0.12,
+                    xanchor="center",
+                    x=0.5,
+                    bgcolor="rgba(255,255,255,0)",
+                    font=dict(color="#071426", size=11),
+                ),
+            )
+            st.plotly_chart(fig, use_container_width=True)
 
         with col_g2:
             fig2 = px.bar(
@@ -2373,11 +2713,239 @@ with aba[2]:
 
 # ====================== ABA 4 ======================
 with aba[3]:
+    st.subheader("Dívidas e Negociação")
+    st.markdown(
+        """<div class="chart-intro"><strong>Controle Nome Limpo</strong><br>
+        Registre credor, saldo original, saldo negociado, parcela possível, prioridade,
+        próxima ação e anotações antes de aceitar qualquer acordo.</div>""",
+        unsafe_allow_html=True,
+    )
+
+    with st.form("nova_divida"):
+        st.markdown("#### Adicionar dívida ou acordo")
+        col1, col2, col3 = st.columns(3)
+
+        with col1:
+            data_divida = st.date_input(
+                "Data do registro",
+                value=date.today(),
+                format="DD/MM/YYYY",
+            )
+            credor = st.text_input("Credor", placeholder="Ex.: Banco, cartão, loja")
+            tipo_divida = st.selectbox(
+                "Tipo",
+                [
+                    "Cartão de crédito",
+                    "Empréstimo",
+                    "Conta atrasada",
+                    "Financiamento",
+                    "Acordo",
+                    "Cheque especial",
+                    "Outro",
+                ],
+            )
+            prioridade = st.selectbox("Prioridade", ["Alta", "Média", "Baixa"])
+
+        with col2:
+            saldo_original = st.number_input(
+                "Saldo original (R$)",
+                value=0.0,
+                step=0.01,
+                min_value=0.0,
+            )
+            desconto = st.number_input(
+                "Desconto / abatimento (R$)",
+                value=0.0,
+                step=0.01,
+                min_value=0.0,
+            )
+            saldo_negociado = st.number_input(
+                "Saldo negociado (R$)",
+                value=0.0,
+                step=0.01,
+                min_value=0.0,
+            )
+            parcela_possivel = st.number_input(
+                "Parcela possível (R$)",
+                value=0.0,
+                step=0.01,
+                min_value=0.0,
+            )
+
+        with col3:
+            vencimento_divida = st.date_input(
+                "Vencimento / próximo prazo",
+                value=date.today(),
+                format="DD/MM/YYYY",
+            )
+            status_divida = st.selectbox(
+                "Status",
+                ["Mapear", "Negociar", "Acordada", "Em pagamento", "Quitada"],
+            )
+            consequencia = st.text_input(
+                "Consequência se atrasar",
+                placeholder="Ex.: juros, bloqueio, negativação",
+            )
+            proxima_acao = st.text_input(
+                "Próxima ação",
+                placeholder="Ex.: ligar, pedir desconto, pagar 1ª parcela",
+            )
+
+        anotacoes = st.text_area(
+            "Anotações da negociação",
+            placeholder="Registre propostas, protocolos, datas de contato e condições do acordo.",
+        )
+
+        if st.form_submit_button("Salvar dívida"):
+            saldo_final = saldo_negociado
+            if saldo_final <= 0 and saldo_original > 0:
+                saldo_final = max(saldo_original - desconto, 0)
+
+            if not credor.strip():
+                st.error("Informe o credor da dívida.")
+            elif saldo_original <= 0 and saldo_final <= 0:
+                st.error("Informe o saldo original ou o saldo negociado.")
+            else:
+                try:
+                    salvar_divida(
+                        data_divida,
+                        credor.strip(),
+                        tipo_divida,
+                        saldo_original,
+                        desconto,
+                        saldo_final,
+                        parcela_possivel,
+                        vencimento_divida,
+                        prioridade,
+                        consequencia.strip(),
+                        status_divida,
+                        proxima_acao.strip(),
+                        anotacoes.strip(),
+                    )
+                    st.success("Dívida salva com sucesso!")
+                    st.rerun()
+                except Exception as erro:
+                    st.error(f"Não foi possível salvar a dívida: {mensagem_erro_usuario(erro)}")
+
+    if len(df_dividas) > 0:
+        df_dividas_view = df_dividas.copy()
+        df_dividas_view["saldo_base"] = df_dividas_view["saldo_negociado"].where(
+            df_dividas_view["saldo_negociado"] > 0,
+            df_dividas_view["saldo_original"],
+        )
+        abertas = df_dividas_view[df_dividas_view["status"] != "Quitada"]
+        total_aberto = abertas["saldo_base"].sum()
+        parcelas_acordadas = abertas["parcela_possivel"].sum()
+        economia_prevista = (
+            df_dividas_view["saldo_original"] - df_dividas_view["saldo_base"]
+        ).clip(lower=0).sum()
+        prioritarias = len(df_dividas_view[df_dividas_view["prioridade"] == "Alta"])
+
+        st.markdown(
+            f"""<div class="debt-grid"><div class="metric-card"><div class="metric-label">Total aberto</div><div class="metric-value">{brl(total_aberto)}</div><div class="metric-foot">Saldo para negociar ou pagar</div></div><div class="metric-card"><div class="metric-label">Parcelas acordadas</div><div class="metric-value">{brl(parcelas_acordadas)}</div><div class="metric-foot">Compromisso mensal possível</div></div><div class="metric-card"><div class="metric-label">Economia prevista</div><div class="metric-value">{brl(economia_prevista)}</div><div class="metric-foot">Descontos registrados</div></div><div class="metric-card"><div class="metric-label">Prioridade alta</div><div class="metric-value">{prioritarias}</div><div class="metric-foot">Dívidas que exigem atenção</div></div></div>""",
+            unsafe_allow_html=True,
+        )
+
+        col_dividas, col_status = st.columns([1.25, 0.75])
+        with col_dividas:
+            tabela_dividas = df_dividas_view[
+                [
+                    "data",
+                    "credor",
+                    "tipo",
+                    "saldo_original",
+                    "desconto",
+                    "saldo_base",
+                    "parcela_possivel",
+                    "vencimento",
+                    "prioridade",
+                    "status",
+                    "proxima_acao",
+                ]
+            ].rename(
+                columns={
+                    "data": "Data",
+                    "credor": "Credor",
+                    "tipo": "Tipo",
+                    "saldo_original": "Saldo original",
+                    "desconto": "Desconto",
+                    "saldo_base": "Saldo negociado",
+                    "parcela_possivel": "Parcela possível",
+                    "vencimento": "Vencimento",
+                    "prioridade": "Prioridade",
+                    "status": "Status",
+                    "proxima_acao": "Próxima ação",
+                }
+            )
+            tabela_dividas["Data"] = tabela_dividas["Data"].map(data_br)
+            tabela_dividas["Vencimento"] = tabela_dividas["Vencimento"].map(data_br)
+            for coluna_valor in ["Saldo original", "Desconto", "Saldo negociado", "Parcela possível"]:
+                tabela_dividas[coluna_valor] = tabela_dividas[coluna_valor].map(brl)
+
+            st.markdown("#### Tabela de dívidas")
+            st.dataframe(
+                tabela_dividas,
+                use_container_width=True,
+                hide_index=True,
+                column_config={
+                    "Data": st.column_config.TextColumn("Data"),
+                    "Vencimento": st.column_config.TextColumn("Vencimento"),
+                },
+            )
+
+        with col_status:
+            status_dividas = (
+                df_dividas_view.groupby("status", as_index=False)["saldo_base"]
+                .sum()
+                .sort_values("saldo_base", ascending=False)
+            )
+            fig_dividas = px.bar(
+                status_dividas,
+                x="status",
+                y="saldo_base",
+                color="status",
+                title="Dívidas por status",
+                color_discrete_map={
+                    "Mapear": "#17486f",
+                    "Negociar": "#cc8a2f",
+                    "Acordada": "#28c7b7",
+                    "Em pagamento": "#0d906f",
+                    "Quitada": "#7b8da3",
+                },
+                labels={"status": "Status", "saldo_base": "Saldo"},
+            )
+            fig_dividas.update_yaxes(tickprefix="R$ ")
+            st.plotly_chart(style_plot(fig_dividas), use_container_width=True)
+
+        st.markdown("#### Anotações e próximas ações")
+        for _, divida in df_dividas_view.iterrows():
+            saldo_base = divida["saldo_base"]
+            credor_item = escape(str(divida["credor"] or "Credor não informado"))
+            tipo_item = escape(str(divida["tipo"] or "Tipo não informado"))
+            status_item = escape(str(divida["status"] or "Sem status"))
+            prioridade_item = escape(str(divida["prioridade"] or "Sem prioridade"))
+            proxima_item = escape(str(divida["proxima_acao"] or "Sem próxima ação"))
+            anotacoes_item = escape(str(divida["anotacoes"] or "Sem anotações"))
+            vencimento_item = escape(data_br(divida["vencimento"]))
+
+            st.markdown(
+                f"""<div class="debt-item"><div><div class="debt-title">{credor_item}</div><div class="debt-meta">{tipo_item} • Vencimento: {vencimento_item} • Status: {status_item} • Prioridade: {prioridade_item}</div><div class="debt-note"><strong>Próxima ação:</strong> {proxima_item}<br><strong>Anotações:</strong> {anotacoes_item}</div></div><div><div class="debt-value">{brl(saldo_base)}</div><div class="debt-return">Parcela possível: {brl(divida["parcela_possivel"])}</div></div></div>""",
+                unsafe_allow_html=True,
+            )
+
+            if st.button("🗑️ Apagar dívida", key=f"del_divida{divida['id']}"):
+                excluir_divida(divida["id"])
+                st.rerun()
+    else:
+        st.info("Nenhuma dívida cadastrada ainda.")
+
+# ====================== ABA 5 ======================
+with aba[4]:
     st.subheader("Histórico")
-    relatorio_pdf = gerar_relatorio_pdf(df, df_investimentos)
+    relatorio_pdf = gerar_relatorio_pdf(df, df_investimentos, df_dividas)
 
     st.markdown(
-        f"""<div class="history-summary"><strong>Relatório financeiro detalhado</strong><br>Baixe um PDF com o resumo do período, todas as movimentações e os investimentos cadastrados. Registros incluídos: {len(df)} movimentações e {len(df_investimentos)} investimentos.</div>""",
+        f"""<div class="history-summary"><strong>Relatório financeiro detalhado</strong><br>Baixe um PDF com o resumo do período, todas as movimentações, investimentos e dívidas cadastradas. Registros incluídos: {len(df)} movimentações, {len(df_investimentos)} investimentos e {len(df_dividas)} dívidas.</div>""",
         unsafe_allow_html=True,
     )
     st.download_button(
