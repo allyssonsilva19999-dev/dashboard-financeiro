@@ -1,4 +1,5 @@
 import base64
+import math
 import re
 import sqlite3
 import textwrap
@@ -677,11 +678,109 @@ st.markdown(
         text-align: right;
     }}
 
+    .answer-grid {{
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 0.9rem;
+        margin: 1rem 0 1.2rem;
+    }}
+
+    .answer-card {{
+        min-height: 9.2rem;
+        padding: 1.05rem;
+        border: 1px solid rgba(255, 255, 255, 0.68);
+        border-radius: 20px;
+        background: rgba(255, 252, 247, 0.82);
+        box-shadow: 0 12px 28px rgba(64, 46, 26, 0.11);
+    }}
+
+    .answer-question {{
+        color: rgba(31, 29, 26, 0.58);
+        font-size: 0.78rem;
+        font-weight: 850;
+        text-transform: uppercase;
+    }}
+
+    .answer-value {{
+        margin-top: 0.85rem;
+        color: var(--black);
+        font-size: clamp(1.1rem, 2.1vw, 1.55rem);
+        line-height: 1.08;
+        font-weight: 850;
+    }}
+
+    .answer-action {{
+        margin-top: 0.65rem;
+        color: rgba(31, 29, 26, 0.68);
+        font-size: 0.88rem;
+        line-height: 1.45;
+    }}
+
+    .answer-good {{
+        border-color: rgba(13, 144, 111, 0.26);
+        background: rgba(226, 248, 242, 0.86);
+    }}
+
+    .answer-care {{
+        border-color: rgba(204, 138, 47, 0.28);
+        background: rgba(255, 244, 222, 0.88);
+    }}
+
+    .answer-risk {{
+        border-color: rgba(204, 74, 91, 0.28);
+        background: rgba(255, 232, 235, 0.88);
+    }}
+
+    .goal-grid {{
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 0.9rem;
+        margin: 1rem 0 1.2rem;
+    }}
+
+    .goal-card {{
+        padding: 1.05rem;
+        border: 1px solid rgba(255, 255, 255, 0.68);
+        border-radius: 20px;
+        background: rgba(255, 252, 247, 0.82);
+        box-shadow: 0 12px 28px rgba(64, 46, 26, 0.11);
+    }}
+
+    .goal-title {{
+        color: var(--black);
+        font-size: 1.04rem;
+        font-weight: 850;
+    }}
+
+    .goal-meta {{
+        margin-top: 0.35rem;
+        color: rgba(31, 29, 26, 0.66);
+        font-size: 0.88rem;
+        line-height: 1.45;
+    }}
+
+    .goal-progress {{
+        overflow: hidden;
+        height: 0.7rem;
+        margin: 0.85rem 0 0.6rem;
+        border-radius: 999px;
+        background: rgba(8, 27, 51, 0.10);
+    }}
+
+    .goal-progress span {{
+        display: block;
+        height: 100%;
+        border-radius: inherit;
+        background: linear-gradient(90deg, #28c7b7, #0d906f);
+    }}
+
     @media (max-width: 900px) {{
         .hero,
         .metric-grid,
+        .answer-grid,
         .investment-grid,
         .debt-grid,
+        .goal-grid,
         .investment-item,
         .debt-item,
         .history-item {{
@@ -946,7 +1045,10 @@ st.markdown(
     .investment-return,
     .debt-meta,
     .debt-note,
-    .debt-return {{
+    .debt-return,
+    .answer-question,
+    .answer-action,
+    .goal-meta {{
         color: var(--muted);
     }}
 
@@ -1079,13 +1181,17 @@ st.markdown(
     .history-summary strong,
     .history-title,
     .investment-title,
-    .debt-title {{
+    .debt-title,
+    .answer-value,
+    .goal-title {{
         color: var(--navy);
     }}
 
     .history-item,
     .investment-item,
-    .debt-item {{
+    .debt-item,
+    .answer-card,
+    .goal-card {{
         border: 1px solid rgba(8, 27, 51, 0.08);
         background: rgba(255, 255, 255, 0.92);
         box-shadow: var(--shadow-soft);
@@ -1164,6 +1270,54 @@ def data_br(valor):
     if pd.isna(data_convertida):
         return "Sem data"
     return data_convertida.strftime("%d/%m/%Y")
+
+
+def preparar_fluxo_mensal(df_transacoes):
+    if df_transacoes.empty:
+        return pd.DataFrame(columns=["mes", "entradas", "saidas", "saldo"])
+
+    df_fluxo = df_transacoes.copy()
+    df_fluxo["data_convertida"] = pd.to_datetime(df_fluxo["data"], errors="coerce")
+    df_fluxo = df_fluxo.dropna(subset=["data_convertida"])
+    if df_fluxo.empty:
+        return pd.DataFrame(columns=["mes", "entradas", "saidas", "saldo"])
+
+    df_fluxo["mes"] = df_fluxo["data_convertida"].dt.to_period("M").dt.to_timestamp()
+    df_fluxo["entradas"] = df_fluxo["valor"].clip(lower=0)
+    df_fluxo["saidas"] = df_fluxo["valor"].clip(upper=0).abs()
+    return (
+        df_fluxo.groupby("mes", as_index=False)[["entradas", "saidas"]]
+        .sum()
+        .assign(saldo=lambda dados: dados["entradas"] - dados["saidas"])
+        .sort_values("mes")
+    )
+
+
+def resumo_mes_recente(df_transacoes):
+    df_fluxo = df_transacoes.copy()
+    df_fluxo["data_convertida"] = pd.to_datetime(df_fluxo["data"], errors="coerce")
+    df_fluxo = df_fluxo.dropna(subset=["data_convertida"])
+    if df_fluxo.empty:
+        return pd.DataFrame(), "Sem mês"
+
+    mes_recente = df_fluxo["data_convertida"].max().to_period("M")
+    df_mes = df_fluxo[df_fluxo["data_convertida"].dt.to_period("M") == mes_recente]
+    return df_mes, mes_recente.strftime("%m/%Y")
+
+
+def texto_meses(meses):
+    if meses <= 0:
+        return "agora"
+    anos = meses // 12
+    meses_restantes = meses % 12
+    partes = []
+    if anos:
+        partes.append(f"{anos} ano" if anos == 1 else f"{anos} anos")
+    if meses_restantes:
+        partes.append(
+            f"{meses_restantes} mês" if meses_restantes == 1 else f"{meses_restantes} meses"
+        )
+    return " e ".join(partes) if partes else "menos de 1 mês"
 
 
 def gerar_modelo_excel():
@@ -1842,9 +1996,11 @@ def _pdf_texto(texto):
     )
 
 
-def gerar_relatorio_pdf(df_transacoes, df_investimentos, df_dividas=None):
+def gerar_relatorio_pdf(df_transacoes, df_investimentos, df_dividas=None, df_metas=None):
     if df_dividas is None:
         df_dividas = pd.DataFrame()
+    if df_metas is None:
+        df_metas = pd.DataFrame()
 
     linhas = []
 
@@ -1862,6 +2018,7 @@ def gerar_relatorio_pdf(df_transacoes, df_investimentos, df_dividas=None):
         if len(df_dividas)
         else 0
     )
+    total_metas = df_metas["valor_meta"].sum() if len(df_metas) else 0
 
     adicionar("Dashboard Financeiro - Relatório Financeiro Detalhado", "titulo", 62)
     adicionar(f"Emitido em {date.today().strftime('%d/%m/%Y')}", "pequeno")
@@ -1872,6 +2029,7 @@ def gerar_relatorio_pdf(df_transacoes, df_investimentos, df_dividas=None):
     adicionar(f"Saldo atual: {brl(saldo)}")
     adicionar(f"Patrimônio investido: {brl(investimentos)}")
     adicionar(f"Dívidas monitoradas: {brl(total_dividas)}")
+    adicionar(f"Metas planejadas: {brl(total_metas)}")
     adicionar(f"Movimentações registradas: {len(df_transacoes)}")
     adicionar()
     adicionar("Movimentações", "secao")
@@ -1935,6 +2093,37 @@ def gerar_relatorio_pdf(df_transacoes, df_investimentos, df_dividas=None):
             adicionar("-" * 92, "pequeno")
     else:
         adicionar("Nenhuma dívida cadastrada.")
+
+    adicionar()
+    adicionar("Metas", "secao")
+
+    if len(df_metas):
+        for _, meta in df_metas.iterrows():
+            valor_meta = max(float(meta["valor_meta"]), 0)
+            valor_atual = max(float(meta["valor_atual"]), 0)
+            aporte_mensal = max(float(meta["aporte_mensal"]), 0)
+            falta = max(valor_meta - valor_atual, 0)
+            meses = math.ceil(falta / aporte_mensal) if falta > 0 and aporte_mensal > 0 else 0
+            previsao = (
+                f"Chega em {texto_meses(meses)}"
+                if falta > 0 and aporte_mensal > 0
+                else "Meta concluída" if falta <= 0 else "Sem aporte mensal definido"
+            )
+            adicionar(
+                f"{data_br(meta['data'])} | {meta['nome'] or 'Meta sem nome'} | "
+                f"Objetivo: {brl(valor_meta)} | Atual: {brl(valor_atual)}",
+                "corpo",
+            )
+            adicionar(
+                f"Status: {meta['status'] or 'Não informado'} | Prazo: {meta['prazo'] or 'Não informado'} | "
+                f"{previsao}",
+                "pequeno",
+            )
+            if meta.get("anotacoes"):
+                adicionar(f"Anotações: {meta['anotacoes']}", "pequeno")
+            adicionar("-" * 92, "pequeno")
+    else:
+        adicionar("Nenhuma meta cadastrada.")
 
     paginas = []
     pagina_atual = []
@@ -2056,6 +2245,18 @@ def init_db():
             proxima_acao TEXT,
             anotacoes TEXT
         );
+
+        CREATE TABLE IF NOT EXISTS metas (
+            id INTEGER PRIMARY KEY,
+            data DATE,
+            nome TEXT,
+            valor_meta REAL,
+            valor_atual REAL,
+            aporte_mensal REAL,
+            prazo TEXT,
+            status TEXT,
+            anotacoes TEXT
+        );
         """
     )
     conn.commit()
@@ -2091,6 +2292,19 @@ def normalizar_dataframe_dividas(df_dados):
         "proxima_acao",
         "anotacoes",
     ]:
+        if coluna in df_dados.columns:
+            df_dados[coluna] = df_dados[coluna].fillna("").astype(str)
+    return df_dados
+
+
+def normalizar_dataframe_metas(df_dados):
+    df_dados = df_dados.copy()
+    for coluna in ["valor_meta", "valor_atual", "aporte_mensal"]:
+        if coluna in df_dados.columns:
+            df_dados[coluna] = pd.to_numeric(df_dados[coluna], errors="coerce").fillna(0.0)
+    if "data" in df_dados.columns:
+        df_dados["data"] = df_dados["data"].fillna("").astype(str)
+    for coluna in ["nome", "prazo", "status", "anotacoes"]:
         if coluna in df_dados.columns:
             df_dados[coluna] = df_dados[coluna].fillna("").astype(str)
     return df_dados
@@ -2132,6 +2346,16 @@ def carregar_dividas():
     return normalizar_dataframe_dividas(df_dividas)
 
 
+def carregar_metas():
+    conn = sqlite3.connect(DB_FILE)
+    df_metas = pd.read_sql_query(
+        "SELECT * FROM metas ORDER BY data DESC, id DESC",
+        conn,
+    )
+    conn.close()
+    return normalizar_dataframe_metas(df_metas)
+
+
 def excluir_transacao(tid):
     conn = sqlite3.connect(DB_FILE)
     conn.execute("DELETE FROM transacoes WHERE id = ?", (tid,))
@@ -2156,6 +2380,13 @@ def excluir_investimento(iid):
 def excluir_divida(did):
     conn = sqlite3.connect(DB_FILE)
     conn.execute("DELETE FROM dividas WHERE id = ?", (did,))
+    conn.commit()
+    conn.close()
+
+
+def excluir_meta(mid):
+    conn = sqlite3.connect(DB_FILE)
+    conn.execute("DELETE FROM metas WHERE id = ?", (mid,))
     conn.commit()
     conn.close()
 
@@ -2233,6 +2464,29 @@ def salvar_divida(
     conn.close()
 
 
+def salvar_meta(data_meta, nome, valor_meta, valor_atual, aporte_mensal, prazo, status, anotacoes):
+    conn = sqlite3.connect(DB_FILE)
+    conn.execute(
+        """
+        INSERT INTO metas
+            (data, nome, valor_meta, valor_atual, aporte_mensal, prazo, status, anotacoes)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        """,
+        (
+            data_meta,
+            nome,
+            valor_meta,
+            valor_atual,
+            aporte_mensal,
+            prazo,
+            status,
+            anotacoes,
+        ),
+    )
+    conn.commit()
+    conn.close()
+
+
 def style_plot(fig):
     fig.update_layout(
         paper_bgcolor="rgba(255,255,255,0)",
@@ -2276,6 +2530,7 @@ try:
     df = carregar_dados()
     df_investimentos = carregar_investimentos()
     df_dividas = carregar_dividas()
+    df_metas = carregar_metas()
 except Exception as erro:
     st.error(f"Não foi possível carregar seus dados: {mensagem_erro_usuario(erro)}")
     st.info("Atualize a página e tente novamente.")
@@ -2285,6 +2540,7 @@ hero_total_entradas = df[df["valor"] > 0]["valor"].sum() if len(df) > 0 else 0
 hero_total_saidas = abs(df[df["valor"] < 0]["valor"].sum()) if len(df) > 0 else 0
 hero_saldo = df["valor"].sum() if len(df) > 0 else 0
 hero_total_investido = df_investimentos["valor"].sum() if len(df_investimentos) > 0 else 0
+hero_total_metas = df_metas["valor_meta"].sum() if len(df_metas) > 0 else 0
 
 # ====================== HERO ======================
 st.markdown(
@@ -2293,7 +2549,7 @@ st.markdown(
 )
 
 # ====================== NAVEGAÇÃO ======================
-aba = st.tabs(["➕ Nova Movimentação", "📊 Dashboard", "💼 Investimentos", "🤝 Dívidas", "📋 Histórico"])
+aba = st.tabs(["➕ Nova Movimentação", "📊 Dashboard", "🎯 Metas", "🤝 Dívidas", "📋 Histórico"])
 
 # ====================== ABA 1 ======================
 with aba[0]:
@@ -2361,6 +2617,164 @@ with aba[1]:
         f"""<div class="metric-grid"><div class="metric-card"><div class="metric-label">Entradas</div><div class="metric-value">{brl(total_entradas)}</div><div class="metric-foot">Receitas registradas</div></div><div class="metric-card"><div class="metric-label">Saídas</div><div class="metric-value">{brl(total_saidas)}</div><div class="metric-foot">Despesas acumuladas</div></div><div class="metric-card"><div class="metric-label">Saldo</div><div class="metric-value">{brl(saldo)}</div><div class="metric-foot">Resultado atual</div></div><div class="metric-card"><div class="metric-label">Registros</div><div class="metric-value">{len(df)}</div><div class="metric-foot">Movimentações salvas</div></div></div>""",
         unsafe_allow_html=True,
     )
+
+    df_mes_recente, nome_mes_recente = resumo_mes_recente(df)
+    fluxo_mensal_resumo = preparar_fluxo_mensal(df)
+    entradas_mes = df_mes_recente[df_mes_recente["valor"] > 0]["valor"].sum() if len(df_mes_recente) else 0
+    saidas_mes = abs(df_mes_recente[df_mes_recente["valor"] < 0]["valor"].sum()) if len(df_mes_recente) else 0
+    saldo_mes = entradas_mes - saidas_mes
+    media_sobra = fluxo_mensal_resumo["saldo"].mean() if len(fluxo_mensal_resumo) else saldo
+    media_entradas = fluxo_mensal_resumo["entradas"].mean() if len(fluxo_mensal_resumo) else total_entradas
+    media_saidas = fluxo_mensal_resumo["saidas"].mean() if len(fluxo_mensal_resumo) else total_saidas
+
+    despesas_mes = df_mes_recente[df_mes_recente["valor"] < 0].copy() if len(df_mes_recente) else pd.DataFrame()
+    if len(despesas_mes):
+        despesas_mes["valor_abs"] = despesas_mes["valor"].abs()
+        maior_gasto = despesas_mes.groupby("categoria", as_index=False)["valor_abs"].sum()
+        maior_gasto = maior_gasto.sort_values("valor_abs", ascending=False).iloc[0]
+        maior_gasto_texto = f"{maior_gasto['categoria']} · {brl(maior_gasto['valor_abs'])}"
+        maior_gasto_acao = "Comece revisando essa categoria antes de cortar tudo ao mesmo tempo."
+    else:
+        maior_gasto_texto = "Sem gastos no mês"
+        maior_gasto_acao = "Quando lançar gastos, o app mostra onde atacar primeiro."
+
+    dividas_abertas = pd.DataFrame()
+    if len(df_dividas):
+        df_dividas_resumo = df_dividas.copy()
+        df_dividas_resumo["saldo_base"] = df_dividas_resumo["saldo_negociado"].where(
+            df_dividas_resumo["saldo_negociado"] > 0,
+            df_dividas_resumo["saldo_original"],
+        )
+        dividas_abertas = df_dividas_resumo[df_dividas_resumo["status"] != "Quitada"]
+
+    if saldo_mes >= 0:
+        status_mes = "No azul"
+        classe_mes = "answer-good"
+        acao_mes = f"Em {nome_mes_recente}, sobrou {brl(saldo_mes)}. Separe uma parte antes de gastar."
+    else:
+        status_mes = "Atenção"
+        classe_mes = "answer-risk"
+        acao_mes = f"Em {nome_mes_recente}, faltou {brl(abs(saldo_mes))}. Reduza o maior gasto primeiro."
+
+    if media_sobra > 0:
+        classe_sobra = "answer-good"
+        acao_sobra = "Esse é o valor médio que pode virar reserva, meta ou quitação de dívida."
+    elif media_sobra < 0:
+        classe_sobra = "answer-risk"
+        acao_sobra = "A média está negativa. Antes de investir, ajuste gastos e dívidas."
+    else:
+        classe_sobra = "answer-care"
+        acao_sobra = "Você está empatando. Um corte pequeno já muda o jogo."
+
+    if len(dividas_abertas):
+        proxima_acao_valor = "Negociar dívida"
+        proxima_acao_texto = "Priorize a dívida de maior risco ou maior parcela antes de assumir novos gastos."
+        proxima_acao_classe = "answer-care"
+    elif media_sobra > 0:
+        proxima_acao_valor = "Guardar primeiro"
+        proxima_acao_texto = "Reserve uma parte assim que receber, antes das despesas do mês."
+        proxima_acao_classe = "answer-good"
+    else:
+        proxima_acao_valor = "Cortar vazamento"
+        proxima_acao_texto = "Escolha uma categoria para reduzir este mês e acompanhe no dashboard."
+        proxima_acao_classe = "answer-risk"
+
+    st.markdown(
+        f"""<div class="chart-intro"><strong>O que preciso saber agora?</strong><br>
+        Respostas simples com base nas movimentações cadastradas e importadas.</div>
+        <div class="answer-grid">
+            <div class="answer-card {classe_mes}"><div class="answer-question">Como está meu mês?</div><div class="answer-value">{status_mes}</div><div class="answer-action">{acao_mes}</div></div>
+            <div class="answer-card answer-care"><div class="answer-question">Maior gasto</div><div class="answer-value">{escape(str(maior_gasto_texto))}</div><div class="answer-action">{maior_gasto_acao}</div></div>
+            <div class="answer-card {classe_sobra}"><div class="answer-question">Quanto sobra em média?</div><div class="answer-value">{brl(media_sobra)}</div><div class="answer-action">{acao_sobra}</div></div>
+            <div class="answer-card {proxima_acao_classe}"><div class="answer-question">Próxima ação</div><div class="answer-value">{proxima_acao_valor}</div><div class="answer-action">{proxima_acao_texto}</div></div>
+        </div>""",
+        unsafe_allow_html=True,
+    )
+
+    with st.expander("🔮 Meu dinheiro futuro", expanded=False):
+        st.caption(
+            "Simule os próximos 6 meses com ajustes simples. A projeção usa sua média mensal atual."
+        )
+        col_cenario1, col_cenario2, col_cenario3 = st.columns(3)
+        with col_cenario1:
+            reduzir_gastos = st.slider(
+                "E se eu gastar menos por mês?",
+                min_value=0,
+                max_value=3000,
+                value=0,
+                step=50,
+                format="R$ %d",
+            )
+        with col_cenario2:
+            renda_extra = st.slider(
+                "E se eu receber um extra por mês?",
+                min_value=0,
+                max_value=5000,
+                value=0,
+                step=50,
+                format="R$ %d",
+            )
+        with col_cenario3:
+            separar_meta = st.slider(
+                "Quero separar para metas por mês",
+                min_value=0,
+                max_value=5000,
+                value=0,
+                step=50,
+                format="R$ %d",
+            )
+
+        fluxo_normal = media_sobra + reduzir_gastos + renda_extra - separar_meta
+        ajuste_bom = max(media_entradas * 0.05, 100) if media_entradas else 100
+        ajuste_apertado = max(media_saidas * 0.08, 100) if media_saidas else 100
+        inicio_mes = pd.Timestamp(date.today()).to_period("M").to_timestamp()
+        saldo_normal = saldo
+        saldo_bom = saldo
+        saldo_apertado = saldo
+        projecoes = []
+
+        for indice_mes in range(1, 7):
+            mes = inicio_mes + pd.DateOffset(months=indice_mes)
+            saldo_normal += fluxo_normal
+            saldo_bom += fluxo_normal + ajuste_bom
+            saldo_apertado += fluxo_normal - ajuste_apertado
+            projecoes.extend(
+                [
+                    {"Mês": mes, "Cenário": "Normal", "Saldo projetado": saldo_normal},
+                    {"Mês": mes, "Cenário": "Bom", "Saldo projetado": saldo_bom},
+                    {"Mês": mes, "Cenário": "Apertado", "Saldo projetado": saldo_apertado},
+                ]
+            )
+
+        df_projecoes = pd.DataFrame(projecoes)
+        normal_negativo = df_projecoes[
+            (df_projecoes["Cenário"] == "Normal") & (df_projecoes["Saldo projetado"] < 0)
+        ]
+        if normal_negativo.empty:
+            resposta_futuro = "Pelo cenário normal, seu saldo continua positivo nos próximos 6 meses."
+        else:
+            mes_alerta = normal_negativo.iloc[0]["Mês"].strftime("%m/%Y")
+            resposta_futuro = f"No cenário normal, seu saldo pode ficar negativo em {mes_alerta}."
+
+        st.markdown(
+            f"""<div class="history-summary"><strong>Vou ficar sem dinheiro?</strong><br>{resposta_futuro}</div>""",
+            unsafe_allow_html=True,
+        )
+        fig_futuro = px.line(
+            df_projecoes,
+            x="Mês",
+            y="Saldo projetado",
+            color="Cenário",
+            title="Como deve ficar meu dinheiro nos próximos meses?",
+            markers=True,
+            color_discrete_map={
+                "Bom": "#0d906f",
+                "Normal": "#28c7b7",
+                "Apertado": "#cc4a5b",
+            },
+        )
+        fig_futuro.update_yaxes(tickprefix="R$ ")
+        st.plotly_chart(style_plot(fig_futuro), use_container_width=True)
 
     with st.expander("📤 Subir planilha de movimentações", expanded=False):
         st.caption(
@@ -2570,7 +2984,113 @@ with aba[1]:
 
 # ====================== ABA 3 ======================
 with aba[2]:
-    st.subheader("Investimentos")
+    st.subheader("Metas e Investimentos")
+    st.markdown(
+        """<div class="chart-intro"><strong>Minhas metas</strong><br>
+        Defina objetivos simples, acompanhe quanto falta e veja em quanto tempo chega lá
+        mantendo um aporte mensal.</div>""",
+        unsafe_allow_html=True,
+    )
+
+    with st.form("nova_meta"):
+        st.markdown("#### Adicionar meta")
+        col_meta1, col_meta2, col_meta3 = st.columns(3)
+
+        with col_meta1:
+            data_meta = st.date_input("Data da meta", value=date.today(), format="DD/MM/YYYY")
+            nome_meta = st.text_input(
+                "Nome da meta",
+                placeholder="Ex.: Reserva, reforma, viagem, quitar dívida",
+            )
+            status_meta = st.selectbox("Status da meta", ["Em andamento", "Planejada", "Concluída"])
+
+        with col_meta2:
+            valor_meta = st.number_input(
+                "Valor necessário (R$)",
+                value=0.0,
+                step=0.01,
+                min_value=0.0,
+                key="valor_meta",
+            )
+            valor_atual_meta = st.number_input(
+                "Quanto já tenho (R$)",
+                value=0.0,
+                step=0.01,
+                min_value=0.0,
+                key="valor_atual_meta",
+            )
+            aporte_meta = st.number_input(
+                "Quanto posso guardar por mês (R$)",
+                value=0.0,
+                step=0.01,
+                min_value=0.0,
+                key="aporte_meta",
+            )
+
+        with col_meta3:
+            prazo_meta = st.text_input("Prazo desejado", placeholder="Ex.: Dezembro/2026")
+            anotacoes_meta = st.text_area(
+                "Anotações",
+                placeholder="Ex.: guardar após receber, usar 13º, reduzir delivery",
+            )
+
+        if st.form_submit_button("Salvar meta"):
+            if not nome_meta.strip():
+                st.error("Informe o nome da meta.")
+            elif valor_meta <= 0:
+                st.error("Informe o valor necessário para a meta.")
+            else:
+                try:
+                    salvar_meta(
+                        data_meta,
+                        nome_meta.strip(),
+                        valor_meta,
+                        valor_atual_meta,
+                        aporte_meta,
+                        prazo_meta.strip(),
+                        status_meta,
+                        anotacoes_meta.strip(),
+                    )
+                    st.success("Meta salva com sucesso!")
+                    st.rerun()
+                except Exception as erro:
+                    st.error(f"Não foi possível salvar a meta: {mensagem_erro_usuario(erro)}")
+
+    if len(df_metas) > 0:
+        st.markdown("#### Progresso das metas")
+        st.markdown('<div class="goal-grid">', unsafe_allow_html=True)
+        for _, meta in df_metas.iterrows():
+            valor_meta = max(float(meta["valor_meta"]), 0)
+            valor_atual = max(float(meta["valor_atual"]), 0)
+            aporte_mensal = max(float(meta["aporte_mensal"]), 0)
+            percentual = min((valor_atual / valor_meta) * 100, 100) if valor_meta > 0 else 0
+            falta = max(valor_meta - valor_atual, 0)
+            meses = math.ceil(falta / aporte_mensal) if falta > 0 and aporte_mensal > 0 else 0
+            previsao = (
+                f"Chega em {texto_meses(meses)}"
+                if falta > 0 and aporte_mensal > 0
+                else "Meta concluída" if falta <= 0 else "Defina um aporte mensal"
+            )
+            nome = escape(str(meta["nome"] or "Meta sem nome"))
+            status = escape(str(meta["status"] or "Sem status"))
+            prazo = escape(str(meta["prazo"] or "Sem prazo definido"))
+            anotacoes = escape(str(meta["anotacoes"] or "Sem anotações"))
+
+            st.markdown(
+                f"""<div class="goal-card"><div class="goal-title">{nome}</div><div class="goal-meta">Status: {status} • Prazo: {prazo}</div><div class="goal-progress"><span style="width:{percentual:.1f}%"></span></div><div class="goal-meta"><strong>{percentual:.0f}% concluída</strong><br>Tenho {brl(valor_atual)} de {brl(valor_meta)}. Falta {brl(falta)}.<br>{previsao}. Aporte mensal: {brl(aporte_mensal)}.<br>Anotações: {anotacoes}</div></div>""",
+                unsafe_allow_html=True,
+            )
+        st.markdown("</div>", unsafe_allow_html=True)
+
+        for _, meta in df_metas.iterrows():
+            if st.button("🗑️ Apagar meta", key=f"del_meta{meta['id']}"):
+                excluir_meta(meta["id"])
+                st.rerun()
+    else:
+        st.info("Nenhuma meta cadastrada ainda.")
+
+    st.divider()
+    st.markdown("### Investimentos")
 
     with st.form("novo_investimento"):
         st.markdown("#### Adicionar investimento")
@@ -2853,6 +3373,38 @@ with aba[3]:
             unsafe_allow_html=True,
         )
 
+        with st.expander("⚡ E se eu quiser pagar mais rápido?", expanded=False):
+            pagamento_base = parcelas_acordadas if parcelas_acordadas > 0 else 0
+            valor_extra_divida = st.slider(
+                "Quero pagar a mais por mês",
+                min_value=0,
+                max_value=5000,
+                value=0,
+                step=50,
+                format="R$ %d",
+            )
+            pagamento_total = pagamento_base + valor_extra_divida
+
+            if total_aberto > 0 and pagamento_total > 0:
+                meses_atuais = math.ceil(total_aberto / pagamento_base) if pagamento_base > 0 else 0
+                meses_novos = math.ceil(total_aberto / pagamento_total)
+                meses_ganhos = max(meses_atuais - meses_novos, 0) if meses_atuais else 0
+                texto_atual = (
+                    f"No ritmo atual, faltam cerca de {texto_meses(meses_atuais)}."
+                    if meses_atuais
+                    else "Defina uma parcela mensal para comparar o prazo."
+                )
+                st.markdown(
+                    f"""<div class="answer-grid">
+                        <div class="answer-card answer-care"><div class="answer-question">Prazo atual</div><div class="answer-value">{texto_meses(meses_atuais) if meses_atuais else "Sem parcela"}</div><div class="answer-action">{texto_atual}</div></div>
+                        <div class="answer-card answer-good"><div class="answer-question">Novo prazo</div><div class="answer-value">{texto_meses(meses_novos)}</div><div class="answer-action">Com {brl(pagamento_total)} por mês.</div></div>
+                        <div class="answer-card answer-good"><div class="answer-question">Tempo ganho</div><div class="answer-value">{texto_meses(meses_ganhos)}</div><div class="answer-action">Estimativa simples, sem recalcular juros futuros.</div></div>
+                    </div>""",
+                    unsafe_allow_html=True,
+                )
+            else:
+                st.info("Cadastre o saldo aberto e uma parcela possível para simular o prazo.")
+
         col_dividas, col_status = st.columns([1.25, 0.75])
         with col_dividas:
             tabela_dividas = df_dividas_view[
@@ -2949,12 +3501,12 @@ with aba[3]:
 # ====================== ABA 5 ======================
 with aba[4]:
     st.subheader("Histórico")
-    relatorio_pdf = gerar_relatorio_pdf(df, df_investimentos, df_dividas)
+    relatorio_pdf = gerar_relatorio_pdf(df, df_investimentos, df_dividas, df_metas)
     if st.session_state.get("historico_limpo"):
         st.success(st.session_state.pop("historico_limpo"))
 
     st.markdown(
-        f"""<div class="history-summary"><strong>Relatório financeiro detalhado</strong><br>Baixe um PDF com o resumo do período, todas as movimentações, investimentos e dívidas cadastradas. Registros incluídos: {len(df)} movimentações, {len(df_investimentos)} investimentos e {len(df_dividas)} dívidas.</div>""",
+        f"""<div class="history-summary"><strong>Relatório financeiro detalhado</strong><br>Baixe um PDF com o resumo do período, todas as movimentações, investimentos, dívidas e metas cadastradas. Registros incluídos: {len(df)} movimentações, {len(df_investimentos)} investimentos, {len(df_dividas)} dívidas e {len(df_metas)} metas.</div>""",
         unsafe_allow_html=True,
     )
     st.download_button(
