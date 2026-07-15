@@ -2139,6 +2139,13 @@ def excluir_transacao(tid):
     conn.close()
 
 
+def limpar_historico_movimentacoes():
+    conn = sqlite3.connect(DB_FILE)
+    conn.execute("DELETE FROM transacoes")
+    conn.commit()
+    conn.close()
+
+
 def excluir_investimento(iid):
     conn = sqlite3.connect(DB_FILE)
     conn.execute("DELETE FROM investimentos WHERE id = ?", (iid,))
@@ -2943,6 +2950,8 @@ with aba[3]:
 with aba[4]:
     st.subheader("Histórico")
     relatorio_pdf = gerar_relatorio_pdf(df, df_investimentos, df_dividas)
+    if st.session_state.get("historico_limpo"):
+        st.success(st.session_state.pop("historico_limpo"))
 
     st.markdown(
         f"""<div class="history-summary"><strong>Relatório financeiro detalhado</strong><br>Baixe um PDF com o resumo do período, todas as movimentações, investimentos e dívidas cadastradas. Registros incluídos: {len(df)} movimentações, {len(df_investimentos)} investimentos e {len(df_dividas)} dívidas.</div>""",
@@ -2956,6 +2965,26 @@ with aba[4]:
     )
 
     if len(df) > 0:
+        with st.expander("🧹 Limpar histórico completo", expanded=False):
+            st.caption(
+                "Apaga todas as movimentações cadastradas e importadas no histórico. "
+                "Investimentos e dívidas não serão alterados."
+            )
+            confirmar_limpeza = st.checkbox(
+                "Confirmo que quero apagar todas as movimentações do histórico",
+                key="confirmar_limpeza_historico",
+            )
+            if st.button("Apagar todo o histórico", disabled=not confirmar_limpeza):
+                try:
+                    total_apagado = len(df)
+                    limpar_historico_movimentacoes()
+                    st.session_state["historico_limpo"] = (
+                        f"Histórico limpo com sucesso. {total_apagado} movimentações foram apagadas."
+                    )
+                    st.rerun()
+                except Exception as erro:
+                    st.error(f"Não foi possível limpar o histórico: {mensagem_erro_usuario(erro)}")
+
         st.markdown("#### Histórico consolidado")
         st.caption(
             "Todos os registros manuais e importados por planilha ficam disponíveis nesta mesma visão."
