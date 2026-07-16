@@ -157,118 +157,655 @@ def mensagem_erro_usuario(erro) -> str:
     return texto
 
 
-# ====================== ESTILO (mix Influency + Lodgify + Mobile) ======================
+# ====================== ESTILO (otimizado + responsivo) ======================
 st.markdown(
     """
 <style>
+/* ========== TOKENS ========== */
+:root {
+    --ink: #1c1f26;
+    --muted: #8a90a0;
+    --lime: #d9ff00;
+    --mint: #b8f0d8;
+    --mint-soft: #e8faf3;
+    --mint-mid: #7ed9b0;
+    --blue: #a8c4ff;
+    --bg: #f3f4f7;
+    --card: #ffffff;
+    --line: rgba(28, 31, 38, 0.08);
+    --shadow: 0 12px 40px rgba(28, 31, 38, 0.07);
+    --shadow-soft: 0 6px 18px rgba(28, 31, 38, 0.05);
+    --radius: 18px;
+    --radius-sm: 14px;
+    --pad-page: 1.25rem 1.4rem 2.5rem;
+    --gap-grid: 0.95rem;
+    --card-pad: 1.15rem 1.2rem;
+    --font-value: clamp(1.25rem, 2.4vw, 1.9rem);
+    --touch: 2.7rem;
+}
+
+/* ========== BASE ========== */
+html, body, [class*="css"] {
+    font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    -webkit-text-size-adjust: 100%;
+    -webkit-tap-highlight-color: transparent;
+}
+
+[data-testid="stAppViewContainer"] {
+    background:
+        radial-gradient(circle at 0% 0%, rgba(184, 240, 216, 0.32), transparent 26rem),
+        radial-gradient(circle at 100% 0%, rgba(217, 255, 0, 0.10), transparent 20rem),
+        radial-gradient(circle at 90% 90%, rgba(168, 196, 255, 0.16), transparent 24rem),
+        var(--bg) !important;
+    color: var(--ink);
+}
+
+[data-testid="stHeader"],
+[data-testid="stToolbar"] {
+    background: transparent !important;
+}
+
+.main .block-container {
+    max-width: 1200px;
+    padding: var(--pad-page) !important;
+}
+
+h1, h2, h3, h4,
+.stSubheader,
+[data-testid="stCaptionContainer"],
+.stCaption {
+    color: var(--ink) !important;
+    opacity: 1 !important;
+    letter-spacing: -0.02em;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+}
+
+h1, h2, h3 {
+    font-weight: 800 !important;
+}
+
+/* ========== SIDEBAR ========== */
+[data-testid="stSidebar"] {
+    background: var(--card) !important;
+    border-right: 1px solid var(--line);
+    box-shadow: 4px 0 24px rgba(28, 31, 38, 0.03);
+}
+
+[data-testid="stSidebar"] .stRadio > label {
+    display: none !important;
+}
+
+[data-testid="stSidebar"] .stRadio [role="radiogroup"] label {
+    padding: 0.55rem 0.95rem !important;
+    border-radius: 12px !important;
+    font-weight: 650 !important;
+    color: #6b7280 !important;
+    margin-bottom: 0.25rem !important;
+    min-height: var(--touch);
+    transition: background 0.15s ease, color 0.15s ease;
+}
+
+[data-testid="stSidebar"] .stRadio [role="radiogroup"] label:hover {
+    background: #f6f7f9 !important;
+    color: var(--ink) !important;
+}
+
+[data-testid="stSidebar"] .stRadio [role="radiogroup"] label[data-checked="true"],
+[data-testid="stSidebar"] .stRadio [aria-checked="true"] {
+    background: var(--lime) !important;
+    color: var(--ink) !important;
+    font-weight: 800 !important;
+    box-shadow: 0 4px 14px rgba(217, 255, 0, 0.25);
+}
+
+/* ========== GRIDS ========== */
+.metric-grid,
+.indicator-grid,
+.answer-grid,
+.goal-grid,
+.debt-grid,
+.investment-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: var(--gap-grid);
+    margin: 1rem 0 1.15rem;
+}
+
+/* ========== CARDS ========== */
+.metric-card,
+.indicator-card,
+.answer-card,
+.goal-card,
+.history-item,
+.investment-item,
+.debt-item {
+    position: relative;
+    min-height: 7.4rem;
+    padding: var(--card-pad);
+    border-radius: var(--radius);
+    background: var(--card);
+    border: 1px solid var(--line);
+    box-shadow: var(--shadow-soft);
+    overflow: visible !important;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.metric-card:hover,
+.indicator-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow);
+}
+
+.metric-card.accent {
+    background: linear-gradient(145deg, #d9ff00 0%, #e8ff4a 100%);
+    border: none;
+    box-shadow: 0 10px 28px rgba(217, 255, 0, 0.28);
+}
+
+.metric-card.mint {
+    background: linear-gradient(145deg, #e8faf3 0%, #d4f5e8 100%);
+    border: 1px solid rgba(126, 217, 176, 0.25);
+}
+
+.metric-card.dark {
+    background: linear-gradient(145deg, #1c1f26 0%, #2a2e38 100%);
+    color: #fff;
+    border: none;
+}
+
+.metric-card.dark .metric-label,
+.metric-card.dark .metric-foot,
+.metric-card.dark .metric-value {
+    color: #fff !important;
+}
+
+.metric-label,
+.indicator-top,
+.answer-question {
+    color: var(--muted);
+    font-size: 0.76rem;
+    font-weight: 700;
+    letter-spacing: 0.01em;
+    white-space: normal !important;
+    overflow: visible !important;
+    word-break: break-word !important;
+}
+
+.metric-value,
+.indicator-value,
+.answer-value {
+    margin-top: 0.65rem;
+    color: var(--ink);
+    font-size: var(--font-value);
+    line-height: 1.2 !important;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    white-space: normal !important;
+    overflow: visible !important;
+    text-overflow: unset !important;
+    word-break: break-word !important;
+    overflow-wrap: anywhere !important;
+    max-width: 100% !important;
+}
+
+.metric-foot,
+.indicator-note,
+.answer-action,
+.goal-meta,
+.debt-meta,
+.investment-meta {
+    margin-top: 0.35rem;
+    color: var(--muted);
+    font-size: 0.8rem;
+    line-height: 1.4;
+    font-weight: 500;
+    white-space: normal !important;
+    word-break: break-word !important;
+}
+
+.positive { color: #0d9f6e; font-weight: 800; }
+.negative { color: #e04b5a; font-weight: 800; }
+
+.goal-progress,
+.progress-track {
+    overflow: hidden;
+    height: 0.48rem;
+    margin-top: 0.65rem;
+    border-radius: 999px;
+    background: rgba(28, 31, 38, 0.07);
+}
+
+.goal-progress span,
+.progress-track span {
+    display: block;
+    height: 100%;
+    border-radius: inherit;
+    background: linear-gradient(90deg, var(--lime), var(--mint-mid));
+}
+
+.chart-intro,
+.history-summary {
+    margin: 0.85rem 0;
+    padding: 1rem 1.1rem;
+    border-radius: var(--radius-sm);
+    background: var(--card);
+    border: 1px solid var(--line);
+    box-shadow: var(--shadow-soft);
+    color: var(--ink);
+    font-size: 0.93rem;
+}
+
+.answer-good {
+    background: var(--mint-soft);
+    border: 1px solid rgba(126, 217, 176, 0.3);
+}
+.answer-care {
+    background: #fff8e8;
+    border: 1px solid rgba(230, 180, 60, 0.25);
+}
+.answer-risk {
+    background: #ffecee;
+    border: 1px solid rgba(224, 75, 90, 0.2);
+}
+
+/* Header */
+.page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 1rem;
+    margin-bottom: 1.1rem;
+    flex-wrap: wrap;
+}
+
+.page-header h1 {
+    margin: 0.1rem 0 0.2rem !important;
+    font-size: clamp(1.55rem, 5vw, 2.25rem) !important;
+    font-weight: 800 !important;
+}
+
+.page-header p {
+    margin: 0;
+    color: var(--muted);
+    font-size: 0.92rem;
+    font-weight: 500;
+}
+
+.user-chip {
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+    padding: 0.32rem 0.85rem 0.32rem 0.38rem;
+    border-radius: 999px;
+    background: var(--card);
+    box-shadow: var(--shadow-soft);
+    border: 1px solid var(--line);
+    font-size: 0.84rem;
+    font-weight: 700;
+    color: var(--ink);
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.avatar-dot {
+    width: 1.85rem;
+    height: 1.85rem;
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #1c1f26, #3a404c);
+    color: #fff;
+    font-size: 0.72rem;
+    font-weight: 800;
+    flex-shrink: 0;
+}
+
+.badge-new,
+.badge-lime {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.22rem 0.65rem;
+    border-radius: 999px;
+    font-size: 0.74rem;
+    font-weight: 800;
+}
+.badge-new { background: var(--mint); color: #0d5c3d; }
+.badge-lime { background: var(--lime); color: var(--ink); }
+
+.card-icon {
+    position: absolute;
+    top: 0.9rem;
+    right: 0.9rem;
+    width: 2rem;
+    height: 2rem;
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    border: 1.5px solid rgba(28, 31, 38, 0.1);
+    font-size: 0.85rem;
+    color: var(--ink);
+    background: rgba(255, 255, 255, 0.5);
+    flex-shrink: 0;
+}
+
+.metric-card.accent .card-icon {
+    border-color: rgba(28, 31, 38, 0.18);
+    background: rgba(255, 255, 255, 0.35);
+}
+
+.metric-card.dark .card-icon {
+    border-color: rgba(255, 255, 255, 0.2);
+    color: #fff;
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.status-pill {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.2rem 0.6rem;
+    border-radius: 999px;
+    font-size: 0.72rem;
+    font-weight: 750;
+}
+.status-ok { background: var(--mint-soft); color: #0d5c3d; }
+.status-warn { background: #fff4d6; color: #8a5a00; }
+.status-bad { background: #ffe4e8; color: #a31d2e; }
+
+/* List items */
+.history-item,
+.investment-item,
+.debt-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.85rem;
+    min-height: auto;
+    margin-bottom: 0.65rem;
+}
+
+.history-item > div:first-child,
+.investment-item > div:first-child,
+.debt-item > div:first-child {
+    min-width: 0;
+    flex: 1;
+}
+
+/* ========== TABS ========== */
+div[data-testid="stTabs"] {
+    margin-top: 0.35rem;
+}
+
+div[data-testid="stTabs"] [data-baseweb="tab-list"] {
+    gap: 0.4rem;
+    background: transparent !important;
+    flex-wrap: wrap !important;
+    row-gap: 0.4rem !important;
+    overflow-x: visible !important;
+    -webkit-overflow-scrolling: touch;
+}
+
+div[data-testid="stTabs"] [data-baseweb="tab-highlight"],
+div[data-testid="stTabs"] [data-baseweb="tab-border"] {
+    display: none !important;
+}
+
+div[data-testid="stTabs"] button {
+    border-radius: 999px !important;
+    color: #1c1f26 !important;
+    font-weight: 700 !important;
+    background: #ffffff !important;
+    border: 1px solid var(--line) !important;
+    box-shadow: var(--shadow-soft) !important;
+    padding: 0.45rem 1rem !important;
+    min-height: 2.5rem;
+    height: auto !important;
+    font-size: 0.88rem !important;
+    white-space: normal !important;
+    line-height: 1.25 !important;
+    max-width: 100%;
+    opacity: 1 !important;
+    transition: background 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
+}
+div[data-testid="stTabs"] button p,
+div[data-testid="stTabs"] button span,
+div[data-testid="stTabs"] button div {
+    color: #1c1f26 !important;
+    opacity: 1 !important;
+    -webkit-text-fill-color: #1c1f26 !important;
+}
+
+div[data-testid="stTabs"] button:hover {
+    background: #f8f9fb !important;
+    color: var(--ink) !important;
+}
+
+div[data-testid="stTabs"] button[aria-selected="true"] {
+    color: #1c1f26 !important;
+    background: var(--lime) !important;
+    border-color: transparent !important;
+    font-weight: 800 !important;
+    box-shadow: 0 4px 16px rgba(217, 255, 0, 0.3) !important;
+    opacity: 1 !important;
+}
+div[data-testid="stTabs"] button[aria-selected="true"] * {
+    color: #1c1f26 !important;
+    -webkit-text-fill-color: #1c1f26 !important;
+    opacity: 1 !important;
+}
+
+/* ========== CHARTS / SURFACES ========== */
+div[data-testid="stPlotlyChart"],
+div[data-testid="stDataFrame"],
+div[data-testid="stExpander"],
+div[data-testid="stForm"],
+[data-testid="stAlert"] {
+    border-radius: var(--radius) !important;
+    background: var(--card) !important;
+    border: 1px solid var(--line) !important;
+    box-shadow: var(--shadow-soft) !important;
+}
+
+div[data-testid="stPlotlyChart"],
+div[data-testid="stDataFrame"] {
+    overflow-x: auto !important;
+    max-width: 100% !important;
+}
+
+.js-plotly-plot,
+.plotly {
+    max-width: 100% !important;
+}
+
+/* ========== BUTTONS ========== */
+.stButton > button,
+[data-testid="stFormSubmitButton"] button,
+div[data-testid="stDownloadButton"] button {
+    min-height: var(--touch) !important;
+    height: auto !important;
+    border-radius: 999px !important;
+    font-weight: 750 !important;
+    box-shadow: var(--shadow-soft) !important;
+    width: 100%;
+    padding: 0.55rem 1.1rem !important;
+    white-space: normal !important;
+    line-height: 1.25 !important;
+    word-break: break-word !important;
+    transition: background 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.stButton > button,
+[data-testid="stFormSubmitButton"] button {
+    border: 0 !important;
+    color: #fff !important;
+    background: #1c1f26 !important;
+}
+
+.stButton > button:hover,
+[data-testid="stFormSubmitButton"] button:hover {
+    background: #2d323c !important;
+    color: #fff !important;
+    transform: translateY(-1px);
+    box-shadow: 0 8px 20px rgba(28, 31, 38, 0.12) !important;
+}
+
+div[data-testid="stDownloadButton"] button {
+    color: var(--ink) !important;
+    background: #fff !important;
+    border: 1px solid var(--line) !important;
+}
+
+div[data-testid="stDownloadButton"] button:hover {
+    border-color: rgba(217, 255, 0, 0.6) !important;
+    background: #fefff5 !important;
+}
+
+/* ========== FORMS / LABELS ========== */
+label,
+[data-testid="stWidgetLabel"],
+[data-testid="stWidgetLabel"] p,
+.stSelectbox label,
+.stTextInput label,
+.stNumberInput label,
+.stDateInput label,
+.stTextArea label,
+.stRadio label,
+.stMultiSelect label {
+    color: var(--ink) !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+    font-weight: 650 !important;
+    font-size: 0.88rem !important;
+    margin-bottom: 0.25rem !important;
+}
+
+div[data-baseweb="input"],
+div[data-baseweb="input"] > div,
+div[data-baseweb="select"] > div,
+div[data-baseweb="base-input"],
+input,
+textarea,
+[data-baseweb="textarea"],
+.stTextInput input,
+.stNumberInput input,
+.stDateInput input,
+.stTextArea textarea {
+    background: #fff !important;
+    color: var(--ink) !important;
+    border: 1.5px solid rgba(28, 31, 38, 0.12) !important;
+    border-radius: 12px !important;
+    min-height: var(--touch) !important;
+    font-size: 0.95rem !important;
+    caret-color: var(--ink) !important;
+    box-shadow: none !important;
+}
+
+div[data-baseweb="input"] input,
+div[data-baseweb="select"] input {
+    color: var(--ink) !important;
+    background: transparent !important;
+    -webkit-text-fill-color: var(--ink) !important;
+}
+
+input::placeholder,
+textarea::placeholder {
+    color: var(--muted) !important;
+    opacity: 1 !important;
+    -webkit-text-fill-color: var(--muted) !important;
+}
+
+div[data-baseweb="select"] span,
+div[data-baseweb="select"] div {
+    color: var(--ink) !important;
+}
+
+div[data-baseweb="input"]:focus-within,
+div[data-baseweb="select"] > div:focus-within,
+textarea:focus {
+    border-color: rgba(126, 217, 176, 0.75) !important;
+    box-shadow: 0 0 0 3px rgba(184, 240, 216, 0.35) !important;
+}
+
+div[role="radiogroup"] {
+    flex-wrap: wrap !important;
+    gap: 0.45rem !important;
+}
+
+div[role="radiogroup"] label {
+    white-space: normal !important;
+}
+
+[data-testid="column"] {
+    min-width: 0 !important;
+    overflow: visible !important;
+}
+
+[data-testid="stMetricValue"] {
+    white-space: normal !important;
+    overflow: visible !important;
+    word-break: break-word !important;
+}
+
+[data-testid="stMetricLabel"] {
+    color: var(--ink) !important;
+    opacity: 1 !important;
+}
+
+div[data-testid="stExpander"] summary,
+div[data-testid="stExpander"] summary p,
+div[data-testid="stExpander"] summary span {
+    color: var(--ink) !important;
+    opacity: 1 !important;
+    font-weight: 700 !important;
+}
+
+/* ========== TABLET ========== */
+@media (max-width: 980px) {
     :root {
-        --ink: #1c1f26;
-        --muted: #8a90a0;
-        --lime: #d9ff00;
-        --lime-soft: #f3ff9a;
-        --mint: #b8f0d8;
-        --mint-soft: #e8faf3;
-        --mint-mid: #7ed9b0;
-        --blue: #a8c4ff;
-        --blue-soft: #eaf0ff;
-        --bg: #f3f4f7;
-        --card: #ffffff;
-        --sidebar: #ffffff;
-        --shadow: 0 12px 40px rgba(28,31,38,0.07);
-        --shadow-soft: 0 6px 18px rgba(28,31,38,0.05);
-        --radius: 20px;
-        --radius-sm: 14px;
-        --radius-lg: 24px;
+        --pad-page: 1rem 1rem 2rem;
+        --gap-grid: 0.75rem;
+        --card-pad: 1rem;
+        --font-value: clamp(1.2rem, 4vw, 1.65rem);
     }
 
-    html, body, [class*="css"] {
-        font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-        -webkit-text-size-adjust: 100%;
-        -webkit-tap-highlight-color: transparent;
-    }
-
-    [data-testid="stAppViewContainer"] {
-        background:
-            radial-gradient(circle at 0% 0%, rgba(184,240,216,0.35), transparent 28rem),
-            radial-gradient(circle at 100% 0%, rgba(217,255,0,0.12), transparent 22rem),
-            radial-gradient(circle at 90% 90%, rgba(168,196,255,0.18), transparent 26rem),
-            var(--bg) !important;
-        color: var(--ink);
-    }
-
-    [data-testid="stHeader"],
-    [data-testid="stToolbar"] {
-        background: transparent !important;
-    }
-
-    .main .block-container {
-        max-width: 1200px;
-        padding-top: 1.25rem;
-        padding-bottom: 2.5rem;
-        padding-left: 1.4rem;
-        padding-right: 1.4rem;
-    }
-
-    /* ===== SIDEBAR ===== */
-    [data-testid="stSidebar"] {
-        background: var(--sidebar) !important;
-        border-right: 1px solid rgba(28,31,38,0.06);
-        box-shadow: 4px 0 24px rgba(28,31,38,0.03);
-    }
-    [data-testid="stSidebar"] > div:first-child {
-        padding-top: 1.2rem;
-    }
-    section[data-testid="stSidebar"] .stMarkdown h1,
-    section[data-testid="stSidebar"] .stMarkdown h2,
-    section[data-testid="stSidebar"] .stMarkdown h3 {
-        color: var(--ink) !important;
-    }
-    [data-testid="stSidebar"] .stRadio > label {
-        display: none !important;
-    }
-    [data-testid="stSidebar"] .stRadio [role="radiogroup"] label {
-        padding: 0.55rem 0.95rem !important;
-        border-radius: 12px !important;
-        font-weight: 650 !important;
-        color: #6b7280 !important;
-        margin-bottom: 0.25rem !important;
-        transition: 0.15s ease;
-        min-height: 2.6rem;
-    }
-    [data-testid="stSidebar"] .stRadio [role="radiogroup"] label:hover {
-        background: #f6f7f9 !important;
-        color: var(--ink) !important;
-    }
-    [data-testid="stSidebar"] .stRadio [role="radiogroup"] label[data-checked="true"],
-    [data-testid="stSidebar"] .stRadio [aria-checked="true"] {
-        background: var(--lime) !important;
-        color: var(--ink) !important;
-        font-weight: 800 !important;
-        box-shadow: 0 4px 14px rgba(217,255,0,0.25);
-    }
-
-    h1, h2, h3 {
-        color: var(--ink) !important;
-        letter-spacing: -0.025em;
-        font-weight: 800 !important;
-        word-wrap: break-word;
-        overflow-wrap: break-word;
-    }
-
-    /* ===== GRIDS ===== */
     .metric-grid,
     .indicator-grid,
     .answer-grid,
     .goal-grid,
     .debt-grid,
     .investment-grid {
-        display: grid;
-        grid-template-columns: repeat(4, minmax(0, 1fr));
-        gap: 0.95rem;
-        margin: 1rem 0 1.2rem;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 
-    /* ===== CARDS ===== */
+    .metric-card,
+    .indicator-card,
+    .answer-card,
+    .goal-card {
+        min-height: 6.8rem;
+    }
+}
+
+/* ========== MOBILE ========== */
+@media (max-width: 640px) {
+    :root {
+        --pad-page: 0.75rem 0.7rem 1.5rem;
+        --gap-grid: 0.65rem;
+        --card-pad: 0.95rem 1rem;
+        --font-value: 1.35rem;
+        --radius: 16px;
+        --touch: 2.85rem;
+    }
+
+    .metric-grid,
+    .indicator-grid,
+    .answer-grid,
+    .goal-grid,
+    .debt-grid,
+    .investment-grid {
+        grid-template-columns: 1fr !important;
+        margin: 0.75rem 0 1rem;
+    }
+
     .metric-card,
     .indicator-card,
     .answer-card,
@@ -276,73 +813,13 @@ st.markdown(
     .history-item,
     .investment-item,
     .debt-item {
-        position: relative;
-        overflow: hidden;
-        min-height: 7.8rem;
-        padding: 1.15rem 1.2rem;
-        border-radius: var(--radius);
-        background: var(--card);
-        border: 1px solid rgba(28,31,38,0.04);
-        box-shadow: var(--shadow-soft);
-        transition: transform 0.15s ease, box-shadow 0.15s ease;
-    }
-
-    .metric-card:hover,
-    .indicator-card:hover {
-        transform: translateY(-2px);
-        box-shadow: var(--shadow);
-    }
-
-    .metric-card.accent {
-        background: linear-gradient(145deg, #d9ff00 0%, #e8ff4a 100%);
-        border: none;
-        box-shadow: 0 10px 28px rgba(217,255,0,0.28);
-    }
-    .metric-card.accent .metric-label,
-    .metric-card.accent .metric-foot,
-    .metric-card.accent .metric-value {
-        color: var(--ink) !important;
-    }
-
-    .metric-card.mint {
-        background: linear-gradient(145deg, #e8faf3 0%, #d4f5e8 100%);
-        border: 1px solid rgba(126,217,176,0.25);
-    }
-
-    .metric-card.blue {
-        background: var(--card);
-    }
-
-    .metric-card.dark {
-        background: linear-gradient(145deg, #1c1f26 0%, #2a2e38 100%);
-        color: white;
-        border: none;
-    }
-    .metric-card.dark .metric-label,
-    .metric-card.dark .metric-foot,
-    .metric-card.dark .metric-value {
-        color: white !important;
+        min-height: auto;
     }
 
     .metric-label,
     .indicator-top,
     .answer-question {
-        color: var(--muted);
-        font-size: 0.76rem;
-        font-weight: 700;
-        letter-spacing: 0.01em;
-    }
-
-    .metric-value,
-    .indicator-value,
-    .answer-value {
-        margin-top: 0.7rem;
-        color: var(--ink);
-        font-size: clamp(1.25rem, 2.4vw, 1.9rem);
-        line-height: 1.15;
-        font-weight: 800;
-        letter-spacing: -0.03em;
-        word-break: break-word;
+        font-size: 0.72rem;
     }
 
     .metric-foot,
@@ -351,751 +828,366 @@ st.markdown(
     .goal-meta,
     .debt-meta,
     .investment-meta {
-        margin-top: 0.35rem;
-        color: var(--muted);
+        font-size: 0.76rem;
+    }
+
+    .card-icon {
+        width: 1.75rem;
+        height: 1.75rem;
+        top: 0.8rem;
+        right: 0.8rem;
+        font-size: 0.78rem;
+    }
+
+    .page-header {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0.65rem;
+        margin-bottom: 0.85rem;
+    }
+
+    .page-header h1 {
+        font-size: 1.55rem !important;
+    }
+
+    .page-header p {
+        font-size: 0.85rem;
+    }
+
+    .user-chip {
+        align-self: flex-start;
         font-size: 0.8rem;
-        line-height: 1.4;
-        font-weight: 500;
     }
 
-    .positive { color: #0d9f6e; font-weight: 800; }
-    .negative { color: #e04b5a; font-weight: 800; }
-
-    .goal-progress,
-    .progress-track {
-        overflow: hidden;
-        height: 0.48rem;
-        margin-top: 0.65rem;
-        border-radius: 999px;
-        background: rgba(28,31,38,0.07);
+    .badge-new,
+    .badge-lime {
+        font-size: 0.7rem;
+        padding: 0.18rem 0.55rem;
     }
-    .goal-progress span,
-    .progress-track span {
-        display: block;
-        height: 100%;
-        border-radius: inherit;
-        background: linear-gradient(90deg, var(--lime) 0%, var(--mint-mid) 100%);
+
+    /* Tabs: 2 por linha */
+    div[data-testid="stTabs"] [data-baseweb="tab-list"] {
+        justify-content: flex-start !important;
+    }
+
+    div[data-testid="stTabs"] button {
+        flex: 1 1 calc(50% - 0.3rem) !important;
+        min-width: calc(50% - 0.3rem) !important;
+        max-width: 100% !important;
+        text-align: center !important;
+        padding: 0.45rem 0.55rem !important;
+        font-size: 0.76rem !important;
     }
 
     .chart-intro,
     .history-summary {
-        margin: 0.85rem 0;
-        padding: 1rem 1.15rem;
-        border-radius: var(--radius-sm);
-        background: var(--card);
-        border: 1px solid rgba(28,31,38,0.04);
-        box-shadow: var(--shadow-soft);
-        color: var(--ink);
-        font-size: 0.93rem;
+        padding: 0.85rem 0.95rem;
+        font-size: 0.88rem;
     }
 
-    .answer-good {
-        background: var(--mint-soft);
-        border: 1px solid rgba(126,217,176,0.3);
-    }
-    .answer-care {
-        background: #fff8e8;
-        border: 1px solid rgba(230,180,60,0.25);
-    }
-    .answer-risk {
-        background: #ffecee;
-        border: 1px solid rgba(224,75,90,0.2);
-    }
-
-    /* ===== TABS ===== */
-    div[data-testid="stTabs"] {
-        margin-top: 0.4rem;
-    }
-    div[data-testid="stTabs"] [data-baseweb="tab-list"] {
-        gap: 0.4rem;
-        background: transparent !important;
-        flex-wrap: wrap !important;
-        overflow-x: auto !important;
-        -webkit-overflow-scrolling: touch;
-        scrollbar-width: none;
-        padding-bottom: 0.35rem;
-    }
-    div[data-testid="stTabs"] [data-baseweb="tab-list"]::-webkit-scrollbar {
-        display: none;
-    }
-    div[data-testid="stTabs"] button {
-        border-radius: 999px !important;
-        color: #6b7280 !important;
-        font-weight: 700 !important;
-        background: #ffffff !important;
-        border: 1px solid rgba(28,31,38,0.06) !important;
-        box-shadow: var(--shadow-soft) !important;
-        padding: 0.42rem 1.05rem !important;
-        transition: 0.15s ease;
-        white-space: nowrap !important;
-        flex-shrink: 0 !important;
-        min-height: 2.5rem;
-        font-size: 0.88rem !important;
-    }
-    div[data-testid="stTabs"] button:hover {
-        background: #f8f9fb !important;
-        color: var(--ink) !important;
-    }
-    div[data-testid="stTabs"] button[aria-selected="true"] {
-        color: var(--ink) !important;
-        background: var(--lime) !important;
-        border-color: transparent !important;
-        font-weight: 800 !important;
-        box-shadow: 0 4px 16px rgba(217,255,0,0.3) !important;
-    }
-    div[data-testid="stTabs"] [data-baseweb="tab-highlight"],
-    div[data-testid="stTabs"] [data-baseweb="tab-border"] {
-        background: transparent !important;
-        display: none !important;
-    }
-
-    /* Charts / forms / expanders */
-    div[data-testid="stPlotlyChart"],
-    div[data-testid="stDataFrame"],
-    div[data-testid="stExpander"],
-    div[data-testid="stForm"],
-    [data-testid="stAlert"] {
-        border-radius: var(--radius) !important;
-        background: var(--card) !important;
-        border: 1px solid rgba(28,31,38,0.04) !important;
-        box-shadow: var(--shadow-soft) !important;
-    }
-
-    /* Plotly container overflow on mobile */
-    div[data-testid="stPlotlyChart"] {
-        overflow-x: auto !important;
-        max-width: 100% !important;
-    }
-    .js-plotly-plot,
-    .plotly {
-        max-width: 100% !important;
-    }
-
-    /* Buttons - touch friendly */
-    .stButton > button,
-    [data-testid="stFormSubmitButton"] button {
-        min-height: 2.75rem;
-        border: 0 !important;
-        border-radius: 999px !important;
-        color: white !important;
-        background: #1c1f26 !important;
-        font-weight: 750 !important;
-        box-shadow: var(--shadow-soft) !important;
-        transition: 0.18s ease;
-        width: 100%;
-        padding: 0.55rem 1.1rem !important;
-    }
-    .stButton > button:hover,
-    [data-testid="stFormSubmitButton"] button:hover {
-        background: #2d323c !important;
-        color: white !important;
-        transform: translateY(-1px);
-        box-shadow: 0 8px 20px rgba(28,31,38,0.12) !important;
-    }
-
-    div[data-testid="stDownloadButton"] button {
-        min-height: 2.75rem;
-        border-radius: 999px !important;
-        color: var(--ink) !important;
-        background: #ffffff !important;
-        border: 1px solid rgba(28,31,38,0.08) !important;
-        font-weight: 750 !important;
-        box-shadow: var(--shadow-soft) !important;
-        width: 100%;
-    }
-    div[data-testid="stDownloadButton"] button:hover {
-        border-color: rgba(217,255,0,0.6) !important;
-        background: #fefff5 !important;
-    }
-
-    /* Inputs */
-    div[data-baseweb="input"],
-    div[data-baseweb="select"] > div,
-    textarea {
-        border-radius: 12px !important;
-        border: 1px solid rgba(28,31,38,0.08) !important;
-        background: #ffffff !important;
-        box-shadow: none !important;
-        min-height: 2.6rem !important;
-    }
-    div[data-baseweb="input"]:focus-within,
-    div[data-baseweb="select"] > div:focus-within,
-    textarea:focus {
-        border-color: rgba(126,217,176,0.7) !important;
-        box-shadow: 0 0 0 3px rgba(184,240,216,0.35) !important;
-    }
-
-    /* Radio horizontal - wrap on mobile */
-    div[role="radiogroup"] {
-        flex-wrap: wrap !important;
-        gap: 0.4rem !important;
-    }
-
-    /* Header */
-    .page-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: flex-start;
-        gap: 1rem;
-        margin-bottom: 1.15rem;
-        flex-wrap: wrap;
-    }
-    .page-header h1 {
-        margin: 0.1rem 0 0.2rem !important;
-        font-size: clamp(1.55rem, 5vw, 2.25rem) !important;
-        font-weight: 800 !important;
-        letter-spacing: -0.03em;
-    }
-    .page-header p {
-        margin: 0;
-        color: var(--muted);
-        font-size: 0.92rem;
-        font-weight: 500;
-    }
-    .user-chip {
-        display: flex;
-        align-items: center;
-        gap: 0.55rem;
-        padding: 0.32rem 0.85rem 0.32rem 0.38rem;
-        border-radius: 999px;
-        background: #ffffff;
-        box-shadow: var(--shadow-soft);
-        border: 1px solid rgba(28,31,38,0.05);
-        font-size: 0.84rem;
-        font-weight: 700;
-        color: var(--ink);
-        white-space: nowrap;
-        flex-shrink: 0;
-    }
-    .avatar-dot {
-        width: 1.85rem;
-        height: 1.85rem;
-        display: grid;
-        place-items: center;
-        border-radius: 50%;
-        background: linear-gradient(135deg, #1c1f26, #3a404c);
-        color: white;
-        font-size: 0.72rem;
-        font-weight: 800;
-        flex-shrink: 0;
-    }
-    .badge-new {
-        display: inline-flex;
-        align-items: center;
-        padding: 0.22rem 0.65rem;
-        border-radius: 999px;
-        background: var(--mint);
-        color: #0d5c3d;
-        font-size: 0.74rem;
-        font-weight: 800;
-    }
-    .badge-lime {
-        display: inline-flex;
-        align-items: center;
-        padding: 0.22rem 0.65rem;
-        border-radius: 999px;
-        background: var(--lime);
-        color: var(--ink);
-        font-size: 0.74rem;
-        font-weight: 800;
-    }
-
-    .card-icon {
-        position: absolute;
-        top: 0.95rem;
-        right: 0.95rem;
-        width: 2rem;
-        height: 2rem;
-        display: grid;
-        place-items: center;
-        border-radius: 50%;
-        border: 1.5px solid rgba(28,31,38,0.1);
-        font-size: 0.85rem;
-        color: var(--ink);
-        background: rgba(255,255,255,0.5);
-    }
-    .metric-card.accent .card-icon {
-        border-color: rgba(28,31,38,0.18);
-        background: rgba(255,255,255,0.35);
-    }
-    .metric-card.dark .card-icon {
-        border-color: rgba(255,255,255,0.2);
-        color: white;
-        background: rgba(255,255,255,0.08);
-    }
-
-    .status-pill {
-        display: inline-flex;
-        align-items: center;
-        padding: 0.2rem 0.6rem;
-        border-radius: 999px;
-        font-size: 0.72rem;
-        font-weight: 750;
-    }
-    .status-ok { background: var(--mint-soft); color: #0d5c3d; }
-    .status-warn { background: #fff4d6; color: #8a5a00; }
-    .status-bad { background: #ffe4e8; color: #a31d2e; }
-
-    /* History / list items flex layout */
-    .history-item,
-    .investment-item,
-    .debt-item {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        gap: 0.85rem;
-        min-height: auto;
-        margin-bottom: 0.65rem;
-    }
-    .history-item > div:first-child,
-    .investment-item > div:first-child,
-    .debt-item > div:first-child {
-        min-width: 0;
-        flex: 1;
-    }
-
-    /* Dataframe horizontal scroll */
-    div[data-testid="stDataFrame"] {
-        overflow-x: auto !important;
-    }
-
-    /* Columns stack naturally via Streamlit, but tighten gap */
-    [data-testid="column"] {
-        min-width: 0 !important;
-    }
-
-    /* ========== TABLET (<= 980px) ========== */
-    @media (max-width: 980px) {
-        .main .block-container {
-            padding-left: 1rem;
-            padding-right: 1rem;
-            padding-top: 1rem;
-        }
-
-        .metric-grid,
-        .indicator-grid,
-        .answer-grid,
-        .goal-grid,
-        .debt-grid,
-        .investment-grid {
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-            gap: 0.75rem;
-        }
-
-        .metric-card,
-        .indicator-card,
-        .answer-card,
-        .goal-card {
-            min-height: 7rem;
-            padding: 1rem;
-        }
-
-        .metric-value,
-        .indicator-value,
-        .answer-value {
-            font-size: clamp(1.2rem, 4vw, 1.65rem);
-        }
-
-        .page-header {
-            gap: 0.75rem;
-        }
-    }
-
-    /* ========== MOBILE (<= 640px) ========== */
-    @media (max-width: 640px) {
-        .main .block-container {
-            padding-left: 0.7rem !important;
-            padding-right: 0.7rem !important;
-            padding-top: 0.75rem !important;
-            padding-bottom: 1.5rem !important;
-        }
-
-        .metric-grid,
-        .indicator-grid,
-        .answer-grid,
-        .goal-grid,
-        .debt-grid,
-        .investment-grid {
-            grid-template-columns: 1fr !important;
-            gap: 0.65rem;
-            margin: 0.75rem 0 1rem;
-        }
-
-        .metric-card,
-        .indicator-card,
-        .answer-card,
-        .goal-card,
-        .history-item,
-        .investment-item,
-        .debt-item {
-            min-height: auto;
-            padding: 0.95rem 1rem;
-            border-radius: 16px;
-        }
-
-        .metric-value,
-        .indicator-value,
-        .answer-value {
-            font-size: 1.45rem;
-            margin-top: 0.5rem;
-        }
-
-        .metric-label,
-        .indicator-top,
-        .answer-question {
-            font-size: 0.72rem;
-        }
-
-        .metric-foot,
-        .indicator-note,
-        .answer-action,
-        .goal-meta,
-        .debt-meta,
-        .investment-meta {
-            font-size: 0.76rem;
-        }
-
-        .card-icon {
-            width: 1.75rem;
-            height: 1.75rem;
-            top: 0.8rem;
-            right: 0.8rem;
-            font-size: 0.78rem;
-        }
-
-        .page-header {
-            flex-direction: column;
-            align-items: stretch;
-            gap: 0.65rem;
-            margin-bottom: 0.9rem;
-        }
-
-        .page-header h1 {
-            font-size: 1.55rem !important;
-        }
-
-        .page-header p {
-            font-size: 0.85rem;
-        }
-
-        .user-chip {
-            align-self: flex-start;
-            font-size: 0.8rem;
-            padding: 0.28rem 0.7rem 0.28rem 0.32rem;
-        }
-
-        .badge-new,
-        .badge-lime {
-            font-size: 0.7rem;
-            padding: 0.18rem 0.55rem;
-        }
-
-        /* Tabs: horizontal scroll, smaller pills */
-        div[data-testid="stTabs"] [data-baseweb="tab-list"] {
-            gap: 0.3rem !important;
-            flex-wrap: nowrap !important;
-            overflow-x: auto !important;
-            padding-bottom: 0.4rem;
-            margin: 0 -0.2rem;
-            padding-left: 0.2rem;
-            padding-right: 0.2rem;
-        }
-        div[data-testid="stTabs"] button {
-            padding: 0.38rem 0.8rem !important;
-            font-size: 0.78rem !important;
-            min-height: 2.35rem !important;
-        }
-
-        .chart-intro,
-        .history-summary {
-            padding: 0.85rem 0.95rem;
-            font-size: 0.88rem;
-            border-radius: 14px;
-        }
-
-        /* Full-width touch buttons */
-        .stButton > button,
-        [data-testid="stFormSubmitButton"] button,
-        div[data-testid="stDownloadButton"] button {
-            min-height: 3rem !important;
-            font-size: 0.95rem !important;
-        }
-
-        /* Forms: stack fields tighter */
-        div[data-testid="stForm"] {
-            padding: 0.5rem 0 !important;
-        }
-
-        /* History items stack label/value better */
-        .history-item,
-        .investment-item,
-        .debt-item {
-            flex-direction: column;
-            align-items: flex-start;
-            gap: 0.45rem;
-        }
-        .history-item > div:last-child,
-        .investment-item > div:last-child,
-        .debt-item > div:last-child {
-            align-self: flex-end;
-            font-size: 1.05rem;
-        }
-
-        /* Expander headers more tappable */
-        div[data-testid="stExpander"] summary,
-        div[data-testid="stExpander"] details summary {
-            min-height: 2.8rem;
-            padding: 0.6rem 0.8rem !important;
-        }
-
-        /* Reduce hover lift on touch devices */
-        .metric-card:hover,
-        .indicator-card:hover {
-            transform: none;
-        }
-
-        h2, h3, .stSubheader {
-            font-size: 1.15rem !important;
-        }
-
-        /* Caption / footers */
-        .stCaption, [data-testid="stCaptionContainer"] {
-            font-size: 0.78rem !important;
-        }
-    }
-
-    /* ========== SMALL PHONES (<= 380px) ========== */
-    @media (max-width: 380px) {
-        .main .block-container {
-            padding-left: 0.55rem !important;
-            padding-right: 0.55rem !important;
-        }
-
-        .metric-value,
-        .indicator-value,
-        .answer-value {
-            font-size: 1.3rem;
-        }
-
-        div[data-testid="stTabs"] button {
-            padding: 0.32rem 0.65rem !important;
-            font-size: 0.72rem !important;
-        }
-
-        .page-header h1 {
-            font-size: 1.4rem !important;
-        }
-    }
-
-    /* Prefer reduced motion */
-    @media (prefers-reduced-motion: reduce) {
-        .metric-card,
-        .indicator-card,
-        .stButton > button {
-            transition: none !important;
-        }
-        .metric-card:hover,
-        .indicator-card:hover {
-            transform: none !important;
-        }
-    }
-
-    /* ===== FIXES MOBILE: labels, forms, wrap, overflow ===== */
-
-    /* Labels always visible */
-    label,
-    [data-testid="stWidgetLabel"],
-    [data-testid="stWidgetLabel"] p,
-    [data-testid="stMarkdownContainer"] label,
-    .stSelectbox label,
-    .stTextInput label,
-    .stNumberInput label,
-    .stDateInput label,
-    .stTextArea label,
-    .stRadio label,
-    .stMultiSelect label {
-        color: #1c1f26 !important;
-        opacity: 1 !important;
-        visibility: visible !important;
-        font-weight: 650 !important;
-        font-size: 0.88rem !important;
-        margin-bottom: 0.25rem !important;
-    }
-
-    /* Form fields: light bg + contrast */
-    div[data-baseweb="input"],
-    div[data-baseweb="input"] > div,
-    div[data-baseweb="select"] > div,
-    div[data-baseweb="base-input"],
-    input,
-    textarea,
-    [data-baseweb="textarea"],
-    .stTextInput input,
-    .stNumberInput input,
-    .stDateInput input,
-    .stTextArea textarea {
-        background: #ffffff !important;
-        color: #1c1f26 !important;
-        border: 1.5px solid rgba(28,31,38,0.12) !important;
-        border-radius: 12px !important;
-        min-height: 2.7rem !important;
-        font-size: 0.95rem !important;
-        caret-color: #1c1f26 !important;
-    }
-    div[data-baseweb="input"] input,
-    div[data-baseweb="select"] input {
-        color: #1c1f26 !important;
-        background: transparent !important;
-        -webkit-text-fill-color: #1c1f26 !important;
-    }
-    /* placeholder contrast */
-    input::placeholder,
-    textarea::placeholder {
-        color: #8a90a0 !important;
-        opacity: 1 !important;
-        -webkit-text-fill-color: #8a90a0 !important;
-    }
-    /* select value text */
-    div[data-baseweb="select"] span,
-    div[data-baseweb="select"] div {
-        color: #1c1f26 !important;
-    }
-
-    /* Cards: never clip long values */
-    .metric-card,
-    .indicator-card,
-    .answer-card,
-    .goal-card,
-    .history-item,
-    .investment-item,
-    .debt-item {
-        overflow: visible !important;
-    }
-    .metric-value,
-    .indicator-value,
-    .answer-value {
-        overflow: visible !important;
-        text-overflow: unset !important;
-        white-space: normal !important;
-        word-break: break-word !important;
-        overflow-wrap: anywhere !important;
-        line-height: 1.2 !important;
-        max-width: 100% !important;
-    }
-    .metric-label,
-    .metric-foot {
-        white-space: normal !important;
-        overflow: visible !important;
-        word-break: break-word !important;
-    }
-    .card-icon {
-        flex-shrink: 0;
-    }
-
-    /* Tabs: allow wrap on small screens */
-    div[data-testid="stTabs"] [data-baseweb="tab-list"] {
-        flex-wrap: wrap !important;
-        row-gap: 0.4rem !important;
-        overflow-x: visible !important;
-    }
-    div[data-testid="stTabs"] button {
-        white-space: normal !important;
-        line-height: 1.25 !important;
-        height: auto !important;
-        max-width: 100%;
-    }
-
-    /* Buttons wrap text instead of overflowing */
     .stButton > button,
     [data-testid="stFormSubmitButton"] button,
     div[data-testid="stDownloadButton"] button {
-        white-space: normal !important;
-        line-height: 1.25 !important;
-        height: auto !important;
-        min-height: 2.75rem !important;
-        word-break: break-word !important;
+        min-height: 3rem !important;
+        font-size: 0.95rem !important;
     }
 
-    /* Horizontal radio wraps */
-    div[role="radiogroup"] {
-        flex-wrap: wrap !important;
-        gap: 0.45rem !important;
-    }
-    div[role="radiogroup"] label {
-        white-space: normal !important;
-    }
-
-    /* Columns don't crush content */
-    [data-testid="column"] {
-        overflow: visible !important;
-    }
-    [data-testid="column"] > div {
-        overflow: visible !important;
+    /* List items stack */
+    .history-item,
+    .investment-item,
+    .debt-item {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.45rem;
     }
 
-    /* Streamlit metric fallback */
-    [data-testid="stMetricValue"] {
-        white-space: normal !important;
-        overflow: visible !important;
-        word-break: break-word !important;
-    }
-    [data-testid="stMetricLabel"] {
-        color: #1c1f26 !important;
-        opacity: 1 !important;
+    .history-item > div:last-child,
+    .investment-item > div:last-child,
+    .debt-item > div:last-child {
+        align-self: flex-end;
+        font-size: 1.05rem;
     }
 
-    /* Subheaders / captions visible */
-    h1, h2, h3, h4,
-    .stSubheader,
-    [data-testid="stCaptionContainer"],
-    .stCaption {
-        color: #1c1f26 !important;
-        opacity: 1 !important;
+    /* Sem lift no touch */
+    .metric-card:hover,
+    .indicator-card:hover,
+    .stButton > button:hover {
+        transform: none !important;
     }
 
-    /* Expander title visible */
-    div[data-testid="stExpander"] summary,
-    div[data-testid="stExpander"] summary p,
-    div[data-testid="stExpander"] summary span {
-        color: #1c1f26 !important;
-        opacity: 1 !important;
-        font-weight: 700 !important;
+    /* Labels / inputs mobile */
+    label,
+    [data-testid="stWidgetLabel"] p {
+        font-size: 0.9rem !important;
     }
 
-    @media (max-width: 640px) {
-        div[data-testid="stTabs"] [data-baseweb="tab-list"] {
-            flex-wrap: wrap !important;
-            overflow-x: visible !important;
-            justify-content: flex-start !important;
-        }
-        div[data-testid="stTabs"] button {
-            flex: 1 1 auto !important;
-            min-width: calc(50% - 0.3rem) !important;
-            max-width: 100% !important;
-            text-align: center !important;
-            padding: 0.45rem 0.55rem !important;
-            font-size: 0.76rem !important;
-        }
-
-        .metric-value,
-        .indicator-value,
-        .answer-value {
-            font-size: 1.35rem !important;
-            letter-spacing: -0.02em;
-        }
-
-        /* form labels a bit larger on phone */
-        label, [data-testid="stWidgetLabel"] p {
-            font-size: 0.9rem !important;
-        }
-
-        div[data-baseweb="input"],
-        div[data-baseweb="select"] > div,
-        input, textarea {
-            min-height: 2.85rem !important;
-            font-size: 16px !important; /* evita zoom iOS */
-        }
+    div[data-baseweb="input"],
+    div[data-baseweb="select"] > div,
+    input,
+    textarea {
+        font-size: 16px !important; /* evita zoom iOS */
     }
+
+    h2, h3, .stSubheader {
+        font-size: 1.15rem !important;
+    }
+
+    .stCaption,
+    [data-testid="stCaptionContainer"] {
+        font-size: 0.78rem !important;
+    }
+
+    div[data-testid="stExpander"] summary {
+        min-height: 2.8rem;
+    }
+}
+
+/* ========== PHONE PEQUENO ========== */
+@media (max-width: 380px) {
+    :root {
+        --pad-page: 0.65rem 0.55rem 1.25rem;
+        --font-value: 1.28rem;
+    }
+
+    .page-header h1 {
+        font-size: 1.4rem !important;
+    }
+
+    div[data-testid="stTabs"] button {
+        flex: 1 1 100% !important;
+        min-width: 100% !important;
+        font-size: 0.74rem !important;
+        padding: 0.4rem 0.5rem !important;
+    }
+}
+
+/* ========== ACESSIBILIDADE ========== */
+@media (prefers-reduced-motion: reduce) {
+    .metric-card,
+    .indicator-card,
+    .stButton > button,
+    [data-testid="stFormSubmitButton"] button {
+        transition: none !important;
+    }
+
+    .metric-card:hover,
+    .indicator-card:hover,
+    .stButton > button:hover {
+        transform: none !important;
+    }
+}
+
+/* Landscape phones: 2 cols when short height */
+@media (max-width: 900px) and (orientation: landscape) {
+    :root {
+        --pad-page: 0.6rem 0.9rem 1.2rem;
+    }
+
+    .metric-grid,
+    .indicator-grid,
+    .answer-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+/* ========== CONTRASTE OBRIGATÓRIO (nunca branco em branco) ========== */
+
+/* Tabs: texto sempre escuro */
+div[data-testid="stTabs"] button,
+div[data-testid="stTabs"] button * {
+    color: #1c1f26 !important;
+    opacity: 1 !important;
+    -webkit-text-fill-color: #1c1f26 !important;
+    fill: #1c1f26 !important;
+}
+div[data-testid="stTabs"] button[aria-selected="true"],
+div[data-testid="stTabs"] button[aria-selected="true"] * {
+    color: #1c1f26 !important;
+    -webkit-text-fill-color: #1c1f26 !important;
+    opacity: 1 !important;
+}
+
+/* Radio horizontal (Tipo Entrada/Saída) */
+div[role="radiogroup"] label,
+div[role="radiogroup"] label p,
+div[role="radiogroup"] label span,
+div[role="radiogroup"] label div,
+[data-testid="stRadio"] label,
+[data-testid="stRadio"] label p,
+[data-testid="stRadio"] label span,
+[data-testid="stRadio"] label div,
+[data-testid="stRadio"] p,
+.stRadio label,
+.stRadio p,
+.stRadio span {
+    color: #1c1f26 !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+    -webkit-text-fill-color: #1c1f26 !important;
+    font-weight: 650 !important;
+}
+
+/* Baseweb radio text specifically */
+div[data-baseweb="radio"],
+div[data-baseweb="radio"] + div,
+div[data-baseweb="radio"] ~ div,
+label[data-baseweb="radio"],
+[data-baseweb="radio"] span {
+    color: #1c1f26 !important;
+    -webkit-text-fill-color: #1c1f26 !important;
+    opacity: 1 !important;
+}
+
+/* Textos de widget no main (sem forçar todos os spans — preserva .positive/.negative) */
+.main label,
+.main [data-testid="stWidgetLabel"],
+.main [data-testid="stWidgetLabel"] p,
+.main [data-testid="stWidgetLabel"] span,
+.main .stRadio label,
+.main .stRadio p,
+.main [data-testid="stRadio"] [data-testid="stMarkdownContainer"] p,
+section.main label,
+[data-testid="stMain"] label,
+[data-testid="stMain"] [data-testid="stWidgetLabel"] p {
+    color: #1c1f26 !important;
+    opacity: 1 !important;
+    -webkit-text-fill-color: #1c1f26 !important;
+}
+
+/* Checkbox / multiselect options */
+[data-baseweb="checkbox"] + div,
+[data-baseweb="checkbox"] ~ span {
+    color: #1c1f26 !important;
+    -webkit-text-fill-color: #1c1f26 !important;
+}
+
+/* Placeholder pode ser cinza, mas não branco */
+input::placeholder,
+textarea::placeholder {
+    color: #6b7280 !important;
+    -webkit-text-fill-color: #6b7280 !important;
+    opacity: 1 !important;
+}
+
+/* Força contraste em radios desmarcados (BaseWeb usa opacity baixa) */
+div[role="radiogroup"] label[data-checked="false"],
+div[role="radiogroup"] label:not([data-checked="true"]) {
+    opacity: 1 !important;
+}
+div[role="radiogroup"] label[data-checked="false"] *,
+div[role="radiogroup"] label:not([data-checked="true"]) * {
+    color: #1c1f26 !important;
+    -webkit-text-fill-color: #1c1f26 !important;
+    opacity: 1 !important;
+}
+
+/* Streamlit 1.3x radio structure */
+[data-testid="stRadio"] [data-testid="stMarkdownContainer"] p {
+    color: #1c1f26 !important;
+    opacity: 1 !important;
+}
+
+/* Tabs inativas: fundo cinza bem claro, texto escuro (não transparente) */
+div[data-testid="stTabs"] button[aria-selected="false"] {
+    background: #ffffff !important;
+    color: #1c1f26 !important;
+    opacity: 1 !important;
+    border: 1px solid rgba(28, 31, 38, 0.12) !important;
+}
+div[data-testid="stTabs"] button[aria-selected="false"] * {
+    color: #1c1f26 !important;
+    opacity: 1 !important;
+    -webkit-text-fill-color: #1c1f26 !important;
+}
+
+/* Active tab: lime + texto escuro */
+div[data-testid="stTabs"] button[aria-selected="true"] {
+    background: var(--lime) !important;
+    color: #1c1f26 !important;
+    opacity: 1 !important;
+}
+
+
+/* ========== OVERRIDE FINAL DE CONTRASTE (alta especificidade) ========== */
+
+/* Streamlit tabs (várias versões do DOM) */
+button[data-baseweb="tab"],
+button[role="tab"],
+div[data-testid="stTabs"] button,
+div[data-testid="stTabs"] [role="tab"] {
+    color: #1c1f26 !important;
+    opacity: 1 !important;
+    -webkit-text-fill-color: #1c1f26 !important;
+    background-color: #ffffff !important;
+    border: 1px solid rgba(28,31,38,0.12) !important;
+    border-radius: 999px !important;
+    box-shadow: 0 4px 12px rgba(28,31,38,0.05) !important;
+}
+
+button[data-baseweb="tab"] *,
+button[role="tab"] *,
+div[data-testid="stTabs"] button *,
+div[data-testid="stTabs"] [role="tab"] * {
+    color: #1c1f26 !important;
+    opacity: 1 !important;
+    -webkit-text-fill-color: #1c1f26 !important;
+}
+
+button[data-baseweb="tab"][aria-selected="true"],
+button[role="tab"][aria-selected="true"],
+div[data-testid="stTabs"] button[aria-selected="true"] {
+    background-color: #d9ff00 !important;
+    color: #1c1f26 !important;
+    border-color: transparent !important;
+    font-weight: 800 !important;
+}
+
+/* esconde underline vermelho padrão do Streamlit */
+div[data-testid="stTabs"] [data-baseweb="tab-highlight"],
+div[data-testid="stTabs"] [data-baseweb="tab-border"],
+div[data-testid="stTabs"] hr {
+    display: none !important;
+    opacity: 0 !important;
+    height: 0 !important;
+}
+
+/* Radio labels — todas as estruturas conhecidas do Streamlit/Baseweb */
+[data-testid="stRadio"] label,
+[data-testid="stRadio"] label *,
+[data-testid="stRadio"] [data-testid="stMarkdownContainer"],
+[data-testid="stRadio"] [data-testid="stMarkdownContainer"] *,
+[data-testid="stRadio"] p,
+[data-testid="stRadio"] span,
+div[role="radiogroup"] label,
+div[role="radiogroup"] label *,
+div[role="radiogroup"] p,
+div[role="radiogroup"] span,
+label[data-baseweb="radio"],
+label[data-baseweb="radio"] * {
+    color: #1c1f26 !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+    -webkit-text-fill-color: #1c1f26 !important;
+    font-weight: 650 !important;
+}
+
+/* Texto "Entrada"/"Saída" ao lado do círculo */
+[data-testid="stRadio"] > div > label > div:last-child,
+[data-testid="stRadio"] label > div:last-child,
+div[role="radiogroup"] label > div:last-child {
+    color: #1c1f26 !important;
+    opacity: 1 !important;
+    -webkit-text-fill-color: #1c1f26 !important;
+}
+
+/* Checkbox text */
+[data-testid="stCheckbox"] label,
+[data-testid="stCheckbox"] label *,
+[data-testid="stCheckbox"] p {
+    color: #1c1f26 !important;
+    opacity: 1 !important;
+    -webkit-text-fill-color: #1c1f26 !important;
+}
 
 </style>
 """,
