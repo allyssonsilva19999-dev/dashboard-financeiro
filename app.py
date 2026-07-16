@@ -113,180 +113,366 @@ def mensagem_erro_usuario(erro) -> str:
     return texto
 
 
-# ====================== ESTILO ======================
+# ====================== ESTILO (estética referência) ======================
 st.markdown(
     """
 <style>
     :root {
-        --ink: #111318;
-        --muted: #747985;
+        --ink: #1a1d24;
+        --muted: #8b90a0;
         --lime: #d9ff00;
-        --blue: #8fb1ff;
-        --line: rgba(17,19,24,.08);
-        --shadow: 0 26px 80px rgba(17,19,24,.12);
-        --soft: 0 14px 38px rgba(17,19,24,.08);
-        --card: rgba(255,255,255,.92);
+        --lime-soft: #f0ff8a;
+        --blue: #a8c4ff;
+        --blue-soft: #e8efff;
+        --bg: #f0f1f5;
+        --card: #ffffff;
+        --shadow: 0 10px 40px rgba(26,29,36,0.07);
+        --shadow-soft: 0 6px 20px rgba(26,29,36,0.05);
+        --radius: 22px;
+        --radius-sm: 16px;
     }
+
     html, body, [class*="css"] {
-        font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     }
+
     [data-testid="stAppViewContainer"] {
-        background:
-            radial-gradient(circle at 12% 8%, rgba(255,255,255,.95), transparent 22rem),
-            radial-gradient(circle at 88% 12%, rgba(217,255,0,.16), transparent 24rem),
-            radial-gradient(circle at 72% 86%, rgba(143,177,255,.18), transparent 28rem),
-            linear-gradient(145deg, #f4f6f9 0%, #eef1f5 50%, #f7f8fa 100%);
+        background: var(--bg) !important;
         color: var(--ink);
     }
-    [data-testid="stHeader"], [data-testid="stToolbar"] {
-        background: transparent;
+
+    [data-testid="stHeader"],
+    [data-testid="stToolbar"] {
+        background: transparent !important;
     }
+
     .main .block-container {
-        max-width: 1220px;
-        padding-top: 1.6rem;
-        padding-bottom: 3rem;
+        max-width: 1180px;
+        padding-top: 1.4rem;
+        padding-bottom: 2.5rem;
+        padding-left: 1.5rem;
+        padding-right: 1.5rem;
     }
+
+    /* Sidebar */
+    [data-testid="stSidebar"] {
+        background: #ffffff !important;
+        border-right: 1px solid rgba(26,29,36,0.06);
+    }
+    [data-testid="stSidebar"] [data-testid="stMarkdownContainer"] p {
+        color: var(--ink);
+    }
+    [data-testid="stSidebar"] .stRadio label {
+        padding: 0.55rem 0.9rem !important;
+        border-radius: 999px !important;
+        font-weight: 650 !important;
+        color: #6b7280 !important;
+    }
+    [data-testid="stSidebar"] .stRadio label[data-checked="true"],
+    [data-testid="stSidebar"] .stRadio [aria-checked="true"] + div {
+        background: #f4f5f8 !important;
+        color: var(--ink) !important;
+        font-weight: 800 !important;
+    }
+
     h1, h2, h3 {
         color: var(--ink) !important;
-        letter-spacing: 0;
-    }}
-    .metric-grid, .indicator-grid, .answer-grid, .goal-grid, .debt-grid, .investment-grid {{
+        letter-spacing: -0.02em;
+        font-weight: 800 !important;
+    }
+
+    /* Metric cards grid */
+    .metric-grid,
+    .indicator-grid,
+    .answer-grid,
+    .goal-grid,
+    .debt-grid,
+    .investment-grid {
         display: grid;
         grid-template-columns: repeat(4, minmax(0, 1fr));
-        gap: 0.85rem;
-        margin: 1rem 0 1.15rem;
-    }}
-    .metric-card, .indicator-card, .answer-card, .goal-card, .history-item, .investment-item, .debt-item {{
+        gap: 1rem;
+        margin: 1rem 0 1.25rem;
+    }
+
+    .metric-card,
+    .indicator-card,
+    .answer-card,
+    .goal-card,
+    .history-item,
+    .investment-item,
+    .debt-item {
         position: relative;
         overflow: hidden;
-        min-height: 8.5rem;
-        padding: 1.1rem;
-        border-radius: 24px;
+        min-height: 8.2rem;
+        padding: 1.2rem 1.25rem;
+        border-radius: var(--radius);
         background: var(--card);
-        border: 1px solid rgba(255,255,255,.92);
-        box-shadow: var(--soft);
-    }}
-    .metric-card.accent {{
-        background: linear-gradient(135deg, var(--lime), #caff00);
-    }}
-    .metric-card.blue {{
-        background: linear-gradient(135deg, #fff, #e9efff);
-    }}
-    .metric-card.dark {{
-        background: #111318;
+        border: none;
+        box-shadow: var(--shadow-soft);
+    }
+
+    .metric-card.accent {
+        background: var(--lime);
+    }
+    .metric-card.accent .metric-label,
+    .metric-card.accent .metric-foot,
+    .metric-card.accent .metric-value {
+        color: var(--ink) !important;
+    }
+
+    .metric-card.blue {
+        background: var(--card);
+    }
+
+    .metric-card.dark {
+        background: #1a1d24;
         color: white;
-    }}
+    }
     .metric-card.dark .metric-label,
     .metric-card.dark .metric-foot,
-    .metric-card.dark .metric-value {{
-        color: white;
-    }}
-    .metric-label, .indicator-top, .answer-question {{
+    .metric-card.dark .metric-value {
+        color: white !important;
+    }
+
+    .metric-label,
+    .indicator-top,
+    .answer-question {
         color: var(--muted);
-        font-size: 0.74rem;
-        font-weight: 850;
-        text-transform: uppercase;
-    }}
-    .metric-value, .indicator-value, .answer-value {{
-        margin-top: 0.9rem;
-        color: var(--ink);
-        font-size: clamp(1.35rem, 2.6vw, 2.1rem);
-        line-height: 1.05;
-        font-weight: 900;
-    }}
-    .metric-foot, .indicator-note, .answer-action, .goal-meta, .debt-meta, .investment-meta {{
-        margin-top: 0.45rem;
-        color: var(--muted);
-        font-size: 0.84rem;
-        line-height: 1.4;
-    }}
-    .positive {{ color: #0d906f; font-weight: 900; }}
-    .negative {{ color: #cc4a5b; font-weight: 900; }}
-    .goal-progress, .progress-track {{
-        overflow: hidden;
-        height: 0.55rem;
+        font-size: 0.78rem;
+        font-weight: 700;
+        letter-spacing: 0.01em;
+    }
+
+    .metric-value,
+    .indicator-value,
+    .answer-value {
         margin-top: 0.75rem;
+        color: var(--ink);
+        font-size: clamp(1.4rem, 2.5vw, 1.95rem);
+        line-height: 1.1;
+        font-weight: 800;
+        letter-spacing: -0.03em;
+    }
+
+    .metric-foot,
+    .indicator-note,
+    .answer-action,
+    .goal-meta,
+    .debt-meta,
+    .investment-meta {
+        margin-top: 0.4rem;
+        color: var(--muted);
+        font-size: 0.82rem;
+        line-height: 1.4;
+        font-weight: 500;
+    }
+
+    .positive { color: #0d9f6e; font-weight: 800; }
+    .negative { color: #e04b5a; font-weight: 800; }
+
+    .goal-progress,
+    .progress-track {
+        overflow: hidden;
+        height: 0.5rem;
+        margin-top: 0.7rem;
         border-radius: 999px;
-        background: rgba(17,19,24,0.08);
-    }}
-    .goal-progress span, .progress-track span {{
+        background: rgba(26,29,36,0.07);
+    }
+    .goal-progress span,
+    .progress-track span {
         display: block;
         height: 100%;
         border-radius: inherit;
-        background: linear-gradient(90deg, var(--lime), var(--blue));
-    }}
-    .chart-intro, .history-summary {{
+        background: var(--lime);
+    }
+
+    .chart-intro,
+    .history-summary {
         margin: 0.9rem 0;
-        padding: 1rem 1.1rem;
-        border-radius: 22px;
-        background: rgba(255,255,255,0.88);
-        border: 1px solid rgba(255,255,255,0.92);
-        box-shadow: var(--soft);
+        padding: 1rem 1.2rem;
+        border-radius: var(--radius-sm);
+        background: var(--card);
+        border: none;
+        box-shadow: var(--shadow-soft);
         color: var(--ink);
-    }}
-    .answer-good {{
-        border-color: rgba(13,144,111,0.25);
-        background: rgba(226,248,242,0.90);
-    }}
-    .answer-care {{
-        border-color: rgba(204,138,47,0.28);
-        background: rgba(255,244,222,0.92);
-    }}
-    .answer-risk {{
-        border-color: rgba(204,74,91,0.28);
-        background: rgba(255,232,235,0.92);
-    }}
-    div[data-testid="stTabs"] button {{
-        border-radius: 999px;
-        color: var(--ink);
-        font-weight: 800;
-        background: rgba(255,255,255,0.78);
-        border: 1px solid rgba(255,255,255,0.90);
-        box-shadow: var(--soft);
-    }}
-    div[data-testid="stTabs"] button[aria-selected="true"] {{
-        color: white;
-        background: #111318;
-        border-color: #111318;
-    }}
+        font-size: 0.95rem;
+    }
+
+    .answer-good {
+        background: #e8faf3;
+    }
+    .answer-care {
+        background: #fff7e6;
+    }
+    .answer-risk {
+        background: #ffecee;
+    }
+
+    /* Tabs */
+    div[data-testid="stTabs"] button {
+        border-radius: 999px !important;
+        color: #6b7280 !important;
+        font-weight: 700 !important;
+        background: #ffffff !important;
+        border: none !important;
+        box-shadow: var(--shadow-soft) !important;
+        padding: 0.45rem 1.1rem !important;
+    }
+    div[data-testid="stTabs"] button[aria-selected="true"] {
+        color: var(--ink) !important;
+        background: var(--lime) !important;
+        border: none !important;
+        font-weight: 800 !important;
+    }
+    div[data-testid="stTabs"] [data-baseweb="tab-highlight"],
+    div[data-testid="stTabs"] [data-baseweb="tab-border"] {
+        background: transparent !important;
+    }
+
+    /* Charts, forms, expanders */
     div[data-testid="stPlotlyChart"],
     div[data-testid="stDataFrame"],
     div[data-testid="stExpander"],
     div[data-testid="stForm"],
-    [data-testid="stAlert"] {{
-        border-radius: 22px;
-        background: rgba(255,255,255,0.90);
-        border: 1px solid rgba(255,255,255,0.92);
-        box-shadow: var(--soft);
-    }}
+    [data-testid="stAlert"] {
+        border-radius: var(--radius) !important;
+        background: var(--card) !important;
+        border: none !important;
+        box-shadow: var(--shadow-soft) !important;
+    }
+
+    /* Buttons */
     .stButton > button,
-    [data-testid="stFormSubmitButton"] button {{
-        min-height: 2.7rem;
-        border: 0;
-        border-radius: 999px;
-        color: white;
-        background: #111318;
-        font-weight: 800;
-        box-shadow: var(--soft);
-    }}
+    [data-testid="stFormSubmitButton"] button {
+        min-height: 2.6rem;
+        border: 0 !important;
+        border-radius: 999px !important;
+        color: white !important;
+        background: #1a1d24 !important;
+        font-weight: 750 !important;
+        box-shadow: var(--shadow-soft) !important;
+        transition: 0.2s ease;
+    }
     .stButton > button:hover,
-    [data-testid="stFormSubmitButton"] button:hover {{
-        background: #2a2f3a;
-        color: white;
-    }}
-    div[data-testid="stDownloadButton"] button {{
-        min-height: 2.7rem;
+    [data-testid="stFormSubmitButton"] button:hover {
+        background: #2d3139 !important;
+        color: white !important;
+        transform: translateY(-1px);
+    }
+
+    div[data-testid="stDownloadButton"] button {
+        min-height: 2.6rem;
+        border-radius: 999px !important;
+        color: var(--ink) !important;
+        background: #ffffff !important;
+        border: 1px solid rgba(26,29,36,0.08) !important;
+        font-weight: 750 !important;
+        box-shadow: var(--shadow-soft) !important;
+    }
+
+    /* Inputs */
+    div[data-baseweb="input"],
+    div[data-baseweb="select"] > div,
+    textarea {
+        border-radius: 14px !important;
+        border: 1px solid rgba(26,29,36,0.08) !important;
+        background: #ffffff !important;
+        box-shadow: none !important;
+    }
+
+    /* Header title area */
+    .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 1rem;
+        margin-bottom: 1.3rem;
+    }
+    .page-header h1 {
+        margin: 0.15rem 0 0.25rem !important;
+        font-size: clamp(1.8rem, 3.5vw, 2.4rem) !important;
+        font-weight: 800 !important;
+        letter-spacing: -0.03em;
+    }
+    .page-header p {
+        margin: 0;
+        color: var(--muted);
+        font-size: 0.95rem;
+        font-weight: 500;
+    }
+    .user-chip {
+        display: flex;
+        align-items: center;
+        gap: 0.6rem;
+        padding: 0.35rem 0.9rem 0.35rem 0.4rem;
         border-radius: 999px;
+        background: #ffffff;
+        box-shadow: var(--shadow-soft);
+        font-size: 0.85rem;
+        font-weight: 700;
         color: var(--ink);
-        background: rgba(255,255,255,0.94);
-        border: 1px solid rgba(17,19,24,0.10);
+        white-space: nowrap;
+    }
+    .avatar-dot {
+        width: 1.9rem;
+        height: 1.9rem;
+        display: grid;
+        place-items: center;
+        border-radius: 50%;
+        background: #1a1d24;
+        color: white;
+        font-size: 0.75rem;
         font-weight: 800;
-    }}
-    @media (max-width: 980px) {{
-        .metric-grid, .indicator-grid, .answer-grid, .goal-grid, .debt-grid, .investment-grid {{
+    }
+    .badge-new {
+        display: inline-flex;
+        align-items: center;
+        padding: 0.25rem 0.7rem;
+        border-radius: 999px;
+        background: #a8c4ff;
+        color: #1a1d24;
+        font-size: 0.75rem;
+        font-weight: 800;
+    }
+
+    /* Icon circle in cards */
+    .card-icon {
+        position: absolute;
+        top: 1rem;
+        right: 1rem;
+        width: 2.1rem;
+        height: 2.1rem;
+        display: grid;
+        place-items: center;
+        border-radius: 50%;
+        border: 1.5px solid rgba(26,29,36,0.12);
+        font-size: 0.9rem;
+        color: var(--ink);
+    }
+    .metric-card.accent .card-icon {
+        border-color: rgba(26,29,36,0.2);
+    }
+
+    @media (max-width: 980px) {
+        .metric-grid,
+        .indicator-grid,
+        .answer-grid,
+        .goal-grid,
+        .debt-grid,
+        .investment-grid {
+            grid-template-columns: 1fr 1fr;
+        }
+    }
+    @media (max-width: 640px) {
+        .metric-grid,
+        .indicator-grid,
+        .answer-grid,
+        .goal-grid,
+        .debt-grid,
+        .investment-grid {
             grid-template-columns: 1fr;
-        }}
-    }}
+        }
+    }
 </style>
 """,
     unsafe_allow_html=True,
@@ -590,26 +776,26 @@ def style_plot(fig, height=420, show_legend=True):
     fig.update_layout(
         paper_bgcolor="rgba(255,255,255,0)",
         plot_bgcolor="rgba(255,255,255,0)",
-        font=dict(color="#111318", size=12, family="Inter, sans-serif"),
-        title=dict(font=dict(size=17, color="#111318"), x=0.02, xanchor="left"),
-        margin=dict(l=40, r=30, t=60, b=80),
+        font=dict(color="#1a1d24", size=12, family="Inter, sans-serif"),
+        title=dict(font=dict(size=16, color="#1a1d24", family="Inter, sans-serif"), x=0.02, xanchor="left"),
+        margin=dict(l=40, r=30, t=55, b=75),
         height=height,
         legend=dict(
             orientation="h",
             yanchor="top",
-            y=-0.18,
+            y=-0.16,
             xanchor="center",
             x=0.5,
             bgcolor="rgba(255,255,255,0)",
-            font=dict(size=11, color="#111318"),
+            font=dict(size=11, color="#1a1d24"),
         ) if show_legend else dict(visible=False),
-        hoverlabel=dict(bgcolor="#111318", font_color="#ffffff", font_size=12),
+        hoverlabel=dict(bgcolor="#1a1d24", font_color="#ffffff", font_size=12),
         separators=",.",
         uniformtext_minsize=10,
         uniformtext_mode="hide",
     )
-    fig.update_xaxes(gridcolor="rgba(17,19,24,0.07)", tickfont=dict(color="#747985", size=11), zeroline=False)
-    fig.update_yaxes(gridcolor="rgba(17,19,24,0.07)", tickfont=dict(color="#747985", size=11), zeroline=False)
+    fig.update_xaxes(gridcolor="rgba(26,29,36,0.06)", tickfont=dict(color="#8b90a0", size=11), zeroline=False)
+    fig.update_yaxes(gridcolor="rgba(26,29,36,0.06)", tickfont=dict(color="#8b90a0", size=11), zeroline=False)
     return fig
 
 
@@ -965,43 +1151,51 @@ comprometimento = ((saidas + parcelas_dividas) / entradas * 100) if entradas > 0
 # ====================== CABEÇALHO ======================
 st.markdown(
     f"""
-<div style="display:flex; justify-content:space-between; align-items:flex-start; gap:1rem; margin-bottom:1.2rem;">
+<div class="page-header">
     <div>
-        <div style="color:#747985; font-weight:850; font-size:0.85rem; text-transform:uppercase;">Painel inteligente</div>
-        <h1 style="margin:0.3rem 0 0.4rem; font-size:clamp(2.4rem,5vw,4.2rem); line-height:0.98; font-weight:900;">Dashboard<br>Financeiro</h1>
-        <p style="color:#747985; max-width:40rem; line-height:1.6;">Controle entradas, gastos, dívidas, metas e investimentos em uma visão clara e simples.</p>
+        <div style="display:flex; align-items:center; gap:0.6rem; margin-bottom:0.15rem;">
+            <span style="color:#8b90a0; font-weight:700; font-size:0.88rem;">Financeiro</span>
+            <span class="badge-new">Saúde {score}/100</span>
+        </div>
+        <h1>Dashboard</h1>
+        <p>Veja seu dinheiro, metas e dívidas em um só lugar.</p>
     </div>
-    <div style="display:flex; gap:0.6rem; align-items:center;">
-        <div style="padding:0.45rem 1rem; border-radius:999px; background:#111318; color:white; font-weight:800; font-size:0.86rem;">Saúde: {score}/100</div>
+    <div class="user-chip">
+        <span class="avatar-dot">DF</span>
+        Visão pessoal
     </div>
 </div>
 """,
     unsafe_allow_html=True,
 )
 
-# Cards principais
+# Cards principais (estética referência)
 st.markdown(
     f"""
 <div class="metric-grid">
     <div class="metric-card accent">
+        <div class="card-icon">↗</div>
         <div class="metric-label">Saldo atual</div>
         <div class="metric-value">{brl(saldo)}</div>
-        <div class="metric-foot">Resultado de tudo que foi registrado</div>
+        <div class="metric-foot">Neste período</div>
     </div>
     <div class="metric-card">
+        <div class="card-icon">↑</div>
         <div class="metric-label">Entradas</div>
         <div class="metric-value">{brl(entradas)}</div>
-        <div class="metric-foot">Receitas manuais e importadas</div>
+        <div class="metric-foot">Receitas registradas</div>
     </div>
-    <div class="metric-card blue">
+    <div class="metric-card">
+        <div class="card-icon">↓</div>
         <div class="metric-label">Saídas</div>
         <div class="metric-value">{brl(saidas)}</div>
         <div class="metric-foot">Despesas acumuladas</div>
     </div>
-    <div class="metric-card dark">
+    <div class="metric-card">
+        <div class="card-icon">◆</div>
         <div class="metric-label">Patrimônio</div>
         <div class="metric-value">{brl(total_investido)}</div>
-        <div class="metric-foot">Investimentos registrados</div>
+        <div class="metric-foot">Investimentos</div>
     </div>
 </div>
 """,
@@ -1178,7 +1372,7 @@ with aba[1]:
             df_proj, x="Mês", y="Saldo projetado", color="Cenário",
             title="Como deve ficar meu dinheiro nos próximos meses?",
             markers=True,
-            color_discrete_map={"Bom": "#0d906f", "Normal": "#28c7b7", "Apertado": "#cc4a5b"},
+            color_discrete_map={"Bom": "#0d9f6e", "Normal": "#d9ff00", "Apertado": "#e04b5a"},
             labels={"Saldo projetado": "Saldo projetado", "Mês": "Mês"},
         )
         fig.update_traces(
@@ -1256,7 +1450,7 @@ with aba[1]:
                 labels={"data_convertida": "Data", "saldo_acumulado": "Saldo"},
             )
             fig_saldo.update_traces(
-                line=dict(color="#111318", width=3),
+                line=dict(color="#1a1d24", width=3),
                 fillcolor="rgba(217,255,0,0.28)",
                 hovertemplate="<b>%{x|%d/%m/%Y}</b><br>Saldo: R$ %{y:,.2f}<extra></extra>",
             )
@@ -1292,14 +1486,14 @@ with aba[1]:
                 hole=0.55,
                 title="Distribuição por categoria",
                 color_discrete_sequence=[
-                    "#d9ff00", "#111318", "#8fb1ff", "#a8b4c4",
-                    "#efffb4", "#5c6573", "#c2cff7", "#4a5568", "#e2e8f0",
+                    "#d9ff00", "#1a1d24", "#a8c4ff", "#c5c9d4",
+                    "#f0ff8a", "#6b7280", "#dbe4ff", "#4b5563", "#e5e7eb",
                 ],
             )
             fig.update_traces(
                 textposition="outside",
                 textinfo="percent",
-                textfont=dict(size=12, color="#111318"),
+                textfont=dict(size=12, color="#1a1d24"),
                 marker=dict(line=dict(color="rgba(255,255,255,0.95)", width=2)),
                 pull=[0.02] * len(top8),
                 hovertemplate="<b>%{label}</b><br>R$ %{value:,.2f}<br>%{percent}<extra></extra>",
@@ -1327,7 +1521,7 @@ with aba[1]:
                 y="valor_abs",
                 color="tipo",
                 title="Entradas x Saídas",
-                color_discrete_map={"Entrada": "#d9ff00", "Saída": "#111318"},
+                color_discrete_map={"Entrada": "#d9ff00", "Saída": "#1a1d24"},
                 labels={"categoria": "Categoria", "valor_abs": "Valor", "tipo": "Tipo"},
                 barmode="group",
             )
@@ -1356,14 +1550,14 @@ with aba[1]:
                 orientation="h",
                 title="Categorias que mais movimentam dinheiro",
                 color="valor_abs",
-                color_continuous_scale=["#e9edf2", "#8fb1ff", "#111318"],
+                color_continuous_scale=["#eef0f4", "#a8c4ff", "#1a1d24"],
                 labels={"valor_abs": "Valor", "categoria": ""},
                 text="valor_abs",
             )
             fig3.update_traces(
                 texttemplate="R$ %{x:,.0f}",
                 textposition="outside",
-                textfont=dict(size=11, color="#111318"),
+                textfont=dict(size=11, color="#1a1d24"),
                 hovertemplate="<b>%{y}</b><br>R$ %{x:,.2f}<extra></extra>",
                 marker_line_color="rgba(255,255,255,0.9)",
                 marker_line_width=1,
@@ -1388,12 +1582,12 @@ with aba[1]:
                 values="valor_abs",
                 hole=0.58,
                 title="Formas de pagamento",
-                color_discrete_sequence=["#111318", "#d9ff00", "#8fb1ff", "#a8b4c4", "#efffb4", "#5c6573"],
+                color_discrete_sequence=["#1a1d24", "#d9ff00", "#a8c4ff", "#c5c9d4", "#f0ff8a", "#6b7280"],
             )
             fig4.update_traces(
                 textposition="outside",
                 textinfo="percent",
-                textfont=dict(size=12, color="#111318"),
+                textfont=dict(size=12, color="#1a1d24"),
                 marker=dict(line=dict(color="rgba(255,255,255,0.95)", width=2)),
                 pull=[0.03] * len(pag),
                 hovertemplate="<b>%{label}</b><br>R$ %{value:,.2f}<br>%{percent}<extra></extra>",
@@ -1419,7 +1613,7 @@ with aba[1]:
                 y=["entradas", "saidas"],
                 barmode="group",
                 title="Evolução mensal consolidada",
-                color_discrete_map={"entradas": "#d9ff00", "saidas": "#111318"},
+                color_discrete_map={"entradas": "#d9ff00", "saidas": "#1a1d24"},
                 labels={"mes": "Mês", "value": "Valor", "variable": "Tipo"},
             )
             fig_m.for_each_trace(
@@ -1691,12 +1885,12 @@ with aba[4]:
                 values="valor",
                 hole=0.55,
                 title="Distribuição dos investimentos",
-                color_discrete_sequence=["#111318", "#d9ff00", "#8fb1ff", "#a8b4c4", "#efffb4", "#5c6573"],
+                color_discrete_sequence=["#1a1d24", "#d9ff00", "#a8c4ff", "#c5c9d4", "#f0ff8a", "#6b7280"],
             )
             fig.update_traces(
                 textposition="outside",
                 textinfo="percent",
-                textfont=dict(size=12, color="#111318"),
+                textfont=dict(size=12, color="#1a1d24"),
                 marker=dict(line=dict(color="rgba(255,255,255,0.95)", width=2)),
                 hovertemplate="<b>%{label}</b><br>R$ %{value:,.2f}<br>%{percent}<extra></extra>",
             )
