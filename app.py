@@ -1245,6 +1245,627 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
+st.markdown(
+    """
+<style>
+    :root {
+        --dash-ink: #111318;
+        --dash-muted: #747985;
+        --dash-line: rgba(17, 19, 24, 0.08);
+        --dash-panel: rgba(246, 247, 249, 0.88);
+        --dash-card: rgba(255, 255, 255, 0.92);
+        --dash-lime: #d9ff00;
+        --dash-lime-soft: #efffb4;
+        --dash-blue: #8fb1ff;
+        --dash-blue-soft: #e9efff;
+        --dash-shadow: 0 26px 80px rgba(17, 19, 24, 0.12);
+        --dash-shadow-soft: 0 14px 38px rgba(17, 19, 24, 0.08);
+    }
+
+    [data-testid="stAppViewContainer"] {
+        background:
+            radial-gradient(circle at 12% 8%, rgba(255, 255, 255, 0.98), transparent 23rem),
+            radial-gradient(circle at 86% 12%, rgba(217, 255, 0, 0.18), transparent 22rem),
+            radial-gradient(circle at 74% 82%, rgba(143, 177, 255, 0.20), transparent 26rem),
+            linear-gradient(145deg, #eef1f5 0%, #f7f8fa 46%, #e9edf2 100%) !important;
+        color: var(--dash-ink);
+    }
+
+    [data-testid="stAppViewContainer"]::before {
+        background:
+            linear-gradient(120deg, rgba(255, 255, 255, 0.56), transparent 44%),
+            repeating-linear-gradient(135deg, rgba(17, 19, 24, 0.018) 0 1px, transparent 1px 34px) !important;
+    }
+
+    .main .block-container {
+        max-width: 1220px;
+        padding-top: 1.6rem;
+    }
+
+    .site-nav {
+        display: none;
+    }
+
+    .dashboard-shell {
+        display: grid;
+        grid-template-columns: 14.4rem minmax(0, 1fr);
+        gap: 1rem;
+        min-height: 31rem;
+        margin-bottom: 1.2rem;
+        padding: 0.55rem;
+        border: 1px solid rgba(255, 255, 255, 0.72);
+        border-radius: 34px;
+        background: rgba(240, 242, 246, 0.72);
+        box-shadow: var(--dash-shadow);
+        backdrop-filter: blur(20px) saturate(140%);
+        -webkit-backdrop-filter: blur(20px) saturate(140%);
+    }
+
+    .side-rail {
+        display: flex;
+        flex-direction: column;
+        min-height: 30rem;
+        padding: 1.15rem;
+        border-radius: 28px;
+        background: rgba(255, 255, 255, 0.78);
+        border: 1px solid rgba(255, 255, 255, 0.88);
+        box-shadow: var(--dash-shadow-soft);
+    }
+
+    .side-logo {
+        display: flex;
+        align-items: center;
+        gap: 0.72rem;
+        margin-bottom: 1.9rem;
+        color: var(--dash-ink);
+        font-size: 1.02rem;
+        font-weight: 900;
+    }
+
+    .side-logo span:first-child {
+        width: 2rem;
+        height: 2rem;
+        display: grid;
+        place-items: center;
+        border-radius: 50%;
+        color: var(--dash-ink);
+        background: var(--dash-lime);
+        box-shadow: 0 12px 28px rgba(217, 255, 0, 0.26);
+    }
+
+    .side-menu {
+        display: grid;
+        gap: 0.48rem;
+    }
+
+    .side-menu span {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        min-height: 2.55rem;
+        padding: 0 0.82rem;
+        border-radius: 999px;
+        color: #737783;
+        font-size: 0.86rem;
+        font-weight: 760;
+    }
+
+    .side-menu span.active {
+        color: var(--dash-ink);
+        background: #ffffff;
+        box-shadow: 0 12px 28px rgba(17, 19, 24, 0.08);
+    }
+
+    .side-menu b {
+        min-width: 1.45rem;
+        height: 1.45rem;
+        display: inline-grid;
+        place-items: center;
+        border-radius: 999px;
+        background: var(--dash-blue);
+        color: var(--dash-ink);
+        font-size: 0.74rem;
+    }
+
+    .upgrade-card {
+        margin-top: auto;
+        padding: 1rem;
+        border-radius: 24px;
+        background: #ffffff;
+        box-shadow: var(--dash-shadow-soft);
+    }
+
+    .upgrade-icon {
+        width: 2.9rem;
+        height: 2.9rem;
+        display: grid;
+        place-items: center;
+        border-radius: 50%;
+        color: var(--dash-ink);
+        background: var(--dash-lime);
+        font-size: 1.1rem;
+        font-weight: 900;
+    }
+
+    .upgrade-title {
+        margin-top: 1rem;
+        color: var(--dash-ink);
+        font-size: 1.08rem;
+        font-weight: 900;
+    }
+
+    .upgrade-copy {
+        margin-top: 0.3rem;
+        color: var(--dash-muted);
+        font-size: 0.8rem;
+        line-height: 1.45;
+    }
+
+    .upgrade-button {
+        margin-top: 0.95rem;
+        min-height: 2.45rem;
+        display: grid;
+        place-items: center;
+        border-radius: 999px;
+        color: #ffffff;
+        background: #050609;
+        font-size: 0.82rem;
+        font-weight: 850;
+    }
+
+    .hero {
+        min-height: unset;
+        display: block;
+        margin: 0;
+    }
+
+    .hero-card,
+    .utility-card {
+        box-shadow: none;
+    }
+
+    .dashboard-stage {
+        padding: clamp(1.05rem, 2vw, 1.45rem);
+        border-radius: 30px;
+        background: rgba(245, 246, 249, 0.72);
+        border: 1px solid rgba(255, 255, 255, 0.76);
+    }
+
+    .stage-top {
+        display: flex;
+        justify-content: space-between;
+        gap: 1rem;
+        align-items: flex-start;
+        margin-bottom: 1.05rem;
+    }
+
+    .stage-title h1 {
+        margin: 0.45rem 0 0.25rem;
+        color: var(--dash-ink) !important;
+        -webkit-text-fill-color: var(--dash-ink) !important;
+        font-size: clamp(2.25rem, 5vw, 4.15rem);
+        line-height: 0.96;
+        letter-spacing: 0;
+        text-shadow: none;
+    }
+
+    .stage-title p {
+        max-width: 40rem;
+        margin: 0.45rem 0 0;
+        color: var(--dash-muted);
+        font-size: 0.98rem;
+        line-height: 1.65;
+        font-weight: 620;
+    }
+
+    .stage-actions {
+        display: flex;
+        gap: 0.55rem;
+        align-items: center;
+        flex-shrink: 0;
+    }
+
+    .round-action {
+        width: 2.65rem;
+        height: 2.65rem;
+        display: grid;
+        place-items: center;
+        border-radius: 50%;
+        background: #ffffff;
+        box-shadow: var(--dash-shadow-soft);
+        font-weight: 900;
+    }
+
+    .user-chip {
+        min-height: 2.65rem;
+        display: flex;
+        align-items: center;
+        gap: 0.7rem;
+        padding: 0.36rem 0.85rem 0.36rem 0.45rem;
+        border-radius: 999px;
+        background: #ffffff;
+        box-shadow: var(--dash-shadow-soft);
+        color: var(--dash-ink);
+        font-size: 0.82rem;
+        font-weight: 820;
+        white-space: nowrap;
+    }
+
+    .avatar-dot {
+        width: 2rem;
+        height: 2rem;
+        display: grid;
+        place-items: center;
+        border-radius: 50%;
+        color: #ffffff;
+        background: linear-gradient(135deg, #111318, #566070);
+    }
+
+    .hero-metrics {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 0.85rem;
+        margin: 1.15rem 0;
+    }
+
+    .metric-card {
+        position: relative;
+        overflow: hidden;
+        min-height: 9.6rem;
+        border-radius: 26px;
+        background: rgba(255, 255, 255, 0.88);
+        border: 1px solid rgba(255, 255, 255, 0.92);
+        box-shadow: var(--dash-shadow-soft);
+    }
+
+    .metric-card::after {
+        content: "↗";
+        position: absolute;
+        top: 1rem;
+        right: 1rem;
+        width: 2.35rem;
+        height: 2.35rem;
+        display: grid;
+        place-items: center;
+        border: 1px solid rgba(17, 19, 24, 0.22);
+        border-radius: 50%;
+        color: var(--dash-ink);
+        font-weight: 900;
+    }
+
+    .metric-card.accent-card {
+        background: linear-gradient(135deg, var(--dash-lime) 0%, #caff00 100%);
+    }
+
+    .metric-card.blue-card {
+        background: linear-gradient(135deg, #ffffff 0%, var(--dash-blue-soft) 100%);
+    }
+
+    .metric-card.dark-card {
+        background: #111318;
+    }
+
+    .metric-card.dark-card .metric-label,
+    .metric-card.dark-card .metric-foot {
+        color: rgba(255, 255, 255, 0.62);
+    }
+
+    .metric-card.dark-card .metric-value {
+        color: #ffffff;
+    }
+
+    .metric-label {
+        color: #7a7f89;
+        font-size: 0.74rem;
+        letter-spacing: 0;
+    }
+
+    .metric-value {
+        color: var(--dash-ink);
+        font-size: clamp(1.55rem, 3vw, 2.35rem);
+    }
+
+    .metric-foot {
+        color: #787d88;
+        font-size: 0.83rem;
+    }
+
+    .finance-quote {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 1rem;
+        align-items: center;
+        margin-top: 0.8rem;
+        padding: 1rem 1.1rem;
+        border-radius: 24px;
+        background: #ffffff;
+        box-shadow: var(--dash-shadow-soft);
+    }
+
+    .finance-quote strong {
+        display: block;
+        color: var(--dash-ink);
+        font-size: 1rem;
+    }
+
+    .finance-quote span {
+        color: var(--dash-muted);
+        font-size: 0.84rem;
+        font-weight: 700;
+    }
+
+    .finance-quote b {
+        display: grid;
+        place-items: center;
+        min-width: 4.8rem;
+        min-height: 2.55rem;
+        border-radius: 999px;
+        color: var(--dash-ink);
+        background: var(--dash-lime);
+        font-size: 1.1rem;
+    }
+
+    .chart-intro,
+    .history-summary {
+        color: var(--dash-ink);
+        background: rgba(255, 255, 255, 0.86);
+        border: 1px solid rgba(255, 255, 255, 0.92);
+        border-radius: 24px;
+        box-shadow: var(--dash-shadow-soft);
+    }
+
+    .chart-intro strong,
+    .history-summary strong {
+        color: var(--dash-ink);
+    }
+
+    div[data-testid="stPlotlyChart"],
+    div[data-testid="stDataFrame"],
+    div[data-testid="stExpander"],
+    [data-testid="stAlert"],
+    div[data-testid="stForm"],
+    div[data-testid="stVerticalBlockBorderWrapper"] {
+        border-radius: 26px;
+        background: rgba(255, 255, 255, 0.88);
+        border: 1px solid rgba(255, 255, 255, 0.92);
+        box-shadow: var(--dash-shadow-soft);
+    }
+
+    div[data-testid="stTabs"] button {
+        color: var(--dash-ink);
+        background: rgba(255, 255, 255, 0.74);
+        border: 1px solid rgba(255, 255, 255, 0.88);
+        box-shadow: var(--dash-shadow-soft);
+    }
+
+    div[data-testid="stTabs"] button[aria-selected="true"] {
+        color: #ffffff;
+        background: #111318;
+        border-color: #111318;
+    }
+
+    h2, h3 {
+        color: var(--dash-ink) !important;
+    }
+
+    .answer-grid,
+    .indicator-grid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 0.85rem;
+        margin: 1rem 0 1.15rem;
+    }
+
+    .answer-card,
+    .indicator-card,
+    .goal-card,
+    .investment-item,
+    .debt-item,
+    .history-item {
+        border-radius: 24px;
+        background: rgba(255, 255, 255, 0.90);
+        border: 1px solid rgba(255, 255, 255, 0.92);
+        box-shadow: var(--dash-shadow-soft);
+    }
+
+    .indicator-card {
+        min-height: 8.7rem;
+        padding: 1rem;
+    }
+
+    .indicator-top {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 0.7rem;
+        color: var(--dash-muted);
+        font-size: 0.76rem;
+        font-weight: 850;
+        text-transform: uppercase;
+    }
+
+    .indicator-icon {
+        width: 2.2rem;
+        height: 2.2rem;
+        display: grid;
+        place-items: center;
+        border-radius: 50%;
+        color: var(--dash-ink);
+        background: var(--dash-lime);
+    }
+
+    .indicator-value {
+        margin-top: 1rem;
+        color: var(--dash-ink);
+        font-size: clamp(1.25rem, 2.4vw, 1.85rem);
+        font-weight: 900;
+        line-height: 1;
+    }
+
+    .indicator-note {
+        margin-top: 0.45rem;
+        color: var(--dash-muted);
+        font-size: 0.84rem;
+        line-height: 1.4;
+    }
+
+    .progress-track {
+        overflow: hidden;
+        height: 0.55rem;
+        margin-top: 0.8rem;
+        border-radius: 999px;
+        background: rgba(17, 19, 24, 0.08);
+    }
+
+    .progress-track span {
+        display: block;
+        height: 100%;
+        border-radius: inherit;
+        background: linear-gradient(90deg, var(--dash-lime), var(--dash-blue));
+    }
+
+    .visitor-panel {
+        min-height: 24rem;
+        padding: 1.15rem;
+        border-radius: 26px;
+        background: rgba(255, 255, 255, 0.90);
+        border: 1px solid rgba(255, 255, 255, 0.92);
+        box-shadow: var(--dash-shadow-soft);
+    }
+
+    .visitor-head {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        color: var(--dash-ink);
+        font-weight: 900;
+    }
+
+    .visitor-head span {
+        color: var(--dash-muted);
+        font-size: 0.82rem;
+        font-weight: 800;
+    }
+
+    .bubble-wrap {
+        position: relative;
+        min-height: 14rem;
+        margin-top: 1rem;
+    }
+
+    .bubble {
+        position: absolute;
+        display: grid;
+        place-items: center;
+        border-radius: 50%;
+        color: var(--dash-ink);
+        text-align: center;
+        font-weight: 900;
+        box-shadow: 0 18px 42px rgba(17, 19, 24, 0.10);
+    }
+
+    .bubble small {
+        display: block;
+        margin-top: 0.2rem;
+        color: rgba(17, 19, 24, 0.62);
+        font-size: 0.72rem;
+        font-weight: 760;
+    }
+
+    .bubble.income {
+        width: 9.2rem;
+        height: 9.2rem;
+        left: 0.5rem;
+        top: 0.8rem;
+        background: var(--dash-lime);
+    }
+
+    .bubble.expense {
+        width: 7.6rem;
+        height: 7.6rem;
+        right: 1.5rem;
+        top: 2.3rem;
+        background: var(--dash-blue);
+    }
+
+    .bubble.balance {
+        width: 5.3rem;
+        height: 5.3rem;
+        left: 45%;
+        bottom: 0.2rem;
+        background: #ffffff;
+        border: 1px solid var(--dash-line);
+    }
+
+    .target-list {
+        display: grid;
+        gap: 0.65rem;
+        margin-top: 1rem;
+    }
+
+    .target-row {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 0.8rem;
+        align-items: center;
+        color: var(--dash-ink);
+        font-size: 0.84rem;
+        font-weight: 780;
+    }
+
+    .target-line {
+        grid-column: 1 / -1;
+        overflow: hidden;
+        height: 0.48rem;
+        border-radius: 999px;
+        background: rgba(17, 19, 24, 0.08);
+    }
+
+    .target-line span {
+        display: block;
+        height: 100%;
+        border-radius: inherit;
+        background: var(--dash-lime);
+    }
+
+    .target-row:nth-child(2) .target-line span {
+        background: var(--dash-blue);
+    }
+
+    .target-row:nth-child(3) .target-line span {
+        background: #d7dbe2;
+    }
+
+    @media (max-width: 980px) {
+        .dashboard-shell,
+        .stage-top,
+        .hero-metrics,
+        .metric-grid,
+        .answer-grid,
+        .indicator-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .stage-top {
+            display: grid;
+        }
+
+        .stage-actions {
+            flex-wrap: wrap;
+        }
+
+        .side-rail {
+            min-height: auto;
+        }
+
+        .upgrade-card {
+            display: none;
+        }
+    }
+</style>
+""",
+    unsafe_allow_html=True,
+)
+
 # ====================== BANCO ======================
 DB_FILE = "financeiro.db"
 
@@ -1263,6 +1884,18 @@ def mensagem_erro_usuario(erro):
 def brl(valor):
     texto = f"R$ {valor:,.2f}"
     return texto.replace(",", "X").replace(".", ",").replace("X", ".")
+
+
+def brl_compacto(valor):
+    numero = float(valor or 0)
+    absoluto = abs(numero)
+    if absoluto >= 1_000_000:
+        texto = f"R$ {numero / 1_000_000:.1f} mi"
+    elif absoluto >= 1_000:
+        texto = f"R$ {numero / 1_000:.1f} mil"
+    else:
+        texto = f"R$ {numero:.0f}"
+    return texto.replace(".", ",")
 
 
 def data_br(valor):
@@ -1318,6 +1951,90 @@ def texto_meses(meses):
             f"{meses_restantes} mês" if meses_restantes == 1 else f"{meses_restantes} meses"
         )
     return " e ".join(partes) if partes else "menos de 1 mês"
+
+
+def pct(valor, casas=0):
+    try:
+        numero = float(valor)
+    except (TypeError, ValueError):
+        numero = 0
+    return f"{numero:.{casas}f}%".replace(".", ",")
+
+
+def limitar_percentual(valor):
+    try:
+        numero = float(valor)
+    except (TypeError, ValueError):
+        numero = 0
+    return max(0, min(numero, 100))
+
+
+def calcular_score_financeiro(
+    entradas,
+    saidas,
+    saldo,
+    investimentos,
+    total_dividas_abertas,
+    parcelas_dividas,
+    progresso_metas,
+):
+    if entradas <= 0 and saidas <= 0:
+        return 50
+
+    taxa_sobra = (saldo / entradas) * 100 if entradas > 0 else -35
+    comprometimento = ((saidas + parcelas_dividas) / entradas) * 100 if entradas > 0 else 100
+    meses_reserva = investimentos / (saidas / 3) if saidas > 0 else (3 if investimentos > 0 else 0)
+
+    score = 52
+    score += max(-24, min(taxa_sobra, 24))
+    score -= max(0, min(comprometimento - 70, 22))
+    score += min(meses_reserva, 3) * 4
+    score += min(progresso_metas / 10, 10)
+    if total_dividas_abertas > 0:
+        score -= min((total_dividas_abertas / max(entradas, 1)) * 8, 16)
+    if saldo >= 0:
+        score += 5
+    return int(max(0, min(round(score), 100)))
+
+
+def preparar_dados_dashboard(df_transacoes):
+    if df_transacoes.empty:
+        return pd.DataFrame(), pd.DataFrame(), pd.DataFrame()
+
+    df_base = df_transacoes.copy()
+    df_base["data_convertida"] = pd.to_datetime(df_base["data"], errors="coerce")
+    df_base["valor_abs"] = df_base["valor"].abs()
+    df_base = df_base.dropna(subset=["data_convertida"]).sort_values("data_convertida")
+    if df_base.empty:
+        return pd.DataFrame(), pd.DataFrame(), pd.DataFrame()
+
+    df_base["mes"] = df_base["data_convertida"].dt.to_period("M").dt.to_timestamp()
+    df_base["saldo_acumulado"] = df_base["valor"].cumsum()
+
+    fluxo = (
+        df_base.assign(
+            Entradas=lambda dados: dados["valor"].clip(lower=0),
+            Saídas=lambda dados: dados["valor"].clip(upper=0).abs(),
+        )
+        .groupby("mes", as_index=False)[["Entradas", "Saídas"]]
+        .sum()
+    )
+    fluxo["Saldo"] = fluxo["Entradas"] - fluxo["Saídas"]
+
+    categorias = (
+        df_base.groupby("categoria", as_index=False)["valor_abs"]
+        .sum()
+        .sort_values("valor_abs", ascending=False)
+    )
+
+    pagamentos = (
+        df_base.groupby("cartao", as_index=False)["valor_abs"]
+        .sum()
+        .sort_values("valor_abs", ascending=False)
+    )
+    pagamentos["cartao"] = pagamentos["cartao"].replace("", "Não informado")
+
+    return fluxo, categorias, pagamentos
 
 
 def gerar_modelo_excel():
@@ -2501,36 +3218,36 @@ def salvar_meta(data_meta, nome, valor_meta, valor_atual, aporte_mensal, prazo, 
 def style_plot(fig):
     fig.update_layout(
         paper_bgcolor="rgba(255,255,255,0)",
-        plot_bgcolor="rgba(255,255,255,0.62)",
-        font=dict(color="#071426", size=12),
-        title=dict(font=dict(size=19, color="#081b33"), x=0.04, xanchor="left"),
+        plot_bgcolor="rgba(255,255,255,0)",
+        font=dict(color="#111318", size=12),
+        title=dict(font=dict(size=20, color="#111318"), x=0.04, xanchor="left"),
         legend=dict(
             bgcolor="rgba(255,255,255,0)",
-            font=dict(color="#071426"),
+            font=dict(color="#111318"),
             orientation="h",
             yanchor="bottom",
             y=1.01,
             xanchor="right",
             x=1,
         ),
-        hoverlabel=dict(bgcolor="#ffffff", font_color="#071426"),
-        margin=dict(l=28, r=24, t=78, b=34),
+        hoverlabel=dict(bgcolor="#111318", font_color="#ffffff"),
+        margin=dict(l=34, r=26, t=80, b=44),
         height=410,
         separators=",.",
     )
     fig.update_xaxes(
-        gridcolor="rgba(8,27,51,0.08)",
-        linecolor="rgba(8,27,51,0.10)",
-        zerolinecolor="rgba(8,27,51,0.10)",
-        title_font=dict(color="#17486f"),
-        tickfont=dict(color="#17486f"),
+        gridcolor="rgba(17,19,24,0.08)",
+        linecolor="rgba(17,19,24,0.10)",
+        zerolinecolor="rgba(17,19,24,0.10)",
+        title_font=dict(color="#747985"),
+        tickfont=dict(color="#747985"),
     )
     fig.update_yaxes(
-        gridcolor="rgba(8,27,51,0.08)",
-        linecolor="rgba(8,27,51,0.10)",
-        zerolinecolor="rgba(8,27,51,0.10)",
-        title_font=dict(color="#17486f"),
-        tickfont=dict(color="#17486f"),
+        gridcolor="rgba(17,19,24,0.08)",
+        linecolor="rgba(17,19,24,0.10)",
+        zerolinecolor="rgba(17,19,24,0.10)",
+        title_font=dict(color="#747985"),
+        tickfont=dict(color="#747985"),
     )
     return fig
 
@@ -2552,10 +3269,102 @@ hero_total_saidas = abs(df[df["valor"] < 0]["valor"].sum()) if len(df) > 0 else 
 hero_saldo = df["valor"].sum() if len(df) > 0 else 0
 hero_total_investido = df_investimentos["valor"].sum() if len(df_investimentos) > 0 else 0
 hero_total_metas = df_metas["valor_meta"].sum() if len(df_metas) > 0 else 0
+hero_taxa_sobra = (hero_saldo / hero_total_entradas) * 100 if hero_total_entradas > 0 else 0
+hero_comprometimento = (hero_total_saidas / hero_total_entradas) * 100 if hero_total_entradas > 0 else 0
+if len(df_dividas):
+    hero_dividas_view = df_dividas.copy()
+    hero_dividas_view["saldo_base"] = hero_dividas_view["saldo_negociado"].where(
+        hero_dividas_view["saldo_negociado"] > 0,
+        hero_dividas_view["saldo_original"],
+    )
+    hero_dividas_abertas = hero_dividas_view[hero_dividas_view["status"] != "Quitada"]
+    hero_total_dividas_abertas = hero_dividas_abertas["saldo_base"].sum()
+    hero_parcelas_dividas = hero_dividas_abertas["parcela_possivel"].sum()
+else:
+    hero_total_dividas_abertas = 0
+    hero_parcelas_dividas = 0
+if len(df_metas) and hero_total_metas > 0:
+    hero_progresso_metas = limitar_percentual((df_metas["valor_atual"].sum() / hero_total_metas) * 100)
+else:
+    hero_progresso_metas = 0
+hero_score = calcular_score_financeiro(
+    hero_total_entradas,
+    hero_total_saidas,
+    hero_saldo,
+    hero_total_investido,
+    hero_total_dividas_abertas,
+    hero_parcelas_dividas,
+    hero_progresso_metas,
+)
 
 # ====================== HERO ======================
 st.markdown(
-    f"""<section class="site-nav"><div class="brand-lockup"><span class="brand-mark">DF</span><span>Dashboard Financeiro</span></div><div class="nav-links"><span>Organização</span><span>Dashboard</span><span>Dívidas</span><span>Histórico</span></div><span class="nav-cta">Controle financeiro</span></section><section class="hero"><div class="hero-card"><div class="hero-top"><span class="eyebrow">Painel inteligente</span><span class="pill">Financeiro 2025</span></div><h1>Dashboard<br>Financeiro</h1><p class="hero-subtitle">Organize decisões, acompanhe seu patrimônio e transforme pequenas escolhas financeiras em progresso consistente.</p><blockquote class="hero-quote">“Preço é o que você paga; valor é o que você recebe.”<cite>Benjamin Graham</cite></blockquote></div><aside class="utility-card"><div class="utility-head"><strong>Visão geral</strong><span>Atualizado agora</span></div><div class="utility-grid"><div class="utility-item"><div class="utility-label">Saldo atual</div><div class="utility-value">{brl(hero_saldo)}</div></div><div class="utility-item"><div class="utility-label">Entradas</div><div class="utility-value">{brl(hero_total_entradas)}</div></div><div class="utility-item"><div class="utility-label">Saídas</div><div class="utility-value">{brl(hero_total_saidas)}</div></div><div class="utility-item"><div class="utility-label">Investimentos</div><div class="utility-value">{brl(hero_total_investido)}</div></div></div></aside></section>""",
+    f"""
+    <section class="dashboard-shell">
+        <aside class="side-rail">
+            <div class="side-logo"><span>DF</span><strong>Dashboard Financeiro</strong></div>
+            <div class="side-menu">
+                <span class="active">Dashboard <b>{len(df)}</b></span>
+                <span>Metas <b>{len(df_metas)}</b></span>
+                <span>Dívidas <b>{len(df_dividas)}</b></span>
+                <span>Histórico <b>{len(df)}</b></span>
+                <span>Relatório <b>PDF</b></span>
+            </div>
+            <div class="upgrade-card">
+                <div class="upgrade-icon">↗</div>
+                <div class="upgrade-title">Plano financeiro</div>
+                <div class="upgrade-copy">Veja o que entra, o que sai e qual próxima decisão melhora seu mês.</div>
+                <div class="upgrade-button">Organizar agora</div>
+            </div>
+        </aside>
+
+        <section class="dashboard-stage">
+            <div class="stage-top">
+                <div class="stage-title">
+                    <span class="eyebrow">Painel inteligente</span>
+                    <h1>Dashboard<br>Financeiro</h1>
+                    <p>Controle entradas, gastos, dívidas, metas e investimentos em uma visão clara para decidir melhor todos os meses.</p>
+                </div>
+                <div class="stage-actions">
+                    <div class="round-action">⌕</div>
+                    <div class="round-action">•</div>
+                    <div class="user-chip"><span class="avatar-dot">DF</span> Visão premium</div>
+                </div>
+            </div>
+
+            <div class="metric-grid hero-metrics">
+                <div class="metric-card accent-card">
+                    <div class="metric-label">Saldo atual</div>
+                    <div class="metric-value">{brl(hero_saldo)}</div>
+                    <div class="metric-foot">Resultado de tudo que foi registrado</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-label">Entradas</div>
+                    <div class="metric-value">{brl(hero_total_entradas)}</div>
+                    <div class="metric-foot">Receitas manuais e importadas</div>
+                </div>
+                <div class="metric-card blue-card">
+                    <div class="metric-label">Saúde financeira</div>
+                    <div class="metric-value">{hero_score}/100</div>
+                    <div class="metric-foot">{pct(hero_taxa_sobra)} de sobra acumulada</div>
+                </div>
+                <div class="metric-card dark-card">
+                    <div class="metric-label">Patrimônio</div>
+                    <div class="metric-value">{brl(hero_total_investido)}</div>
+                    <div class="metric-foot">Investimentos registrados</div>
+                </div>
+            </div>
+
+            <div class="finance-quote">
+                <div>
+                    <strong>“Preço é o que você paga; valor é o que você recebe.”</strong>
+                    <span>Benjamin Graham · Use seus números para proteger valor, não só pagar contas.</span>
+                </div>
+                <b>{pct(hero_comprometimento)}</b>
+            </div>
+        </section>
+    </section>
+    """,
     unsafe_allow_html=True,
 )
 
@@ -2625,7 +3434,7 @@ with aba[1]:
     saldo = df["valor"].sum() if len(df) > 0 else 0
 
     st.markdown(
-        f"""<div class="metric-grid"><div class="metric-card"><div class="metric-label">Entradas</div><div class="metric-value">{brl(total_entradas)}</div><div class="metric-foot">Receitas registradas</div></div><div class="metric-card"><div class="metric-label">Saídas</div><div class="metric-value">{brl(total_saidas)}</div><div class="metric-foot">Despesas acumuladas</div></div><div class="metric-card"><div class="metric-label">Saldo</div><div class="metric-value">{brl(saldo)}</div><div class="metric-foot">Resultado atual</div></div><div class="metric-card"><div class="metric-label">Registros</div><div class="metric-value">{len(df)}</div><div class="metric-foot">Movimentações salvas</div></div></div>""",
+        f"""<div class="metric-grid"><div class="metric-card accent-card"><div class="metric-label">Entradas</div><div class="metric-value">{brl(total_entradas)}</div><div class="metric-foot">Receitas registradas</div></div><div class="metric-card"><div class="metric-label">Saídas</div><div class="metric-value">{brl(total_saidas)}</div><div class="metric-foot">Despesas acumuladas</div></div><div class="metric-card blue-card"><div class="metric-label">Saldo</div><div class="metric-value">{brl(saldo)}</div><div class="metric-foot">Resultado atual</div></div><div class="metric-card dark-card"><div class="metric-label">Registros</div><div class="metric-value">{len(df)}</div><div class="metric-foot">Movimentações salvas</div></div></div>""",
         unsafe_allow_html=True,
     )
 
@@ -2689,6 +3498,35 @@ with aba[1]:
         proxima_acao_valor = "Cortar vazamento"
         proxima_acao_texto = "Escolha uma categoria para reduzir este mês e acompanhe no dashboard."
         proxima_acao_classe = "answer-risk"
+
+    taxa_sobra_dashboard = (saldo / total_entradas) * 100 if total_entradas > 0 else 0
+    comprometimento_dashboard = (
+        ((total_saidas + hero_parcelas_dividas) / total_entradas) * 100
+        if total_entradas > 0
+        else 0
+    )
+    reserva_meses = hero_total_investido / media_saidas if media_saidas > 0 else 0
+    reserva_meses_texto = f"{reserva_meses:.1f}".replace(".", ",")
+    reserva_percentual = limitar_percentual((reserva_meses / 6) * 100)
+    score_dashboard = calcular_score_financeiro(
+        total_entradas,
+        total_saidas,
+        saldo,
+        hero_total_investido,
+        hero_total_dividas_abertas,
+        hero_parcelas_dividas,
+        hero_progresso_metas,
+    )
+
+    st.markdown(
+        f"""<div class="indicator-grid">
+            <div class="indicator-card"><div class="indicator-top">Score financeiro <span class="indicator-icon">★</span></div><div class="indicator-value">{score_dashboard}/100</div><div class="indicator-note">Combina saldo, dívidas, reserva e metas.</div><div class="progress-track"><span style="width:{limitar_percentual(score_dashboard)}%"></span></div></div>
+            <div class="indicator-card"><div class="indicator-top">Taxa de sobra <span class="indicator-icon">↗</span></div><div class="indicator-value">{pct(taxa_sobra_dashboard)}</div><div class="indicator-note">Parte das entradas que virou saldo.</div><div class="progress-track"><span style="width:{limitar_percentual(taxa_sobra_dashboard)}%"></span></div></div>
+            <div class="indicator-card"><div class="indicator-top">Comprometimento <span class="indicator-icon">!</span></div><div class="indicator-value">{pct(comprometimento_dashboard)}</div><div class="indicator-note">Saídas e parcelas comparadas às entradas.</div><div class="progress-track"><span style="width:{limitar_percentual(comprometimento_dashboard)}%"></span></div></div>
+            <div class="indicator-card"><div class="indicator-top">Reserva estimada <span class="indicator-icon">◆</span></div><div class="indicator-value">{reserva_meses_texto} meses</div><div class="indicator-note">Investimentos divididos pela média de saídas.</div><div class="progress-track"><span style="width:{reserva_percentual}%"></span></div></div>
+        </div>""",
+        unsafe_allow_html=True,
+    )
 
     st.markdown(
         f"""<div class="chart-intro"><strong>O que preciso saber agora?</strong><br>
@@ -2874,6 +3712,8 @@ with aba[1]:
 
     if len(df) > 0:
         df_chart = df.copy()
+        df_chart["categoria"] = df_chart["categoria"].replace("", "Sem categoria").fillna("Sem categoria")
+        df_chart["cartao"] = df_chart["cartao"].replace("", "Não informado").fillna("Não informado")
         df_chart["valor_abs"] = df_chart["valor"].abs()
         df_chart["data_convertida"] = pd.to_datetime(df_chart["data"], errors="coerce")
 
@@ -2884,16 +3724,10 @@ with aba[1]:
         )
 
         fluxo_total = df_chart.groupby(["categoria", "tipo"], as_index=False)["valor_abs"].sum()
-        fluxo_mensal = (
-            df_chart.dropna(subset=["data_convertida"])
-            .assign(
-                mes=lambda dados: dados["data_convertida"].dt.to_period("M").dt.to_timestamp(),
-                entradas=lambda dados: dados["valor"].clip(lower=0),
-                saidas=lambda dados: dados["valor"].clip(upper=0).abs(),
-            )
-            .groupby("mes", as_index=False)[["entradas", "saidas"]]
-            .sum()
-        )
+        fluxo_mensal, categorias_dashboard, pagamentos_dashboard = preparar_dados_dashboard(df_chart)
+        df_timeline = df_chart.dropna(subset=["data_convertida"]).sort_values("data_convertida")
+        if len(df_timeline):
+            df_timeline["saldo_acumulado"] = df_timeline["valor"].cumsum()
 
         st.markdown(
             f"""<div class="chart-intro"><strong>Visão consolidada</strong><br>
@@ -2901,6 +3735,46 @@ with aba[1]:
             automaticamente os gráficos e o histórico abaixo.</div>""",
             unsafe_allow_html=True,
         )
+
+        if len(df_timeline):
+            col_trend, col_bubbles = st.columns([1.25, 0.75])
+            with col_trend:
+                fig_saldo = px.area(
+                    df_timeline,
+                    x="data_convertida",
+                    y="saldo_acumulado",
+                    title="Saldo acumulado ao longo do tempo",
+                    labels={"data_convertida": "Data", "saldo_acumulado": "Saldo acumulado"},
+                )
+                fig_saldo.update_traces(
+                    line=dict(color="#111318", width=3),
+                    fillcolor="rgba(217,255,0,0.34)",
+                    hovertemplate="<b>%{x|%d/%m/%Y}</b><br>R$ %{y:,.2f}<extra></extra>",
+                )
+                fig_saldo.update_xaxes(tickformat="%d/%m/%Y")
+                fig_saldo.update_yaxes(tickprefix="R$ ")
+                st.plotly_chart(style_plot(fig_saldo), use_container_width=True)
+
+            with col_bubbles:
+                entrada_bolha = brl_compacto(total_entradas)
+                saida_bolha = brl_compacto(total_saidas)
+                saldo_bolha = brl_compacto(saldo)
+                st.markdown(
+                    f"""<div class="visitor-panel">
+                        <div class="visitor-head">Radar financeiro <span>Atual</span></div>
+                        <div class="bubble-wrap">
+                            <div class="bubble income">{entrada_bolha}<small>Entradas</small></div>
+                            <div class="bubble expense">{saida_bolha}<small>Saídas</small></div>
+                            <div class="bubble balance">{saldo_bolha}<small>Saldo</small></div>
+                        </div>
+                        <div class="target-list">
+                            <div class="target-row"><span>Saúde financeira</span><strong>{score_dashboard}%</strong><div class="target-line"><span style="width:{limitar_percentual(score_dashboard)}%"></span></div></div>
+                            <div class="target-row"><span>Metas</span><strong>{pct(hero_progresso_metas)}</strong><div class="target-line"><span style="width:{limitar_percentual(hero_progresso_metas)}%"></span></div></div>
+                            <div class="target-row"><span>Reserva</span><strong>{pct(reserva_percentual)}</strong><div class="target-line"><span style="width:{reserva_percentual}%"></span></div></div>
+                        </div>
+                    </div>""",
+                    unsafe_allow_html=True,
+                )
 
         col_g1, col_g2 = st.columns(2)
 
@@ -2912,30 +3786,30 @@ with aba[1]:
                 title="Distribuição por Categoria",
                 hole=0.58,
                 color_discrete_sequence=[
-                    "#081b33",
-                    "#28c7b7",
-                    "#17486f",
-                    "#8be6d4",
-                    "#3a6388",
-                    "#0d906f",
-                    "#78a8c8",
+                    "#d9ff00",
+                    "#111318",
+                    "#8fb1ff",
+                    "#d7dbe2",
+                    "#efffb4",
+                    "#5c6573",
+                    "#c2cff7",
                 ],
             )
             fig.update_traces(
                 textposition="outside",
                 textinfo="percent+label",
                 insidetextorientation="radial",
-                marker=dict(line=dict(color="rgba(255,255,255,0.86)", width=2)),
+                marker=dict(line=dict(color="rgba(255,255,255,0.94)", width=2)),
                 pull=[0.018] * len(categoria_total),
                 hovertemplate="<b>%{label}</b><br>R$ %{value:,.2f}<br>%{percent}<extra></extra>",
             )
             fig = style_plot(fig)
             fig.update_layout(
-                height=500,
+                height=520,
                 showlegend=True,
                 uniformtext_minsize=11,
                 uniformtext_mode="hide",
-                margin=dict(l=42, r=70, t=86, b=92),
+                margin=dict(l=52, r=92, t=88, b=108),
                 legend=dict(
                     orientation="h",
                     yanchor="top",
@@ -2943,7 +3817,7 @@ with aba[1]:
                     xanchor="center",
                     x=0.5,
                     bgcolor="rgba(255,255,255,0)",
-                    font=dict(color="#071426", size=11),
+                    font=dict(color="#111318", size=11),
                 ),
             )
             st.plotly_chart(fig, use_container_width=True)
@@ -2956,33 +3830,82 @@ with aba[1]:
                 color="tipo",
                 title="Entradas x Saídas",
                 color_discrete_map={
-                    "Entrada": "#0d906f",
-                    "Saída": "#cc4a5b",
+                    "Entrada": "#d9ff00",
+                    "Saída": "#111318",
                 },
                 labels={"categoria": "Categoria", "valor_abs": "Valor", "tipo": "Tipo"},
             )
             fig2.update_traces(
-                marker_line_color="rgba(255,255,255,0.78)",
+                marker_line_color="rgba(255,255,255,0.90)",
                 marker_line_width=1,
                 hovertemplate="<b>%{x}</b><br>R$ %{y:,.2f}<extra></extra>",
             )
             fig2.update_yaxes(tickprefix="R$ ")
             st.plotly_chart(style_plot(fig2), use_container_width=True)
 
+        top_categorias = categorias_dashboard.head(8).sort_values("valor_abs", ascending=True)
+        pagamentos_top = pagamentos_dashboard.head(7)
+        col_top, col_pagamento = st.columns(2)
+
+        with col_top:
+            fig_top = px.bar(
+                top_categorias,
+                x="valor_abs",
+                y="categoria",
+                orientation="h",
+                title="Categorias que mais movimentam dinheiro",
+                labels={"valor_abs": "Valor", "categoria": "Categoria"},
+                color="valor_abs",
+                color_continuous_scale=["#e9edf2", "#8fb1ff", "#111318"],
+            )
+            fig_top.update_traces(
+                hovertemplate="<b>%{y}</b><br>R$ %{x:,.2f}<extra></extra>",
+                marker_line_color="rgba(255,255,255,0.90)",
+                marker_line_width=1,
+            )
+            fig_top.update_layout(coloraxis_showscale=False)
+            fig_top.update_xaxes(tickprefix="R$ ")
+            st.plotly_chart(style_plot(fig_top), use_container_width=True)
+
+        with col_pagamento:
+            fig_pagamento = px.pie(
+                pagamentos_top,
+                names="cartao",
+                values="valor_abs",
+                hole=0.62,
+                title="Formas de pagamento",
+                color_discrete_sequence=[
+                    "#111318",
+                    "#d9ff00",
+                    "#8fb1ff",
+                    "#d7dbe2",
+                    "#efffb4",
+                    "#5c6573",
+                ],
+            )
+            fig_pagamento.update_traces(
+                textposition="inside",
+                textinfo="percent",
+                marker=dict(line=dict(color="rgba(255,255,255,0.94)", width=2)),
+                hovertemplate="<b>%{label}</b><br>R$ %{value:,.2f}<br>%{percent}<extra></extra>",
+            )
+            fig_pagamento = style_plot(fig_pagamento)
+            fig_pagamento.update_layout(height=410, legend=dict(orientation="h", y=-0.12, x=0.5, xanchor="center"))
+            st.plotly_chart(fig_pagamento, use_container_width=True)
+
         if len(fluxo_mensal) > 0:
             fig_mensal = px.bar(
                 fluxo_mensal,
                 x="mes",
-                y=["entradas", "saidas"],
+                y=["Entradas", "Saídas"],
                 barmode="group",
                 title="Evolução mensal consolidada",
-                color_discrete_map={"entradas": "#0d906f", "saidas": "#cc4a5b"},
+                color_discrete_map={"Entradas": "#d9ff00", "Saídas": "#111318"},
                 labels={"mes": "Mês", "value": "Valor", "variable": "Movimentação"},
             )
             fig_mensal.for_each_trace(
                 lambda trace: trace.update(
-                    name="Entradas" if trace.name == "entradas" else "Saídas",
-                    marker_line_color="rgba(255,255,255,0.76)",
+                    marker_line_color="rgba(255,255,255,0.90)",
                     marker_line_width=1,
                     hovertemplate="<b>%{x|%m/%Y}</b><br>R$ %{y:,.2f}<extra></extra>",
                 )
