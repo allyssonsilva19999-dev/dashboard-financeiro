@@ -3300,6 +3300,8 @@ hero_score = calcular_score_financeiro(
 # ====================== HERO ======================
 st.markdown(
     f"""
+    textwrap.dedent(
+        f"""
     <section class="dashboard-shell">
         <aside class="side-rail">
             <div class="side-logo"><span>DF</span><strong>Dashboard Financeiro</strong></div>
@@ -3365,8 +3367,32 @@ st.markdown(
         </section>
     </section>
     """,
+    ).strip(),
     unsafe_allow_html=True,
 )
+
+# ====================== AÇÕES DO CABEÇALHO ======================
+st.markdown(
+    """<div class="chart-intro"><strong>Ações rápidas</strong><br>
+    Use os atalhos abaixo para atualizar os números, baixar o relatório ou escolher uma área do app.</div>""",
+    unsafe_allow_html=True,
+)
+col_header1, col_header2, col_header3, col_header4 = st.columns([1, 1, 1.2, 1.2])
+with col_header1:
+    if st.button("↻ Atualizar painel", use_container_width=True):
+        st.rerun()
+with col_header2:
+    st.download_button(
+        "⬇ Baixar PDF",
+        data=gerar_relatorio_pdf(df, df_investimentos, df_dividas, df_metas),
+        file_name=f"relatorio-financeiro-{date.today().strftime('%d-%m-%Y')}.pdf",
+        mime="application/pdf",
+        use_container_width=True,
+    )
+with col_header3:
+    st.info("Para cadastrar, use a aba Nova Movimentação.")
+with col_header4:
+    st.info("Para importar planilha, abra a aba Dashboard.")
 
 # ====================== NAVEGAÇÃO ======================
 aba = st.tabs(["➕ Nova Movimentação", "📊 Dashboard", "🎯 Metas", "🤝 Dívidas", "📋 Histórico"])
