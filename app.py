@@ -17,6 +17,7 @@ st.set_page_config(
     page_title="Dashboard Financeiro",
     layout="wide",
     page_icon="📊",
+    initial_sidebar_state="auto",
 )
 
 DB_FILE = "financeiro.db"
@@ -156,7 +157,7 @@ def mensagem_erro_usuario(erro) -> str:
     return texto
 
 
-# ====================== ESTILO (mix Influency + Lodgify) ======================
+# ====================== ESTILO (mix Influency + Lodgify + Mobile) ======================
 st.markdown(
     """
 <style>
@@ -182,6 +183,8 @@ st.markdown(
 
     html, body, [class*="css"] {
         font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        -webkit-text-size-adjust: 100%;
+        -webkit-tap-highlight-color: transparent;
     }
 
     [data-testid="stAppViewContainer"] {
@@ -206,7 +209,7 @@ st.markdown(
         padding-right: 1.4rem;
     }
 
-    /* ===== SIDEBAR (estilo Lodgify limpo + accent lime) ===== */
+    /* ===== SIDEBAR ===== */
     [data-testid="stSidebar"] {
         background: var(--sidebar) !important;
         border-right: 1px solid rgba(28,31,38,0.06);
@@ -230,6 +233,7 @@ st.markdown(
         color: #6b7280 !important;
         margin-bottom: 0.25rem !important;
         transition: 0.15s ease;
+        min-height: 2.6rem;
     }
     [data-testid="stSidebar"] .stRadio [role="radiogroup"] label:hover {
         background: #f6f7f9 !important;
@@ -247,6 +251,8 @@ st.markdown(
         color: var(--ink) !important;
         letter-spacing: -0.025em;
         font-weight: 800 !important;
+        word-wrap: break-word;
+        overflow-wrap: break-word;
     }
 
     /* ===== GRIDS ===== */
@@ -262,7 +268,7 @@ st.markdown(
         margin: 1rem 0 1.2rem;
     }
 
-    /* ===== CARDS (mix: branco + 1 lime + soft shadows Lodgify) ===== */
+    /* ===== CARDS ===== */
     .metric-card,
     .indicator-card,
     .answer-card,
@@ -332,10 +338,11 @@ st.markdown(
     .answer-value {
         margin-top: 0.7rem;
         color: var(--ink);
-        font-size: clamp(1.35rem, 2.4vw, 1.9rem);
-        line-height: 1.1;
+        font-size: clamp(1.25rem, 2.4vw, 1.9rem);
+        line-height: 1.15;
         font-weight: 800;
         letter-spacing: -0.03em;
+        word-break: break-word;
     }
 
     .metric-foot,
@@ -354,7 +361,6 @@ st.markdown(
     .positive { color: #0d9f6e; font-weight: 800; }
     .negative { color: #e04b5a; font-weight: 800; }
 
-    /* Progress bars (mint + lime) */
     .goal-progress,
     .progress-track {
         overflow: hidden;
@@ -396,13 +402,21 @@ st.markdown(
         border: 1px solid rgba(224,75,90,0.2);
     }
 
-    /* ===== TABS (pill style com lime ativo - Influency) ===== */
+    /* ===== TABS ===== */
     div[data-testid="stTabs"] {
         margin-top: 0.4rem;
     }
     div[data-testid="stTabs"] [data-baseweb="tab-list"] {
         gap: 0.4rem;
         background: transparent !important;
+        flex-wrap: wrap !important;
+        overflow-x: auto !important;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+        padding-bottom: 0.35rem;
+    }
+    div[data-testid="stTabs"] [data-baseweb="tab-list"]::-webkit-scrollbar {
+        display: none;
     }
     div[data-testid="stTabs"] button {
         border-radius: 999px !important;
@@ -413,6 +427,10 @@ st.markdown(
         box-shadow: var(--shadow-soft) !important;
         padding: 0.42rem 1.05rem !important;
         transition: 0.15s ease;
+        white-space: nowrap !important;
+        flex-shrink: 0 !important;
+        min-height: 2.5rem;
+        font-size: 0.88rem !important;
     }
     div[data-testid="stTabs"] button:hover {
         background: #f8f9fb !important;
@@ -431,7 +449,7 @@ st.markdown(
         display: none !important;
     }
 
-    /* Charts / forms / expanders (Lodgify clean cards) */
+    /* Charts / forms / expanders */
     div[data-testid="stPlotlyChart"],
     div[data-testid="stDataFrame"],
     div[data-testid="stExpander"],
@@ -443,10 +461,20 @@ st.markdown(
         box-shadow: var(--shadow-soft) !important;
     }
 
-    /* Buttons */
+    /* Plotly container overflow on mobile */
+    div[data-testid="stPlotlyChart"] {
+        overflow-x: auto !important;
+        max-width: 100% !important;
+    }
+    .js-plotly-plot,
+    .plotly {
+        max-width: 100% !important;
+    }
+
+    /* Buttons - touch friendly */
     .stButton > button,
     [data-testid="stFormSubmitButton"] button {
-        min-height: 2.55rem;
+        min-height: 2.75rem;
         border: 0 !important;
         border-radius: 999px !important;
         color: white !important;
@@ -454,6 +482,8 @@ st.markdown(
         font-weight: 750 !important;
         box-shadow: var(--shadow-soft) !important;
         transition: 0.18s ease;
+        width: 100%;
+        padding: 0.55rem 1.1rem !important;
     }
     .stButton > button:hover,
     [data-testid="stFormSubmitButton"] button:hover {
@@ -464,13 +494,14 @@ st.markdown(
     }
 
     div[data-testid="stDownloadButton"] button {
-        min-height: 2.55rem;
+        min-height: 2.75rem;
         border-radius: 999px !important;
         color: var(--ink) !important;
         background: #ffffff !important;
         border: 1px solid rgba(28,31,38,0.08) !important;
         font-weight: 750 !important;
         box-shadow: var(--shadow-soft) !important;
+        width: 100%;
     }
     div[data-testid="stDownloadButton"] button:hover {
         border-color: rgba(217,255,0,0.6) !important;
@@ -485,12 +516,19 @@ st.markdown(
         border: 1px solid rgba(28,31,38,0.08) !important;
         background: #ffffff !important;
         box-shadow: none !important;
+        min-height: 2.6rem !important;
     }
     div[data-baseweb="input"]:focus-within,
     div[data-baseweb="select"] > div:focus-within,
     textarea:focus {
         border-color: rgba(126,217,176,0.7) !important;
         box-shadow: 0 0 0 3px rgba(184,240,216,0.35) !important;
+    }
+
+    /* Radio horizontal - wrap on mobile */
+    div[role="radiogroup"] {
+        flex-wrap: wrap !important;
+        gap: 0.4rem !important;
     }
 
     /* Header */
@@ -500,10 +538,11 @@ st.markdown(
         align-items: flex-start;
         gap: 1rem;
         margin-bottom: 1.15rem;
+        flex-wrap: wrap;
     }
     .page-header h1 {
         margin: 0.1rem 0 0.2rem !important;
-        font-size: clamp(1.75rem, 3.2vw, 2.25rem) !important;
+        font-size: clamp(1.55rem, 5vw, 2.25rem) !important;
         font-weight: 800 !important;
         letter-spacing: -0.03em;
     }
@@ -526,6 +565,7 @@ st.markdown(
         font-weight: 700;
         color: var(--ink);
         white-space: nowrap;
+        flex-shrink: 0;
     }
     .avatar-dot {
         width: 1.85rem;
@@ -537,6 +577,7 @@ st.markdown(
         color: white;
         font-size: 0.72rem;
         font-weight: 800;
+        flex-shrink: 0;
     }
     .badge-new {
         display: inline-flex;
@@ -559,7 +600,6 @@ st.markdown(
         font-weight: 800;
     }
 
-    /* Icon circle in cards */
     .card-icon {
         position: absolute;
         top: 0.95rem;
@@ -584,7 +624,6 @@ st.markdown(
         background: rgba(255,255,255,0.08);
     }
 
-    /* Soft status pills (Lodgify style) */
     .status-pill {
         display: inline-flex;
         align-items: center;
@@ -597,24 +636,267 @@ st.markdown(
     .status-warn { background: #fff4d6; color: #8a5a00; }
     .status-bad { background: #ffe4e8; color: #a31d2e; }
 
+    /* History / list items flex layout */
+    .history-item,
+    .investment-item,
+    .debt-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 0.85rem;
+        min-height: auto;
+        margin-bottom: 0.65rem;
+    }
+    .history-item > div:first-child,
+    .investment-item > div:first-child,
+    .debt-item > div:first-child {
+        min-width: 0;
+        flex: 1;
+    }
+
+    /* Dataframe horizontal scroll */
+    div[data-testid="stDataFrame"] {
+        overflow-x: auto !important;
+    }
+
+    /* Columns stack naturally via Streamlit, but tighten gap */
+    [data-testid="column"] {
+        min-width: 0 !important;
+    }
+
+    /* ========== TABLET (<= 980px) ========== */
     @media (max-width: 980px) {
+        .main .block-container {
+            padding-left: 1rem;
+            padding-right: 1rem;
+            padding-top: 1rem;
+        }
+
         .metric-grid,
         .indicator-grid,
         .answer-grid,
         .goal-grid,
         .debt-grid,
         .investment-grid {
-            grid-template-columns: 1fr 1fr;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 0.75rem;
+        }
+
+        .metric-card,
+        .indicator-card,
+        .answer-card,
+        .goal-card {
+            min-height: 7rem;
+            padding: 1rem;
+        }
+
+        .metric-value,
+        .indicator-value,
+        .answer-value {
+            font-size: clamp(1.2rem, 4vw, 1.65rem);
+        }
+
+        .page-header {
+            gap: 0.75rem;
         }
     }
+
+    /* ========== MOBILE (<= 640px) ========== */
     @media (max-width: 640px) {
+        .main .block-container {
+            padding-left: 0.7rem !important;
+            padding-right: 0.7rem !important;
+            padding-top: 0.75rem !important;
+            padding-bottom: 1.5rem !important;
+        }
+
         .metric-grid,
         .indicator-grid,
         .answer-grid,
         .goal-grid,
         .debt-grid,
         .investment-grid {
-            grid-template-columns: 1fr;
+            grid-template-columns: 1fr !important;
+            gap: 0.65rem;
+            margin: 0.75rem 0 1rem;
+        }
+
+        .metric-card,
+        .indicator-card,
+        .answer-card,
+        .goal-card,
+        .history-item,
+        .investment-item,
+        .debt-item {
+            min-height: auto;
+            padding: 0.95rem 1rem;
+            border-radius: 16px;
+        }
+
+        .metric-value,
+        .indicator-value,
+        .answer-value {
+            font-size: 1.45rem;
+            margin-top: 0.5rem;
+        }
+
+        .metric-label,
+        .indicator-top,
+        .answer-question {
+            font-size: 0.72rem;
+        }
+
+        .metric-foot,
+        .indicator-note,
+        .answer-action,
+        .goal-meta,
+        .debt-meta,
+        .investment-meta {
+            font-size: 0.76rem;
+        }
+
+        .card-icon {
+            width: 1.75rem;
+            height: 1.75rem;
+            top: 0.8rem;
+            right: 0.8rem;
+            font-size: 0.78rem;
+        }
+
+        .page-header {
+            flex-direction: column;
+            align-items: stretch;
+            gap: 0.65rem;
+            margin-bottom: 0.9rem;
+        }
+
+        .page-header h1 {
+            font-size: 1.55rem !important;
+        }
+
+        .page-header p {
+            font-size: 0.85rem;
+        }
+
+        .user-chip {
+            align-self: flex-start;
+            font-size: 0.8rem;
+            padding: 0.28rem 0.7rem 0.28rem 0.32rem;
+        }
+
+        .badge-new,
+        .badge-lime {
+            font-size: 0.7rem;
+            padding: 0.18rem 0.55rem;
+        }
+
+        /* Tabs: horizontal scroll, smaller pills */
+        div[data-testid="stTabs"] [data-baseweb="tab-list"] {
+            gap: 0.3rem !important;
+            flex-wrap: nowrap !important;
+            overflow-x: auto !important;
+            padding-bottom: 0.4rem;
+            margin: 0 -0.2rem;
+            padding-left: 0.2rem;
+            padding-right: 0.2rem;
+        }
+        div[data-testid="stTabs"] button {
+            padding: 0.38rem 0.8rem !important;
+            font-size: 0.78rem !important;
+            min-height: 2.35rem !important;
+        }
+
+        .chart-intro,
+        .history-summary {
+            padding: 0.85rem 0.95rem;
+            font-size: 0.88rem;
+            border-radius: 14px;
+        }
+
+        /* Full-width touch buttons */
+        .stButton > button,
+        [data-testid="stFormSubmitButton"] button,
+        div[data-testid="stDownloadButton"] button {
+            min-height: 3rem !important;
+            font-size: 0.95rem !important;
+        }
+
+        /* Forms: stack fields tighter */
+        div[data-testid="stForm"] {
+            padding: 0.5rem 0 !important;
+        }
+
+        /* History items stack label/value better */
+        .history-item,
+        .investment-item,
+        .debt-item {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 0.45rem;
+        }
+        .history-item > div:last-child,
+        .investment-item > div:last-child,
+        .debt-item > div:last-child {
+            align-self: flex-end;
+            font-size: 1.05rem;
+        }
+
+        /* Expander headers more tappable */
+        div[data-testid="stExpander"] summary,
+        div[data-testid="stExpander"] details summary {
+            min-height: 2.8rem;
+            padding: 0.6rem 0.8rem !important;
+        }
+
+        /* Reduce hover lift on touch devices */
+        .metric-card:hover,
+        .indicator-card:hover {
+            transform: none;
+        }
+
+        h2, h3, .stSubheader {
+            font-size: 1.15rem !important;
+        }
+
+        /* Caption / footers */
+        .stCaption, [data-testid="stCaptionContainer"] {
+            font-size: 0.78rem !important;
+        }
+    }
+
+    /* ========== SMALL PHONES (<= 380px) ========== */
+    @media (max-width: 380px) {
+        .main .block-container {
+            padding-left: 0.55rem !important;
+            padding-right: 0.55rem !important;
+        }
+
+        .metric-value,
+        .indicator-value,
+        .answer-value {
+            font-size: 1.3rem;
+        }
+
+        div[data-testid="stTabs"] button {
+            padding: 0.32rem 0.65rem !important;
+            font-size: 0.72rem !important;
+        }
+
+        .page-header h1 {
+            font-size: 1.4rem !important;
+        }
+    }
+
+    /* Prefer reduced motion */
+    @media (prefers-reduced-motion: reduce) {
+        .metric-card,
+        .indicator-card,
+        .stButton > button {
+            transition: none !important;
+        }
+        .metric-card:hover,
+        .indicator-card:hover {
+            transform: none !important;
         }
     }
 </style>
@@ -918,14 +1200,15 @@ def resumo_mes_recente(df_transacoes: pd.DataFrame):
     return df_mes, mes_recente.strftime("%m/%Y")
 
 
-def style_plot(fig, height=420, show_legend=True):
+def style_plot(fig, height=400, show_legend=True):
     fig.update_layout(
         paper_bgcolor="rgba(255,255,255,0)",
         plot_bgcolor="rgba(255,255,255,0)",
-        font=dict(color="#1c1f26", size=12, family="Inter, sans-serif"),
-        title=dict(font=dict(size=16, color="#1c1f26", family="Inter, sans-serif"), x=0.02, xanchor="left"),
-        margin=dict(l=40, r=30, t=55, b=75),
+        font=dict(color="#1c1f26", size=11, family="Inter, sans-serif"),
+        title=dict(font=dict(size=15, color="#1c1f26", family="Inter, sans-serif"), x=0.02, xanchor="left"),
+        margin=dict(l=36, r=20, t=50, b=70),
         height=height,
+        autosize=True,
         legend=dict(
             orientation="h",
             yanchor="top",
@@ -1645,7 +1928,7 @@ with aba[1]:
                 hovertemplate="<b>%{label}</b><br>R$ %{value:,.2f}<br>%{percent}<extra></extra>",
                 rotation=40,
             )
-            fig = style_plot(fig, height=460)
+            fig = style_plot(fig, height=400)
             fig.update_layout(
                 margin=dict(l=20, r=20, t=60, b=100),
                 legend=dict(
@@ -1678,7 +1961,7 @@ with aba[1]:
             )
             fig2.update_yaxes(tickprefix="R$ ")
             fig2.update_xaxes(tickangle=-35)
-            fig2 = style_plot(fig2, height=460)
+            fig2 = style_plot(fig2, height=400)
             fig2.update_layout(
                 margin=dict(l=40, r=20, t=60, b=110),
                 legend=dict(orientation="h", y=-0.22, x=0.5, xanchor="center"),
@@ -1712,7 +1995,7 @@ with aba[1]:
             fig3.update_layout(coloraxis_showscale=False)
             max_v = float(top["valor_abs"].max()) if len(top) else 1.0
             fig3.update_xaxes(tickprefix="R$ ", range=[0, max_v * 1.25 if max_v > 0 else 1])
-            fig3 = style_plot(fig3, height=440, show_legend=False)
+            fig3 = style_plot(fig3, height=380, show_legend=False)
             fig3.update_layout(margin=dict(l=10, r=60, t=60, b=40))
             st.plotly_chart(fig3, use_container_width=True)
 
@@ -1739,7 +2022,7 @@ with aba[1]:
                 pull=[0.03] * len(pag),
                 hovertemplate="<b>%{label}</b><br>R$ %{value:,.2f}<br>%{percent}<extra></extra>",
             )
-            fig4 = style_plot(fig4, height=440)
+            fig4 = style_plot(fig4, height=380)
             fig4.update_layout(
                 margin=dict(l=20, r=20, t=60, b=100),
                 legend=dict(
