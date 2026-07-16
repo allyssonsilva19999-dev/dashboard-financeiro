@@ -1,13 +1,9 @@
-import base64
 import math
-import re
 import sqlite3
 import textwrap
-import zipfile
 from datetime import date
 from html import escape
 from io import BytesIO
-from pathlib import Path
 
 import pandas as pd
 import plotly.express as px
@@ -24,13 +20,8 @@ st.set_page_config(
 )
 
 DB_FILE = "financeiro.db"
-BACKGROUND_IMAGE = Path(__file__).parent / "assets" / "background-blue-dunes.jpg"
 
 # ====================== UTILITÁRIOS ======================
-def image_to_base64(path: Path) -> str:
-    if not path.exists():
-        return ""
-    return base64.b64encode(path.read_bytes()).decode()
 
 
 def brl(valor) -> str:
@@ -123,17 +114,10 @@ def mensagem_erro_usuario(erro) -> str:
 
 
 # ====================== ESTILO ======================
-bg_base64 = image_to_base64(BACKGROUND_IMAGE)
-bg_css = (
-    f"url('data:image/jpeg;base64,{bg_base64}') center/cover fixed no-repeat"
-    if bg_base64
-    else "linear-gradient(145deg, #eef1f5, #f8f9fb)"
-)
-
 st.markdown(
-    f"""
+    """
 <style>
-    :root {{
+    :root {
         --ink: #111318;
         --muted: #747985;
         --lime: #d9ff00;
@@ -142,27 +126,27 @@ st.markdown(
         --shadow: 0 26px 80px rgba(17,19,24,.12);
         --soft: 0 14px 38px rgba(17,19,24,.08);
         --card: rgba(255,255,255,.92);
-    }}
-    html, body, [class*="css"] {{
+    }
+    html, body, [class*="css"] {
         font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-    }}
-    [data-testid="stAppViewContainer"] {{
+    }
+    [data-testid="stAppViewContainer"] {
         background:
             radial-gradient(circle at 12% 8%, rgba(255,255,255,.95), transparent 22rem),
-            radial-gradient(circle at 88% 12%, rgba(217,255,0,.18), transparent 24rem),
-            radial-gradient(circle at 72% 86%, rgba(143,177,255,.22), transparent 28rem),
-            {bg_css};
+            radial-gradient(circle at 88% 12%, rgba(217,255,0,.16), transparent 24rem),
+            radial-gradient(circle at 72% 86%, rgba(143,177,255,.18), transparent 28rem),
+            linear-gradient(145deg, #f4f6f9 0%, #eef1f5 50%, #f7f8fa 100%);
         color: var(--ink);
-    }}
-    [data-testid="stHeader"], [data-testid="stToolbar"] {{
+    }
+    [data-testid="stHeader"], [data-testid="stToolbar"] {
         background: transparent;
-    }}
-    .main .block-container {{
+    }
+    .main .block-container {
         max-width: 1220px;
         padding-top: 1.6rem;
         padding-bottom: 3rem;
-    }}
-    h1, h2, h3 {{
+    }
+    h1, h2, h3 {
         color: var(--ink) !important;
         letter-spacing: 0;
     }}
@@ -602,20 +586,30 @@ def resumo_mes_recente(df_transacoes: pd.DataFrame):
     return df_mes, mes_recente.strftime("%m/%Y")
 
 
-def style_plot(fig):
+def style_plot(fig, height=420, show_legend=True):
     fig.update_layout(
         paper_bgcolor="rgba(255,255,255,0)",
         plot_bgcolor="rgba(255,255,255,0)",
-        font=dict(color="#111318", size=12),
-        title=dict(font=dict(size=18, color="#111318"), x=0.04),
-        margin=dict(l=34, r=26, t=70, b=48),
-        height=400,
-        legend=dict(orientation="h", y=1.02, x=1, xanchor="right"),
-        hoverlabel=dict(bgcolor="#111318", font_color="#ffffff"),
+        font=dict(color="#111318", size=12, family="Inter, sans-serif"),
+        title=dict(font=dict(size=17, color="#111318"), x=0.02, xanchor="left"),
+        margin=dict(l=40, r=30, t=60, b=80),
+        height=height,
+        legend=dict(
+            orientation="h",
+            yanchor="top",
+            y=-0.18,
+            xanchor="center",
+            x=0.5,
+            bgcolor="rgba(255,255,255,0)",
+            font=dict(size=11, color="#111318"),
+        ) if show_legend else dict(visible=False),
+        hoverlabel=dict(bgcolor="#111318", font_color="#ffffff", font_size=12),
         separators=",.",
+        uniformtext_minsize=10,
+        uniformtext_mode="hide",
     )
-    fig.update_xaxes(gridcolor="rgba(17,19,24,0.08)", tickfont=dict(color="#747985"))
-    fig.update_yaxes(gridcolor="rgba(17,19,24,0.08)", tickfont=dict(color="#747985"))
+    fig.update_xaxes(gridcolor="rgba(17,19,24,0.07)", tickfont=dict(color="#747985", size=11), zeroline=False)
+    fig.update_yaxes(gridcolor="rgba(17,19,24,0.07)", tickfont=dict(color="#747985", size=11), zeroline=False)
     return fig
 
 
@@ -1185,9 +1179,21 @@ with aba[1]:
             title="Como deve ficar meu dinheiro nos próximos meses?",
             markers=True,
             color_discrete_map={"Bom": "#0d906f", "Normal": "#28c7b7", "Apertado": "#cc4a5b"},
+            labels={"Saldo projetado": "Saldo projetado", "Mês": "Mês"},
+        )
+        fig.update_traces(
+            line=dict(width=3),
+            marker=dict(size=8),
+            hovertemplate="<b>%{fullData.name}</b><br>%{x|%m/%Y}<br>R$ %{y:,.2f}<extra></extra>",
         )
         fig.update_yaxes(tickprefix="R$ ")
-        st.plotly_chart(style_plot(fig), use_container_width=True)
+        fig.update_xaxes(tickformat="%m/%Y")
+        fig = style_plot(fig, height=400)
+        fig.update_layout(
+            legend=dict(orientation="h", y=-0.18, x=0.5, xanchor="center", title_text=""),
+            margin=dict(l=40, r=20, t=60, b=80),
+        )
+        st.plotly_chart(fig, use_container_width=True)
 
     # Importação
     with st.expander("📤 Subir planilha de movimentações", expanded=False):
@@ -1247,61 +1253,196 @@ with aba[1]:
             fig_saldo = px.area(
                 df_tl, x="data_convertida", y="saldo_acumulado",
                 title="Saldo acumulado ao longo do tempo",
+                labels={"data_convertida": "Data", "saldo_acumulado": "Saldo"},
             )
-            fig_saldo.update_traces(line=dict(color="#111318", width=3), fillcolor="rgba(217,255,0,0.34)")
+            fig_saldo.update_traces(
+                line=dict(color="#111318", width=3),
+                fillcolor="rgba(217,255,0,0.28)",
+                hovertemplate="<b>%{x|%d/%m/%Y}</b><br>Saldo: R$ %{y:,.2f}<extra></extra>",
+            )
             fig_saldo.update_yaxes(tickprefix="R$ ")
-            st.plotly_chart(style_plot(fig_saldo), use_container_width=True)
+            fig_saldo.update_xaxes(tickformat="%d/%m/%Y")
+            st.plotly_chart(style_plot(fig_saldo, height=380, show_legend=False), use_container_width=True)
 
-        cat_total = df_chart.groupby("categoria", as_index=False)["valor_abs"].sum().sort_values("valor_abs", ascending=False)
+        cat_total = (
+            df_chart.groupby("categoria", as_index=False)["valor_abs"]
+            .sum()
+            .sort_values("valor_abs", ascending=False)
+        )
         fluxo_tipo = df_chart.groupby(["categoria", "tipo"], as_index=False)["valor_abs"].sum()
 
+        # --- Donut + Barras (lado a lado) ---
         c1, c2 = st.columns(2)
         with c1:
+            # Limita a 8 categorias + "Outros" para o gráfico ficar limpo
+            if len(cat_total) > 8:
+                top8 = cat_total.head(8).copy()
+                outros_valor = cat_total.iloc[8:]["valor_abs"].sum()
+                top8 = pd.concat([
+                    top8,
+                    pd.DataFrame([{"categoria": "Outros", "valor_abs": outros_valor}]),
+                ], ignore_index=True)
+            else:
+                top8 = cat_total
+
             fig = px.pie(
-                cat_total, names="categoria", values="valor_abs", hole=0.58,
+                top8,
+                names="categoria",
+                values="valor_abs",
+                hole=0.55,
                 title="Distribuição por categoria",
-                color_discrete_sequence=["#d9ff00", "#111318", "#8fb1ff", "#d7dbe2", "#efffb4", "#5c6573"],
+                color_discrete_sequence=[
+                    "#d9ff00", "#111318", "#8fb1ff", "#a8b4c4",
+                    "#efffb4", "#5c6573", "#c2cff7", "#4a5568", "#e2e8f0",
+                ],
             )
-            fig.update_traces(textposition="outside", textinfo="percent+label")
-            st.plotly_chart(style_plot(fig), use_container_width=True)
+            fig.update_traces(
+                textposition="outside",
+                textinfo="percent",
+                textfont=dict(size=12, color="#111318"),
+                marker=dict(line=dict(color="rgba(255,255,255,0.95)", width=2)),
+                pull=[0.02] * len(top8),
+                hovertemplate="<b>%{label}</b><br>R$ %{value:,.2f}<br>%{percent}<extra></extra>",
+                rotation=40,
+            )
+            fig = style_plot(fig, height=460)
+            fig.update_layout(
+                margin=dict(l=20, r=20, t=60, b=100),
+                legend=dict(
+                    orientation="h",
+                    yanchor="top",
+                    y=-0.12,
+                    xanchor="center",
+                    x=0.5,
+                    font=dict(size=11),
+                    itemwidth=40,
+                ),
+            )
+            st.plotly_chart(fig, use_container_width=True)
+
         with c2:
             fig2 = px.bar(
-                fluxo_tipo, x="categoria", y="valor_abs", color="tipo",
+                fluxo_tipo,
+                x="categoria",
+                y="valor_abs",
+                color="tipo",
                 title="Entradas x Saídas",
                 color_discrete_map={"Entrada": "#d9ff00", "Saída": "#111318"},
+                labels={"categoria": "Categoria", "valor_abs": "Valor", "tipo": "Tipo"},
+                barmode="group",
+            )
+            fig2.update_traces(
+                marker_line_color="rgba(255,255,255,0.9)",
+                marker_line_width=1,
+                hovertemplate="<b>%{x}</b><br>R$ %{y:,.2f}<extra></extra>",
             )
             fig2.update_yaxes(tickprefix="R$ ")
-            st.plotly_chart(style_plot(fig2), use_container_width=True)
+            fig2.update_xaxes(tickangle=-35)
+            fig2 = style_plot(fig2, height=460)
+            fig2.update_layout(
+                margin=dict(l=40, r=20, t=60, b=110),
+                legend=dict(orientation="h", y=-0.22, x=0.5, xanchor="center"),
+            )
+            st.plotly_chart(fig2, use_container_width=True)
 
+        # --- Barras horizontais + Formas de pagamento ---
         c3, c4 = st.columns(2)
         with c3:
             top = cat_total.head(8).sort_values("valor_abs", ascending=True)
             fig3 = px.bar(
-                top, x="valor_abs", y="categoria", orientation="h",
+                top,
+                x="valor_abs",
+                y="categoria",
+                orientation="h",
                 title="Categorias que mais movimentam dinheiro",
-                color="valor_abs", color_continuous_scale=["#e9edf2", "#8fb1ff", "#111318"],
+                color="valor_abs",
+                color_continuous_scale=["#e9edf2", "#8fb1ff", "#111318"],
+                labels={"valor_abs": "Valor", "categoria": ""},
+                text="valor_abs",
+            )
+            fig3.update_traces(
+                texttemplate="R$ %{x:,.0f}",
+                textposition="outside",
+                textfont=dict(size=11, color="#111318"),
+                hovertemplate="<b>%{y}</b><br>R$ %{x:,.2f}<extra></extra>",
+                marker_line_color="rgba(255,255,255,0.9)",
+                marker_line_width=1,
+                cliponaxis=False,
             )
             fig3.update_layout(coloraxis_showscale=False)
-            fig3.update_xaxes(tickprefix="R$ ")
-            st.plotly_chart(style_plot(fig3), use_container_width=True)
+            fig3.update_xaxes(tickprefix="R$ ", range=[0, top["valor_abs"].max() * 1.25])
+            fig3 = style_plot(fig3, height=440, show_legend=False)
+            fig3.update_layout(margin=dict(l=10, r=60, t=60, b=40))
+            st.plotly_chart(fig3, use_container_width=True)
+
         with c4:
-            pag = df_chart.groupby("cartao", as_index=False)["valor_abs"].sum().sort_values("valor_abs", ascending=False).head(7)
-            fig4 = px.pie(
-                pag, names="cartao", values="valor_abs", hole=0.62,
-                title="Formas de pagamento",
-                color_discrete_sequence=["#111318", "#d9ff00", "#8fb1ff", "#d7dbe2", "#efffb4"],
+            pag = (
+                df_chart.groupby("cartao", as_index=False)["valor_abs"]
+                .sum()
+                .sort_values("valor_abs", ascending=False)
+                .head(6)
             )
-            st.plotly_chart(style_plot(fig4), use_container_width=True)
+            fig4 = px.pie(
+                pag,
+                names="cartao",
+                values="valor_abs",
+                hole=0.58,
+                title="Formas de pagamento",
+                color_discrete_sequence=["#111318", "#d9ff00", "#8fb1ff", "#a8b4c4", "#efffb4", "#5c6573"],
+            )
+            fig4.update_traces(
+                textposition="outside",
+                textinfo="percent",
+                textfont=dict(size=12, color="#111318"),
+                marker=dict(line=dict(color="rgba(255,255,255,0.95)", width=2)),
+                pull=[0.03] * len(pag),
+                hovertemplate="<b>%{label}</b><br>R$ %{value:,.2f}<br>%{percent}<extra></extra>",
+            )
+            fig4 = style_plot(fig4, height=440)
+            fig4.update_layout(
+                margin=dict(l=20, r=20, t=60, b=100),
+                legend=dict(
+                    orientation="h",
+                    yanchor="top",
+                    y=-0.12,
+                    xanchor="center",
+                    x=0.5,
+                    font=dict(size=11),
+                ),
+            )
+            st.plotly_chart(fig4, use_container_width=True)
 
         if len(fluxo):
             fig_m = px.bar(
-                fluxo, x="mes", y=["entradas", "saidas"], barmode="group",
+                fluxo,
+                x="mes",
+                y=["entradas", "saidas"],
+                barmode="group",
                 title="Evolução mensal consolidada",
                 color_discrete_map={"entradas": "#d9ff00", "saidas": "#111318"},
+                labels={"mes": "Mês", "value": "Valor", "variable": "Tipo"},
+            )
+            fig_m.for_each_trace(
+                lambda t: t.update(
+                    marker_line_color="rgba(255,255,255,0.9)",
+                    marker_line_width=1,
+                    hovertemplate="<b>%{x|%m/%Y}</b><br>R$ %{y:,.2f}<extra></extra>",
+                )
             )
             fig_m.update_xaxes(tickformat="%m/%Y")
             fig_m.update_yaxes(tickprefix="R$ ")
-            st.plotly_chart(style_plot(fig_m), use_container_width=True)
+            fig_m = style_plot(fig_m, height=400)
+            fig_m.update_layout(
+                legend=dict(
+                    orientation="h",
+                    y=-0.18,
+                    x=0.5,
+                    xanchor="center",
+                    title_text="",
+                ),
+                margin=dict(l=40, r=20, t=60, b=80),
+            )
+            st.plotly_chart(fig_m, use_container_width=True)
     else:
         st.info("Cadastre ou importe movimentações para ver os gráficos.")
 
@@ -1544,14 +1685,46 @@ with aba[4]:
         tipo_inv = investimentos.groupby("tipo", as_index=False)["valor"].sum().sort_values("valor", ascending=False)
         c1, c2 = st.columns(2)
         with c1:
-            fig = px.pie(tipo_inv, names="tipo", values="valor", hole=0.58, title="Distribuição dos investimentos")
-            st.plotly_chart(style_plot(fig), use_container_width=True)
+            fig = px.pie(
+                tipo_inv,
+                names="tipo",
+                values="valor",
+                hole=0.55,
+                title="Distribuição dos investimentos",
+                color_discrete_sequence=["#111318", "#d9ff00", "#8fb1ff", "#a8b4c4", "#efffb4", "#5c6573"],
+            )
+            fig.update_traces(
+                textposition="outside",
+                textinfo="percent",
+                textfont=dict(size=12, color="#111318"),
+                marker=dict(line=dict(color="rgba(255,255,255,0.95)", width=2)),
+                hovertemplate="<b>%{label}</b><br>R$ %{value:,.2f}<br>%{percent}<extra></extra>",
+            )
+            fig = style_plot(fig, height=420)
+            fig.update_layout(
+                margin=dict(l=20, r=20, t=60, b=90),
+                legend=dict(orientation="h", y=-0.15, x=0.5, xanchor="center", font=dict(size=11)),
+            )
+            st.plotly_chart(fig, use_container_width=True)
         with c2:
             fig2 = px.bar(
                 investimentos.groupby("status", as_index=False)["valor"].sum(),
-                x="status", y="valor", color="status", title="Valores por status",
+                x="status", y="valor", color="status",
+                title="Valores por status",
+                color_discrete_map={"Ativo": "#0d906f", "Planejado": "#8fb1ff", "Resgatado": "#a8b4c4"},
+                labels={"status": "Status", "valor": "Valor"},
             )
-            st.plotly_chart(style_plot(fig2), use_container_width=True)
+            fig2.update_traces(
+                texttemplate="R$ %{y:,.0f}",
+                textposition="outside",
+                marker_line_color="rgba(255,255,255,0.9)",
+                marker_line_width=1,
+                hovertemplate="<b>%{x}</b><br>R$ %{y:,.2f}<extra></extra>",
+            )
+            fig2.update_yaxes(tickprefix="R$ ")
+            fig2 = style_plot(fig2, height=420, show_legend=False)
+            fig2.update_layout(margin=dict(l=40, r=20, t=60, b=40))
+            st.plotly_chart(fig2, use_container_width=True)
 
         for _, inv in investimentos.iterrows():
             st.markdown(
