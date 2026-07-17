@@ -2223,9 +2223,9 @@ div[data-baseweb="select"] svg {
 [data-testid="collapsedControl"] svg,
 [data-testid="stSidebarCollapsedControl"] path,
 [data-testid="collapsedControl"] path {
-    fill: #ffffff !important;
-    color: #ffffff !important;
-    stroke: #ffffff !important;
+    fill: #1c1f26 !important;
+    color: #1c1f26 !important;
+    stroke: #1c1f26 !important;
     opacity: 1 !important;
     visibility: visible !important;
     width: 1.25rem !important;
@@ -2762,9 +2762,9 @@ section[data-testid="stSidebar"] ~ div [data-testid="stSidebarCollapsedControl"]
     min-height: 2.6rem !important;
     padding: 0.35rem 0.7rem 0.35rem 0.45rem !important;
     border-radius: 999px !important;
-    background: #1c1f26 !important;
-    border: none !important;
-    box-shadow: 0 4px 14px rgba(225, 29, 72, 0.35), 0 0 0 3px rgba(225, 29, 72, 0.12) !important;
+    background: #ffe4e8 !important;
+    border: 1.5px solid rgba(225, 29, 72, 0.35) !important;
+    box-shadow: 0 4px 14px rgba(225, 29, 72, 0.22) !important;
     opacity: 1 !important;
     visibility: visible !important;
     pointer-events: auto !important;
@@ -2821,6 +2821,116 @@ section[data-testid="stSidebar"] ~ div [data-testid="stSidebarCollapsedControl"]
         min-height: 2.85rem !important;
         background: #1c1f26 !important;
         box-shadow: 0 5px 16px rgba(225, 29, 72, 0.4), 0 0 0 3px rgba(225, 29, 72, 0.14) !important;
+    }
+}
+
+
+/* ========== ÍCONE MENU RECOLHIDO: preto + fundo vermelho claro ========== */
+
+/* Container e botão do controle colapsado — todas as variantes Streamlit */
+[data-testid="stSidebarCollapsedControl"],
+[data-testid="collapsedControl"],
+[data-testid="stSidebarCollapsedControl"] > div,
+[data-testid="collapsedControl"] > div {
+    position: fixed !important;
+    top: 0.45rem !important;
+    left: 0.45rem !important;
+    z-index: 2147483647 !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    background: #ffe4e8 !important;
+    background-color: #ffe4e8 !important;
+    border-radius: 999px !important;
+    border: 1.5px solid rgba(225, 29, 72, 0.35) !important;
+    box-shadow: 0 4px 14px rgba(225, 29, 72, 0.22) !important;
+    min-width: 2.75rem !important;
+    min-height: 2.75rem !important;
+    padding: 0.3rem 0.65rem !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+}
+
+[data-testid="stSidebarCollapsedControl"] button,
+[data-testid="collapsedControl"] button,
+[data-testid="stSidebarCollapsedControl"] button[kind="header"],
+[data-testid="stSidebarCollapsedControl"] button[kind="headerNoPadding"],
+[data-testid="stBaseButton-headerNoPadding"],
+button[data-testid="baseButton-headerNoPadding"],
+button[kind="headerNoPadding"] {
+    background: #ffe4e8 !important;
+    background-color: #ffe4e8 !important;
+    color: #1c1f26 !important;
+    -webkit-text-fill-color: #1c1f26 !important;
+    border: none !important;
+    border-radius: 999px !important;
+    box-shadow: none !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+    min-width: 2.4rem !important;
+    min-height: 2.4rem !important;
+}
+
+/* Ícone >> preto */
+[data-testid="stSidebarCollapsedControl"] svg,
+[data-testid="collapsedControl"] svg,
+[data-testid="stSidebarCollapsedControl"] path,
+[data-testid="collapsedControl"] path,
+[data-testid="stSidebarCollapsedControl"] button svg,
+[data-testid="collapsedControl"] button svg,
+[data-testid="stBaseButton-headerNoPadding"] svg,
+button[kind="headerNoPadding"] svg,
+[data-testid="stSidebarCollapsedControl"] span,
+[data-testid="collapsedControl"] span {
+    fill: #1c1f26 !important;
+    color: #1c1f26 !important;
+    -webkit-text-fill-color: #1c1f26 !important;
+    stroke: #1c1f26 !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+    width: 1.35rem !important;
+    height: 1.35rem !important;
+    font-weight: 800 !important;
+}
+
+/* Label Menu ao lado */
+[data-testid="stSidebarCollapsedControl"]::after,
+[data-testid="collapsedControl"]::after {
+    content: "Menu" !important;
+    color: #1c1f26 !important;
+    -webkit-text-fill-color: #1c1f26 !important;
+    font-weight: 800 !important;
+    font-size: 0.88rem !important;
+    font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif !important;
+    margin-left: 0.15rem;
+    opacity: 1 !important;
+    visibility: visible !important;
+}
+
+/* Bolinha vermelha como no menu aberto */
+[data-testid="stSidebarCollapsedControl"]::before,
+[data-testid="collapsedControl"]::before {
+    content: "" !important;
+    width: 0.5rem !important;
+    height: 0.5rem !important;
+    border-radius: 50% !important;
+    background: #e11d48 !important;
+    box-shadow: 0 0 0 3px rgba(225, 29, 72, 0.18) !important;
+    margin-right: 0.15rem;
+    flex-shrink: 0;
+    display: inline-block !important;
+}
+
+@media (max-width: 768px) {
+    [data-testid="stSidebarCollapsedControl"],
+    [data-testid="collapsedControl"] {
+        top: 0.35rem !important;
+        left: 0.35rem !important;
+        min-width: 3rem !important;
+        min-height: 3rem !important;
+        background: #ffe4e8 !important;
+        border: 1.5px solid rgba(225, 29, 72, 0.4) !important;
+        box-shadow: 0 5px 16px rgba(225, 29, 72, 0.28) !important;
     }
 }
 
