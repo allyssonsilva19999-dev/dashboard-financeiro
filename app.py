@@ -2389,6 +2389,99 @@ input, textarea, select,
     color: #1c1f26 !important;
 }
 
+
+/* ========== DROPDOWN SELECT LEGÍVEL (mobile + desktop) ========== */
+
+/* Painel do menu aberto (Baseweb popover/listbox) */
+div[data-baseweb="popover"],
+div[data-baseweb="popover"] > div,
+div[data-baseweb="menu"],
+ul[role="listbox"],
+ul[role="listbox"] ul,
+[data-baseweb="popover"] [role="listbox"],
+div[data-baseweb="popover"] ul {
+    background: #ffffff !important;
+    background-color: #ffffff !important;
+    color: #1c1f26 !important;
+    border: 1px solid rgba(28, 31, 38, 0.12) !important;
+    border-radius: 14px !important;
+    box-shadow: 0 12px 32px rgba(28, 31, 38, 0.14) !important;
+    opacity: 1 !important;
+}
+
+/* Cada opção */
+ul[role="listbox"] li,
+[role="option"],
+div[data-baseweb="menu"] li,
+div[data-baseweb="popover"] li,
+div[data-baseweb="popover"] [role="option"],
+ul[role="listbox"] li > div,
+[role="option"] > div,
+[role="option"] span,
+[role="option"] p {
+    background: #ffffff !important;
+    background-color: #ffffff !important;
+    color: #1c1f26 !important;
+    -webkit-text-fill-color: #1c1f26 !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+    font-weight: 600 !important;
+    font-size: 0.95rem !important;
+    min-height: 2.6rem !important;
+}
+
+/* Hover / selected */
+ul[role="listbox"] li:hover,
+[role="option"]:hover,
+div[data-baseweb="menu"] li:hover,
+[role="option"][aria-selected="true"],
+ul[role="listbox"] li[aria-selected="true"] {
+    background: #f3ff9a !important;
+    background-color: #f3ff9a !important;
+    color: #1c1f26 !important;
+    -webkit-text-fill-color: #1c1f26 !important;
+}
+
+/* Highlighted (teclado/foco) */
+[role="option"][data-highlighted="true"],
+li[aria-selected="true"] {
+    background: #d9ff00 !important;
+    color: #1c1f26 !important;
+    -webkit-text-fill-color: #1c1f26 !important;
+}
+
+/* Garante que nenhum tema escuro pinte o popover de preto */
+div[data-baseweb="popover"] *,
+div[data-baseweb="menu"] *,
+ul[role="listbox"] * {
+    color: #1c1f26 !important;
+    -webkit-text-fill-color: #1c1f26 !important;
+}
+
+/* Campo fechado do select */
+[data-testid="stSelectbox"] [data-baseweb="select"] > div {
+    background: #ffffff !important;
+    color: #1c1f26 !important;
+    -webkit-text-fill-color: #1c1f26 !important;
+    border: 1.5px solid rgba(28, 31, 38, 0.12) !important;
+}
+
+[data-testid="stSelectbox"] [data-baseweb="select"] span,
+[data-testid="stSelectbox"] [data-baseweb="select"] div {
+    color: #1c1f26 !important;
+    -webkit-text-fill-color: #1c1f26 !important;
+    opacity: 1 !important;
+}
+
+/* Seta: branco no preto (mantém) */
+[data-testid="stSelectbox"] [data-baseweb="select"] > div::after {
+    background-color: #1c1f26 !important;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='white' d='M7.4 8.6 12 13.2l4.6-4.6L18 10l-6 6-6-6z'/%3E%3C/svg%3E") !important;
+    background-repeat: no-repeat !important;
+    background-position: center !important;
+    background-size: 0.95rem 0.95rem !important;
+}
+
 </style>
 """,
     unsafe_allow_html=True,
