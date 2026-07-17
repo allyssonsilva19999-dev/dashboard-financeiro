@@ -2762,9 +2762,9 @@ section[data-testid="stSidebar"] ~ div [data-testid="stSidebarCollapsedControl"]
     min-height: 2.6rem !important;
     padding: 0.35rem 0.7rem 0.35rem 0.45rem !important;
     border-radius: 999px !important;
-    background: #ffe4e8 !important;
-    border: 1.5px solid rgba(225, 29, 72, 0.35) !important;
-    box-shadow: 0 4px 14px rgba(225, 29, 72, 0.22) !important;
+    background: #ffffff !important;
+    border: 1.5px solid rgba(225, 29, 72, 0.45) !important;
+    box-shadow: 0 0 0 3px rgba(225, 29, 72, 0.12), 0 4px 14px rgba(225, 29, 72, 0.28) !important;
     opacity: 1 !important;
     visibility: visible !important;
     pointer-events: auto !important;
@@ -2825,9 +2825,8 @@ section[data-testid="stSidebar"] ~ div [data-testid="stSidebarCollapsedControl"]
 }
 
 
-/* ========== ÍCONE MENU RECOLHIDO: preto + fundo vermelho claro ========== */
 
-/* Container e botão do controle colapsado — todas as variantes Streamlit */
+/* ========== ÍCONE MENU: fundo branco + contorno vermelho + >> preto ========== */
 [data-testid="stSidebarCollapsedControl"],
 [data-testid="collapsedControl"],
 [data-testid="stSidebarCollapsedControl"] > div,
@@ -2839,11 +2838,11 @@ section[data-testid="stSidebar"] ~ div [data-testid="stSidebarCollapsedControl"]
     display: inline-flex !important;
     align-items: center !important;
     justify-content: center !important;
-    background: #ffe4e8 !important;
-    background-color: #ffe4e8 !important;
+    background: #ffffff !important;
+    background-color: #ffffff !important;
     border-radius: 999px !important;
-    border: 1.5px solid rgba(225, 29, 72, 0.35) !important;
-    box-shadow: 0 4px 14px rgba(225, 29, 72, 0.22) !important;
+    border: 1.5px solid rgba(225, 29, 72, 0.45) !important;
+    box-shadow: 0 0 0 3px rgba(225, 29, 72, 0.12), 0 4px 14px rgba(225, 29, 72, 0.28) !important;
     min-width: 2.75rem !important;
     min-height: 2.75rem !important;
     padding: 0.3rem 0.65rem !important;
@@ -2858,8 +2857,8 @@ section[data-testid="stSidebar"] ~ div [data-testid="stSidebarCollapsedControl"]
 [data-testid="stBaseButton-headerNoPadding"],
 button[data-testid="baseButton-headerNoPadding"],
 button[kind="headerNoPadding"] {
-    background: #ffe4e8 !important;
-    background-color: #ffe4e8 !important;
+    background: #ffffff !important;
+    background-color: #ffffff !important;
     color: #1c1f26 !important;
     -webkit-text-fill-color: #1c1f26 !important;
     border: none !important;
@@ -2871,7 +2870,7 @@ button[kind="headerNoPadding"] {
     min-height: 2.4rem !important;
 }
 
-/* Ícone >> preto */
+/* >> preto no fundo branco */
 [data-testid="stSidebarCollapsedControl"] svg,
 [data-testid="collapsedControl"] svg,
 [data-testid="stSidebarCollapsedControl"] path,
@@ -2893,7 +2892,6 @@ button[kind="headerNoPadding"] svg,
     font-weight: 800 !important;
 }
 
-/* Label Menu ao lado */
 [data-testid="stSidebarCollapsedControl"]::after,
 [data-testid="collapsedControl"]::after {
     content: "Menu" !important;
@@ -2907,18 +2905,10 @@ button[kind="headerNoPadding"] svg,
     visibility: visible !important;
 }
 
-/* Bolinha vermelha como no menu aberto */
 [data-testid="stSidebarCollapsedControl"]::before,
 [data-testid="collapsedControl"]::before {
-    content: "" !important;
-    width: 0.5rem !important;
-    height: 0.5rem !important;
-    border-radius: 50% !important;
-    background: #e11d48 !important;
-    box-shadow: 0 0 0 3px rgba(225, 29, 72, 0.18) !important;
-    margin-right: 0.15rem;
-    flex-shrink: 0;
-    display: inline-block !important;
+    content: none !important;
+    display: none !important;
 }
 
 @media (max-width: 768px) {
@@ -2928,9 +2918,9 @@ button[kind="headerNoPadding"] svg,
         left: 0.35rem !important;
         min-width: 3rem !important;
         min-height: 3rem !important;
-        background: #ffe4e8 !important;
-        border: 1.5px solid rgba(225, 29, 72, 0.4) !important;
-        box-shadow: 0 5px 16px rgba(225, 29, 72, 0.28) !important;
+        background: #ffffff !important;
+        border: 1.5px solid rgba(225, 29, 72, 0.5) !important;
+        box-shadow: 0 0 0 3px rgba(225, 29, 72, 0.14), 0 5px 16px rgba(225, 29, 72, 0.3) !important;
     }
 }
 
