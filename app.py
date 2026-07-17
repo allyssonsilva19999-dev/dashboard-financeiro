@@ -2035,6 +2035,103 @@ ul[role="listbox"] li,
     color: #1c1f26 !important;
 }
 
+
+/* ========== COLLAPSED CONTROL "MENU" VERMELHO + SELECT SETA BRANCA ========== */
+
+/* Controle da sidebar recolhida (canto superior esquerdo) */
+[data-testid="stSidebarCollapsedControl"],
+[data-testid="collapsedControl"] {
+    display: flex !important;
+    align-items: center !important;
+    gap: 0.35rem !important;
+}
+[data-testid="stSidebarCollapsedControl"] button,
+[data-testid="collapsedControl"] button,
+[data-testid="stBaseButton-headerNoPadding"],
+button[kind="headerNoPadding"] {
+    color: #e11d48 !important;
+    background: transparent !important;
+    border: none !important;
+}
+[data-testid="stSidebarCollapsedControl"] button svg,
+[data-testid="collapsedControl"] button svg,
+[data-testid="stBaseButton-headerNoPadding"] svg,
+button[kind="headerNoPadding"] svg,
+[data-testid="stSidebarCollapsedControl"] svg,
+[data-testid="collapsedControl"] svg {
+    fill: #e11d48 !important;
+    color: #e11d48 !important;
+    stroke: #e11d48 !important;
+}
+
+/* Escreve "Menu" ao lado do ícone >> quando a sidebar está recolhida */
+[data-testid="stSidebarCollapsedControl"]::after,
+[data-testid="collapsedControl"]::after {
+    content: "Menu";
+    color: #e11d48 !important;
+    font-weight: 800 !important;
+    font-size: 0.92rem !important;
+    letter-spacing: 0.02em;
+    font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    line-height: 1;
+    margin-left: 0.15rem;
+    user-select: none;
+}
+
+/* Também pinta o controle expandido (dentro da sidebar) de vermelho */
+[data-testid="stSidebar"] [data-testid="stBaseButton-header"],
+[data-testid="stSidebar"] button[kind="header"],
+[data-testid="stSidebarCollapseButton"] button {
+    color: #e11d48 !important;
+}
+[data-testid="stSidebar"] [data-testid="stBaseButton-header"] svg,
+[data-testid="stSidebar"] button[kind="header"] svg,
+[data-testid="stSidebarCollapseButton"] svg {
+    fill: #e11d48 !important;
+    color: #e11d48 !important;
+    stroke: #e11d48 !important;
+}
+
+/* Select: seta branca em fundo preto (pill) */
+[data-testid="stSelectbox"] [data-baseweb="select"] > div {
+    position: relative !important;
+    padding-right: 2.6rem !important;
+}
+
+/* Esconde o ícone SVG padrão quebrado (vira □) */
+[data-testid="stSelectbox"] [data-baseweb="select"] svg,
+div[data-baseweb="select"] svg {
+    opacity: 0 !important;
+    width: 0 !important;
+    height: 0 !important;
+    position: absolute !important;
+}
+
+/* Pseudo-seta branca no bloco preto */
+[data-testid="stSelectbox"] [data-baseweb="select"] > div::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    right: 0.45rem;
+    transform: translateY(-50%);
+    width: 1.7rem;
+    height: 1.7rem;
+    border-radius: 0.55rem;
+    background: #1c1f26;
+    pointer-events: none;
+    z-index: 2;
+    /* chevron branco via mask */
+    -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='black' d='M7.4 8.6 12 13.2l4.6-4.6L18 10l-6 6-6-6z'/%3E%3C/svg%3E") center / 0.95rem 0.95rem no-repeat;
+    mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='black' d='M7.4 8.6 12 13.2l4.6-4.6L18 10l-6 6-6-6z'/%3E%3C/svg%3E") center / 0.95rem 0.95rem no-repeat;
+    /* fallback: se mask falhar, ainda fica o bloco preto */
+    box-shadow: inset 0 0 0 999px #1c1f26;
+    background-color: #1c1f26;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='white' d='M7.4 8.6 12 13.2l4.6-4.6L18 10l-6 6-6-6z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: 0.95rem 0.95rem;
+}
+
 </style>
 """,
     unsafe_allow_html=True,
