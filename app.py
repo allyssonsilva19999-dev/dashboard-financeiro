@@ -998,7 +998,6 @@ div[data-testid="stTabs"] button * {
     color: #1c1f26 !important;
     opacity: 1 !important;
     -webkit-text-fill-color: #1c1f26 !important;
-    fill: #1c1f26 !important;
 }
 div[data-testid="stTabs"] button[aria-selected="true"],
 div[data-testid="stTabs"] button[aria-selected="true"] * {
@@ -1356,6 +1355,199 @@ button[role="tab"][aria-selected="true"] {
     div[data-testid="stTabs"] button {
         font-size: 0.78rem !important;
         padding: 0.42rem 0.5rem !important;
+    }
+}
+
+
+/* ========== FIX MOBILE HEADER / ICONS / TABS ========== */
+
+.page-header {
+    display: block !important;
+    margin: 0 0 1rem !important;
+    padding: 0 !important;
+}
+.page-header-main { min-width: 0; }
+.page-header-top {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.45rem;
+    margin-bottom: 0.35rem;
+}
+.page-kicker {
+    color: #6b7280 !important;
+    font-weight: 700;
+    font-size: 0.82rem;
+}
+.page-sub {
+    margin: 0.15rem 0 0 !important;
+    color: #6b7280 !important;
+    font-size: 0.9rem !important;
+    font-weight: 500 !important;
+    line-height: 1.4 !important;
+}
+.page-header h1 {
+    margin: 0 !important;
+    line-height: 1.15 !important;
+}
+
+/* Ícones dos cards: cor escura legível, nunca quadrado preto sólido */
+.card-icon {
+    position: absolute !important;
+    top: 0.85rem !important;
+    right: 0.85rem !important;
+    width: 1.85rem !important;
+    height: 1.85rem !important;
+    display: grid !important;
+    place-items: center !important;
+    border-radius: 50% !important;
+    border: 1.5px solid rgba(28, 31, 38, 0.12) !important;
+    background: #f3f4f7 !important;
+    color: #1c1f26 !important;
+    -webkit-text-fill-color: #1c1f26 !important;
+    font-size: 0.8rem !important;
+    font-weight: 700 !important;
+    line-height: 1 !important;
+    z-index: 1 !important;
+    overflow: hidden !important;
+    box-shadow: none !important;
+}
+.metric-card.accent .card-icon {
+    background: rgba(255,255,255,0.55) !important;
+    border-color: rgba(28,31,38,0.14) !important;
+    color: #1c1f26 !important;
+    -webkit-text-fill-color: #1c1f26 !important;
+}
+.metric-card.mint .card-icon {
+    background: rgba(255,255,255,0.7) !important;
+    color: #0b6b45 !important;
+    -webkit-text-fill-color: #0b6b45 !important;
+}
+
+/* Texto do card nunca sob o ícone */
+.metric-card {
+    padding-right: 3rem !important;
+}
+.metric-card .metric-label,
+.metric-card .metric-value,
+.metric-card .metric-foot {
+    position: relative;
+    z-index: 2;
+    max-width: calc(100% - 0.5rem) !important;
+    padding-right: 0 !important;
+}
+
+/* Tabs: texto sempre legível, sem fill em filhos (quebra emoji/ícone) */
+div[data-testid="stTabs"] button,
+button[role="tab"],
+button[data-baseweb="tab"] {
+    color: #1c1f26 !important;
+    -webkit-text-fill-color: #1c1f26 !important;
+    opacity: 1 !important;
+    overflow: visible !important;
+    text-overflow: unset !important;
+    white-space: nowrap !important;
+}
+div[data-testid="stTabs"] button *,
+button[role="tab"] * {
+    color: #1c1f26 !important;
+    -webkit-text-fill-color: #1c1f26 !important;
+    opacity: 1 !important;
+    /* NÃO usar fill — transforma emoji em quadrado preto */
+}
+
+div[data-testid="stTabs"] [data-baseweb="tab-list"] {
+    gap: 0.4rem !important;
+    flex-wrap: wrap !important;
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    padding-bottom: 0.25rem !important;
+}
+div[data-testid="stTabs"] [data-baseweb="tab-list"]::-webkit-scrollbar {
+    display: none;
+}
+
+/* Esconde tooltip "?" estranho no mobile se sobrar */
+[data-testid="stTooltipHoverTarget"],
+[data-testid="stTooltipIcon"] {
+    opacity: 0.85;
+}
+
+@media (max-width: 640px) {
+    .page-header {
+        margin-bottom: 0.75rem !important;
+    }
+    .page-header h1 {
+        font-size: 1.45rem !important;
+    }
+    .page-sub {
+        font-size: 0.84rem !important;
+    }
+    .page-kicker {
+        font-size: 0.76rem !important;
+    }
+    .badge-score {
+        font-size: 0.7rem !important;
+        padding: 0.2rem 0.55rem !important;
+    }
+
+    /* Ícones menores e fora do texto */
+    .metric-card {
+        padding: 0.95rem 2.6rem 0.95rem 1rem !important;
+    }
+    .card-icon {
+        top: 0.7rem !important;
+        right: 0.65rem !important;
+        width: 1.5rem !important;
+        height: 1.5rem !important;
+        font-size: 0.68rem !important;
+        background: #eef0f4 !important;
+        color: #374151 !important;
+        -webkit-text-fill-color: #374151 !important;
+        border-color: rgba(28,31,38,0.1) !important;
+    }
+    .metric-card.accent .card-icon {
+        background: rgba(255,255,255,0.65) !important;
+        color: #1c1f26 !important;
+        -webkit-text-fill-color: #1c1f26 !important;
+    }
+    .metric-card.mint .card-icon {
+        color: #0b6b45 !important;
+        -webkit-text-fill-color: #0b6b45 !important;
+    }
+    .metric-foot {
+        color: #6b7280 !important;
+        max-width: 100% !important;
+        padding-right: 0 !important;
+    }
+
+    /* Tabs mobile: largura automática, scroll horizontal, sem cortar texto */
+    div[data-testid="stTabs"] [data-baseweb="tab-list"] {
+        flex-wrap: nowrap !important;
+        overflow-x: auto !important;
+        justify-content: flex-start !important;
+        gap: 0.35rem !important;
+    }
+    div[data-testid="stTabs"] button,
+    button[role="tab"] {
+        flex: 0 0 auto !important;
+        min-width: auto !important;
+        max-width: none !important;
+        width: auto !important;
+        padding: 0.48rem 0.9rem !important;
+        font-size: 0.82rem !important;
+        white-space: nowrap !important;
+    }
+}
+
+@media (max-width: 380px) {
+    /* Em telas muito estreitas: esconde ícone do card para zero sobreposição */
+    .card-icon {
+        display: none !important;
+    }
+    .metric-card {
+        padding: 0.9rem 1rem !important;
     }
 }
 
@@ -2072,17 +2264,13 @@ _score_label = "Saudável" if score >= 70 else ("Atenção" if score >= 45 else 
 st.markdown(
     f"""
 <div class="page-header">
-    <div>
-        <div style="display:flex; align-items:center; gap:0.55rem; margin-bottom:0.2rem; flex-wrap:wrap;">
-            <span style="color:#8a90a0; font-weight:700; font-size:0.86rem;">Financeiro pessoal</span>
+    <div class="page-header-main">
+        <div class="page-header-top">
+            <span class="page-kicker">Financeiro pessoal</span>
             <span class="badge-score {_score_cls}">{_score_label} · {score}/100</span>
         </div>
         <h1>Meu dinheiro</h1>
-        <p>Saldo, gastos, metas e dívidas em um só lugar.</p>
-    </div>
-    <div class="user-chip">
-        <span class="avatar-dot">DF</span>
-        Visão pessoal
+        <p class="page-sub">Saldo, gastos, metas e dívidas em um só lugar.</p>
     </div>
 </div>
 """,
@@ -2123,7 +2311,7 @@ st.markdown(
 )
 
 # ====================== ABAS ======================
-aba = st.tabs(["➕ Nova", "📊 Resumo", "🎯 Metas", "🤝 Dívidas", "📈 Investir", "📋 Histórico"])
+aba = st.tabs(["Nova", "Resumo", "Metas", "Dívidas", "Investir", "Histórico"])
 
 # ---------- ABA 1: Nova Movimentação ----------
 with aba[0]:
@@ -2132,8 +2320,9 @@ with aba[0]:
         "Tipo da movimentação",
         ["Entrada", "Saída"],
         horizontal=True,
-        help="Entrada = dinheiro que entra. Saída = dinheiro que sai.",
+        label_visibility="visible",
     )
+    st.caption("Entrada = dinheiro que entra · Saída = dinheiro que sai")
 
     with st.form("form_mov"):
         c1, c2 = st.columns(2)
