@@ -3677,98 +3677,432 @@ def importar_metas_lista(lista: list[dict]) -> int:
 
 # ====================== RELATÓRIO PDF ======================
 def gerar_pdf(df, investimentos, dividas, metas) -> bytes:
-    linhas = []
+    """Relatório visual no modelo aprovado (capa, fluxo, categorias, dívidas, metas, alertas)."""
+    from io import BytesIO
+    from reportlab.lib.pagesizes import A4
+    from reportlab.lib.units import mm
+    from reportlab.lib.colors import Color, white
+    from reportlab.pdfgen import canvas as pdf_canvas
+    from reportlab.pdfbase import pdfmetrics
+    from reportlab.pdfbase.ttfonts import TTFont
 
-    def add(texto="", largura=90):
-        for parte in textwrap.wrap(str(texto), width=largura) or [""]:
-            linhas.append(parte)
+    # Fonte com suporte a português
+    try:
+        pdfmetrics.registerFont(TTFont("DejaVu", "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"))
+        pdfmetrics.registerFont(TTFont("DejaVuBold", "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"))
+        FONT, FONT_B = "DejaVu", "DejaVuBold"
+    except Exception:
+        FONT, FONT_B = "Helvetica", "Helvetica-Bold"
 
-    entradas = df[df["valor"] > 0]["valor"].sum() if len(df) else 0
-    saidas = abs(df[df["valor"] < 0]["valor"].sum()) if len(df) else 0
-    saldo = df["valor"].sum() if len(df) else 0
-    total_inv = investimentos["valor"].sum() if len(investimentos) else 0
+    # ---- métricas ----
+    entradas = float(df[df["valor"] > 0]["valor"].sum()) if len(df) else 0.0
+    saidas = float(abs(df[df["valor"] < 0]["valor"].sum())) if len(df) else 0.0
+    saldo = float(df["valor"].sum()) if len(df) else 0.0
+    total_inv = float(investimentos["valor"].sum()) if len(investimentos) else 0.0
+    taxa_sobra = (saldo / entradas * 100) if entradas > 0 else 0.0
 
-    add("Dashboard Financeiro - Relatório Detalhado")
-    add(f"Emitido em {date.today().strftime('%d/%m/%Y')}")
-    add("")
-    add(f"Entradas: {brl(entradas)}")
-    add(f"Saídas: {brl(saidas)}")
-    add(f"Saldo: {brl(saldo)}")
-    add(f"Investimentos: {brl(total_inv)}")
-    add(f"Movimentações: {len(df)} | Investimentos: {len(investimentos)} | Dívidas: {len(dividas)} | Metas: {len(metas)}")
-    add("")
-    add("--- Movimentações ---")
-    for _, row in df.iterrows():
-        add(f"{data_br(row['data'])} | {row['descricao']} | {row['categoria']} | {row['tipo']} | {brl(row['valor'])}")
+    total_div = 0.0
+    parcelas_div = 0.0
+    prioritarias = 0
+    if len(dividas):
+        for _, d in dividas.iterrows():
+            sb = d.get("saldo_negociado") or d.get("saldo_original") or 0
+            try:
+                sb = float(sb)
+            except Exception:
+                sb = 0.0
+            stt = normalizar(d.get("status"))
+            if stt not in ("quitada", "paga"):
+                total_div += sb
+                try:
+                    parcelas_div += float(d.get("parcela_possivel") or 0)
+                except Exception:
+                    pass
+            if normalizar(d.get("prioridade")) == "alta" and stt not in ("quitada", "paga"):
+                prioritarias += 1
 
-    add("")
-    add("--- Investimentos ---")
-    for _, inv in investimentos.iterrows():
-        add(f"{data_br(inv['data'])} | {inv['descricao']} | {inv['tipo']} | {brl(inv['valor'])} | {inv['status']}")
+    progresso_metas = 0.0
+    if len(metas):
+        pcts = []
+        for _, m in metas.iterrows():
+            alvo = float(m.get("valor_meta") or 0)
+            atual = float(m.get("valor_atual") or 0)
+            pcts.append(min(100.0, (atual / alvo * 100) if alvo > 0 else 0))
+        progresso_metas = sum(pcts) / len(pcts) if pcts else 0
 
-    add("")
-    add("--- Dívidas ---")
-    for _, d in dividas.iterrows():
-        saldo_b = d["saldo_negociado"] if d["saldo_negociado"] > 0 else d["saldo_original"]
-        add(f"{data_br(d['data'])} | {d['credor']} | {d['tipo']} | {brl(saldo_b)} | {d['status']}")
+    score = calcular_score_financeiro(
+        entradas, saidas, saldo, total_inv, total_div, parcelas_div, progresso_metas
+    )
+    score_label = "Saudável" if score >= 70 else ("Atenção" if score >= 45 else "Crítico")
 
-    add("")
-    add("--- Metas ---")
-    for _, m in metas.iterrows():
-        add(f"{m['nome']} | Meta: {brl(m['valor_meta'])} | Atual: {brl(m['valor_atual'])} | {m['status']}")
+    # período
+    periodo = "Sem movimentações"
+    if len(df):
+        datas = pd.to_datetime(df["data"], errors="coerce").dropna()
+        if len(datas):
+            periodo = f"{datas.min().strftime('%d/%m/%Y')} a {datas.max().strftime('%d/%m/%Y')}"
 
-    # Gera PDF simples
-    paginas = [linhas[i:i + 42] for i in range(0, len(linhas), 42)] or [[]]
-    objetos = {
-        1: b"<< /Type /Catalog /Pages 2 0 R >>",
-        3: b"<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>",
-        4: b"<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>",
-    }
-    refs = []
-    for idx, pagina in enumerate(paginas):
-        page_id = 5 + idx * 2
-        content_id = page_id + 1
-        refs.append(f"{page_id} 0 R")
-        comandos = []
-        y = 795
-        for linha in pagina:
-            fonte = "F2" if y == 795 else "F1"
-            tamanho = 14 if y == 795 else 9
-            texto = (
-                str(linha)
-                .replace("\\", "\\\\")
-                .replace("(", "\\(")
-                .replace(")", "\\)")
-                .encode("latin-1", errors="replace")
-                .decode("latin-1")
+    # categorias de saída
+    cats = []
+    if len(df):
+        saidas_df = df[df["valor"] < 0].copy()
+        if len(saidas_df):
+            saidas_df["categoria"] = saidas_df["categoria"].fillna("Outros").replace("", "Outros")
+            g = (
+                saidas_df.groupby("categoria", as_index=False)["valor"]
+                .sum()
             )
-            comandos.append(f"BT /{fonte} {tamanho} Tf 50 {y} Td ({texto}) Tj ET")
-            y -= 17
-        fluxo = "\n".join(comandos).encode("latin-1")
-        objetos[page_id] = (
-            f"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] "
-            f"/Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> "
-            f"/Contents {content_id} 0 R >>"
-        ).encode("latin-1")
-        objetos[content_id] = f"<< /Length {len(fluxo)} >>\nstream\n".encode("latin-1") + fluxo + b"\nendstream"
+            g["valor_abs"] = g["valor"].abs()
+            g = g.sort_values("valor_abs", ascending=False).head(5)
+            total_s = g["valor_abs"].sum() or 1
+            for _, r in g.iterrows():
+                cats.append((str(r["categoria"]), float(r["valor_abs"]), float(r["valor_abs"]) / total_s))
 
-    objetos[2] = f"<< /Type /Pages /Kids [{' '.join(refs)}] /Count {len(paginas)} >>".encode("latin-1")
+    # fluxo mensal
+    fluxo = preparar_fluxo_mensal(df) if len(df) else pd.DataFrame()
 
-    pdf = bytearray(b"%PDF-1.4\n")
-    offsets = [0]
-    for numero in range(1, max(objetos) + 1):
-        offsets.append(len(pdf))
-        pdf.extend(f"{numero} 0 obj\n".encode("latin-1"))
-        pdf.extend(objetos[numero])
-        pdf.extend(b"\nendobj\n")
+    frases = [
+        "Cada real de hoje constrói o amanhã que você escolhe.",
+        "O futuro agradece quem organiza o presente.",
+        "Pequenos passos financeiros hoje viram liberdade depois.",
+        "Cuidar do agora é o jeito mais simples de cuidar do futuro.",
+    ]
+    frase = frases[date.today().toordinal() % len(frases)]
 
-    xref = len(pdf)
-    pdf.extend(f"xref\n0 {len(offsets)}\n".encode("latin-1"))
-    pdf.extend(b"0000000000 65535 f \n")
-    for offset in offsets[1:]:
-        pdf.extend(f"{offset:010d} 00000 n \n".encode("latin-1"))
-    pdf.extend(f"trailer\n<< /Size {len(offsets)} /Root 1 0 R >>\nstartxref\n{xref}\n%%EOF".encode("latin-1"))
-    return bytes(pdf)
+    if saldo >= 0:
+        leitura = f"Você terminou no azul. Sobraram {brl(saldo)} no período."
+    else:
+        leitura = f"O período fechou no vermelho em {brl(abs(saldo))}. Vale revisar gastos flexíveis."
+
+    # cores
+    ink = Color(28 / 255, 31 / 255, 38 / 255)
+    muted = Color(107 / 255, 114 / 255, 128 / 255)
+    lime = Color(217 / 255, 255 / 255, 0 / 255)
+    mint = Color(184 / 255, 240 / 255, 216 / 255)
+    mint_soft = Color(232 / 255, 250 / 255, 243 / 255)
+    bg = Color(243 / 255, 244 / 255, 247 / 255)
+    line = Color(0.85, 0.86, 0.88)
+    danger = Color(225 / 255, 29 / 255, 72 / 255)
+    ok = Color(13 / 255, 159 / 255, 110 / 255)
+    warn = Color(138 / 255, 90 / 255, 0)
+
+    W, H = A4
+    buf = BytesIO()
+    c = pdf_canvas.Canvas(buf, pagesize=A4)
+    margin = 16 * mm
+
+    def rr(x, y, w, h, r=10, fill=None, stroke=None, sw=0.7):
+        c.saveState()
+        if fill:
+            c.setFillColor(fill)
+        if stroke:
+            c.setStrokeColor(stroke)
+            c.setLineWidth(sw)
+        c.roundRect(x, y, w, h, r, fill=1 if fill else 0, stroke=1 if stroke else 0)
+        c.restoreState()
+
+    def T(x, y, s, size=10, color=ink, bold=False, right=False):
+        c.setFillColor(color)
+        c.setFont(FONT_B if bold else FONT, size)
+        (c.drawRightString if right else c.drawString)(x, y, str(s))
+
+    def page_bg():
+        c.setFillColor(bg)
+        c.rect(0, 0, W, H, fill=1, stroke=0)
+        c.setFillColor(Color(217 / 255, 255 / 255, 0 / 255, alpha=0.14))
+        c.circle(30, H - 30, 80, fill=1, stroke=0)
+        c.setFillColor(Color(184 / 255, 240 / 255, 216 / 255, alpha=0.20))
+        c.circle(W - 20, H - 90, 95, fill=1, stroke=0)
+        c.setFillColor(Color(168 / 255, 196 / 255, 255 / 255, alpha=0.14))
+        c.circle(W - 50, 60, 85, fill=1, stroke=0)
+
+    def footer(page, total=3):
+        T(margin, 10 * mm, f"Relatório financeiro pessoal  ·  {date.today().strftime('%d/%m/%Y')}  ·  Página {page}/{total}", 7, muted)
+
+    # ========== PÁGINA 1 ==========
+    page_bg()
+    rr(margin, H - 20 * mm, 38 * mm, 6.5 * mm, 8, white, line)
+    T(margin + 2.5 * mm, H - 17.8 * mm, "Financeiro pessoal", 8, muted, True)
+    score_bg = mint_soft if score >= 70 else (Color(1, 0.94, 0.76) if score >= 45 else Color(1, 0.89, 0.91))
+    score_fg = ok if score >= 70 else (warn if score >= 45 else danger)
+    rr(margin + 40 * mm, H - 20 * mm, 36 * mm, 6.5 * mm, 8, score_bg)
+    T(margin + 42.5 * mm, H - 17.8 * mm, f"{score_label} · {score}/100", 8, score_fg, True)
+
+    T(margin, H - 32 * mm, "Relatório do meu dinheiro", 18, ink, True)
+    T(margin, H - 38 * mm, f"Período: {periodo}", 9, muted)
+
+    rr(W - margin - 58 * mm, H - 46 * mm, 58 * mm, 26 * mm, 12, white, line)
+    T(W - margin - 53 * mm, H - 28 * mm, '"', 14, lime, True)
+    # quebra frase
+    palavras = frase.split()
+    linha1, linha2 = [], []
+    acc = ""
+    for p in palavras:
+        test = (acc + " " + p).strip()
+        if len(test) < 28:
+            acc = test
+        else:
+            linha1 = acc.split() if not linha1 else linha1
+            if not linha1:
+                linha1 = acc.split()
+            acc = p
+    if not linha1:
+        mid = max(1, len(palavras) // 2)
+        linha1, linha2 = palavras[:mid], palavras[mid:]
+    else:
+        linha2 = acc.split() if acc else []
+        if not linha2 and len(palavras) > len(linha1):
+            linha2 = palavras[len(linha1):]
+    T(W - margin - 53 * mm, H - 35 * mm, " ".join(linha1) if isinstance(linha1, list) else linha1, 8, ink, True)
+    if linha2:
+        T(W - margin - 53 * mm, H - 39 * mm, " ".join(linha2) if isinstance(linha2, list) else linha2, 8, ink, True)
+
+    kpis = [
+        (lime, "Saldo do período", brl(saldo), "Resultado acumulado"),
+        (mint_soft, "Entradas", brl(entradas), "Tudo que entrou"),
+        (white, "Saídas", brl(saidas), "Tudo que saiu"),
+        (white, "Taxa de sobra", pct(taxa_sobra), "Parte que sobrou"),
+    ]
+    cw = (W - 2 * margin - 9 * mm) / 4
+    for i, (col, lab, val, foot) in enumerate(kpis):
+        x = margin + i * (cw + 3 * mm)
+        y = H - 74 * mm
+        rr(x, y, cw, 24 * mm, 12, col, None if col != white else line)
+        T(x + 3 * mm, y + 16 * mm, lab, 7.5, muted, True)
+        T(x + 3 * mm, y + 9 * mm, val, 11, ink, True)
+        T(x + 3 * mm, y + 3.5 * mm, foot, 7, muted)
+
+    T(margin, H - 86 * mm, "1. Resumo em 30 segundos", 12, ink, True)
+    rr(margin, H - 112 * mm, W - 2 * margin, 22 * mm, 12, white, line)
+    T(margin + 5 * mm, H - 95 * mm, "Leitura do período", 8, muted, True)
+    T(margin + 5 * mm, H - 102 * mm, leitura[:90], 10, ink, True)
+    extra = f"Movimentações: {len(df)}  ·  Dívidas ativas: {sum(1 for _,d in dividas.iterrows() if normalizar(d.get('status')) not in ('quitada','paga')) if len(dividas) else 0}  ·  Metas: {len(metas)}"
+    T(margin + 5 * mm, H - 108 * mm, extra, 8, muted)
+
+    # Fluxo mensal
+    T(margin, H - 122 * mm, "2. Fluxo de caixa (visão mensal)", 12, ink, True)
+    rr(margin, H - 168 * mm, W - 2 * margin, 40 * mm, 12, white, line)
+    T(margin + 5 * mm, H - 132 * mm, "Verde = entradas   ·   Preto = saídas", 8, muted)
+    if len(fluxo):
+        n = min(len(fluxo), 8)
+        max_v = max(float(fluxo["entradas"].max() or 1), float(fluxo["saidas"].max() or 1), 1)
+        base_y = H - 162 * mm
+        gap = (W - 2 * margin - 20 * mm) / max(n, 1)
+        for i in range(n):
+            row = fluxo.iloc[i]
+            x = margin + 12 * mm + i * gap
+            he = 26 * mm * (float(row.get("entradas") or 0) / max_v)
+            hs = 26 * mm * (float(row.get("saidas") or 0) / max_v)
+            c.setFillColor(mint)
+            c.rect(x, base_y, 6 * mm, max(he, 0.5), fill=1, stroke=0)
+            c.setFillColor(ink)
+            c.rect(x + 7 * mm, base_y, 6 * mm, max(hs, 0.5), fill=1, stroke=0)
+            mes_val = row.get("mes")
+            if hasattr(mes_val, "strftime"):
+                rotulo = mes_val.strftime("%m/%y")
+            else:
+                rotulo = str(mes_val or f"M{i+1}")[:7]
+            T(x, base_y - 5 * mm, rotulo, 6.5, muted)
+    else:
+        T(margin + 5 * mm, H - 150 * mm, "Sem dados mensais suficientes para o gráfico.", 9, muted)
+
+    # Categorias
+    T(margin, H - 180 * mm, "3. Para onde foi o dinheiro", 12, ink, True)
+    rr(margin, H - 230 * mm, W - 2 * margin, 44 * mm, 12, white, line)
+    if cats:
+        cores_cat = [mint, lime, Color(0.66, 0.77, 1), Color(0.78, 0.80, 0.84), Color(0.72, 0.74, 0.78)]
+        for i, (nome, val, share) in enumerate(cats):
+            y = H - 190 * mm - i * 7.5 * mm
+            T(margin + 5 * mm, y, nome[:18], 9, ink, True)
+            T(margin + 48 * mm, y, brl(val), 8, muted)
+            c.setFillColor(Color(0.9, 0.91, 0.93))
+            c.roundRect(margin + 85 * mm, y - 1, 90 * mm, 3.5 * mm, 2, fill=1, stroke=0)
+            c.setFillColor(cores_cat[i % len(cores_cat)])
+            c.roundRect(margin + 85 * mm, y - 1, max(2, 90 * mm * share), 3.5 * mm, 2, fill=1, stroke=0)
+            T(margin + 180 * mm, y, f"{share * 100:.0f}%".replace(".", ","), 8, muted)
+    else:
+        T(margin + 5 * mm, H - 200 * mm, "Sem saídas categorizadas no período.", 9, muted)
+
+    footer(1)
+    c.showPage()
+
+    # ========== PÁGINA 2 ==========
+    page_bg()
+    T(margin, H - 16 * mm, "4. Dívidas em aberto", 12, ink, True)
+    T(margin, H - 22 * mm, "Saldo, parcela e próxima ação — não só o número.", 8, muted)
+
+    dk = [
+        ("Total aberto", brl(total_div)),
+        ("Parcelas/mês", brl(parcelas_div)),
+        ("Prioridade alta", str(prioritarias)),
+        ("Cadastradas", str(len(dividas))),
+    ]
+    dw = (W - 2 * margin - 9 * mm) / 4
+    for i, (lab, val) in enumerate(dk):
+        x = margin + i * (dw + 3 * mm)
+        rr(x, H - 44 * mm, dw, 16 * mm, 10, white, line)
+        T(x + 3 * mm, H - 34 * mm, lab, 7, muted, True)
+        T(x + 3 * mm, H - 40 * mm, val, 10, ink, True)
+
+    if len(dividas):
+        y0 = H - 54 * mm
+        shown = 0
+        for _, d in dividas.iterrows():
+            if shown >= 6:
+                break
+            stt = normalizar(d.get("status"))
+            sb = d.get("saldo_negociado") or d.get("saldo_original") or 0
+            try:
+                sb = float(sb)
+            except Exception:
+                sb = 0.0
+            parc = d.get("parcela_possivel") or 0
+            try:
+                parc = float(parc)
+            except Exception:
+                parc = 0.0
+            y = y0 - shown * 20 * mm
+            rr(margin, y - 12 * mm, W - 2 * margin, 18 * mm, 10, white, line)
+            T(margin + 4 * mm, y, str(d.get("credor") or "Credor")[:32], 10, ink, True)
+            meta = f"{d.get('prioridade') or '—'} · {d.get('status') or '—'}"
+            T(margin + 4 * mm, y - 5 * mm, meta[:50], 8, muted)
+            acao = str(d.get("proxima_acao") or "Sem próxima ação definida")[:55]
+            T(margin + 4 * mm, y - 9.5 * mm, f"Próxima ação: {acao}", 8, ink)
+            T(W - margin - 4 * mm, y, brl(sb), 10, ink, True, True)
+            T(W - margin - 4 * mm, y - 6 * mm, f"Parcela {brl(parc)}", 8, muted, False, True)
+            shown += 1
+    else:
+        rr(margin, H - 70 * mm, W - 2 * margin, 16 * mm, 10, mint_soft)
+        T(margin + 5 * mm, H - 62 * mm, "Nenhuma dívida cadastrada. Bom sinal.", 10, ok, True)
+
+    T(margin, H - 185 * mm if len(dividas) >= 5 else H - 150 * mm, "5. Metas e reserva", 12, ink, True)
+    y_meta_title = H - 185 * mm if len(dividas) >= 5 else H - 150 * mm
+
+    # reserva card
+    rr(margin, y_meta_title - 18 * mm, W - 2 * margin, 14 * mm, 10, mint_soft)
+    T(margin + 4 * mm, y_meta_title - 10 * mm, f"Patrimônio / investimentos registrados: {brl(total_inv)}", 9, ink, True)
+
+    if len(metas):
+        for i, (_, mrow) in enumerate(metas.iterrows()):
+            if i >= 5:
+                break
+            y = y_meta_title - 28 * mm - i * 15 * mm
+            alvo = float(mrow.get("valor_meta") or 0)
+            atual = float(mrow.get("valor_atual") or 0)
+            p = min(1.0, atual / alvo) if alvo > 0 else 0
+            rr(margin, y - 7 * mm, W - 2 * margin, 13 * mm, 10, white, line)
+            T(margin + 4 * mm, y + 1 * mm, str(mrow.get("nome") or "Meta")[:36], 9, ink, True)
+            T(margin + 4 * mm, y - 4 * mm, f"{brl(atual)} de {brl(alvo)}", 8, muted)
+            c.setFillColor(Color(0.9, 0.91, 0.93))
+            c.roundRect(W - margin - 52 * mm, y - 1.5 * mm, 46 * mm, 3.5 * mm, 2, fill=1, stroke=0)
+            c.setFillColor(lime if p > 0.8 else mint)
+            c.roundRect(W - margin - 52 * mm, y - 1.5 * mm, max(1, 46 * mm * p), 3.5 * mm, 2, fill=1, stroke=0)
+            T(W - margin - 4 * mm, y + 1 * mm, f"{int(p * 100)}%", 9, ink, True, True)
+    else:
+        T(margin + 4 * mm, y_meta_title - 28 * mm, "Nenhuma meta cadastrada ainda.", 9, muted)
+
+    footer(2)
+    c.showPage()
+
+    # ========== PÁGINA 3 ==========
+    page_bg()
+    T(margin, H - 16 * mm, "6. Projeção dos próximos meses", 12, ink, True)
+    T(margin, H - 22 * mm, "Cenário simples com base na média de sobra atual.", 8, muted)
+    rr(margin, H - 70 * mm, W - 2 * margin, 42 * mm, 12, white, line)
+
+    media_sobra = 0.0
+    if len(fluxo) and "saldo" in fluxo.columns:
+        media_sobra = float(fluxo["saldo"].mean())
+    elif entradas or saidas:
+        media_sobra = (entradas - saidas) / max(len(fluxo), 1) if len(fluxo) else (entradas - saidas) / 6
+
+    saldo_proj = saldo
+    pts = []
+    labels_m = []
+    from datetime import timedelta as _td
+    base = date.today().replace(day=1)
+    for i in range(6):
+        # avança mês
+        month = base.month + i
+        year = base.year + (month - 1) // 12
+        month = (month - 1) % 12 + 1
+        labels_m.append(f"{month:02d}/{str(year)[2:]}")
+        saldo_proj = saldo + media_sobra * (i + 1)
+        pts.append(saldo_proj)
+
+    if pts:
+        min_p, max_p = min(pts), max(pts)
+        span = max(max_p - min_p, 1)
+        ox, oy = margin + 18 * mm, H - 62 * mm
+        sx = (W - 2 * margin - 36 * mm) / 5
+        sy = 28 * mm
+        c.setStrokeColor(ink)
+        c.setLineWidth(2)
+        path = c.beginPath()
+        for i, val in enumerate(pts):
+            x = ox + i * sx
+            y = oy + ((val - min_p) / span) * sy
+            if i == 0:
+                path.moveTo(x, y)
+            else:
+                path.lineTo(x, y)
+        c.drawPath(path, stroke=1, fill=0)
+        for i, val in enumerate(pts):
+            x = ox + i * sx
+            y = oy + ((val - min_p) / span) * sy
+            c.setFillColor(lime)
+            c.circle(x, y, 3.2, fill=1, stroke=0)
+            T(x - 6, oy - 6 * mm, labels_m[i], 7, muted)
+        T(margin + 5 * mm, H - 34 * mm, f"Saldo atual {brl(saldo)}  ·  Média mensal de sobra {brl(media_sobra)}", 9, ink)
+
+    T(margin, H - 82 * mm, "7. Alertas e próximos passos", 12, ink, True)
+    alerts = []
+    if prioritarias > 0:
+        alerts.append((Color(1, 0.89, 0.91), danger, "Prioridade", f"{prioritarias} dívida(s) de prioridade alta em aberto — manter parcelas em dia."))
+    if taxa_sobra < 10 and entradas > 0:
+        alerts.append((Color(1, 0.97, 0.86), warn, "Atenção", "Taxa de sobra baixa. Revise gastos flexíveis antes de novos compromissos."))
+    if saldo > 0 and total_div > 0:
+        alerts.append((mint_soft, ok, "Oportunidade", "Sobra positiva: dá para reforçar reserva ou antecipar dívida prioritária."))
+    if cats:
+        top = cats[0]
+        if top[2] > 0.35:
+            alerts.append((Color(0.95, 1, 0.78), ink, "Concentração", f"Categoria {top[0]} concentra {top[2]*100:.0f}% das saídas — vale olhar de perto."))
+    if not alerts:
+        alerts.append((mint_soft, ok, "Estável", "Sem alertas críticos. Continue registrando e revisando o mês."))
+    if total_inv > 0 and saidas > 0:
+        meses_colchao = total_inv / (saidas / max(len(fluxo), 1)) if saidas else 0
+        if meses_colchao < 1:
+            alerts.append((Color(1, 0.97, 0.86), warn, "Reserva", "Reserva ainda cobre pouco mais do que poucos dias de gasto. Meta: 1–3 meses."))
+
+    for i, (bgc, accent, tag, msg) in enumerate(alerts[:5]):
+        y = H - 96 * mm - i * 17 * mm
+        rr(margin, y - 7 * mm, W - 2 * margin, 15 * mm, 10, bgc)
+        rr(margin + 3 * mm, y - 1.5 * mm, 24 * mm, 6 * mm, 6, white)
+        T(margin + 5 * mm, y, tag, 7, accent, True)
+        # wrap msg roughly
+        T(margin + 30 * mm, y, msg[:78], 8, ink)
+
+    T(margin, H - 190 * mm, "8. Como usar este relatório", 12, ink, True)
+    tips = [
+        "Compare este mês com o anterior nas entradas e saídas.",
+        "Nas dívidas, siga a próxima ação antes de aceitar novos acordos.",
+        "Nas metas, celebre progresso e ajuste o aporte se a sobra mudar.",
+        "Exporte de novo todo mês para montar seu histórico de decisões.",
+    ]
+    for i, t in enumerate(tips):
+        y = H - 202 * mm - i * 7 * mm
+        c.setFillColor(lime)
+        c.circle(margin + 2.2 * mm, y + 1.5, 2.8, fill=1, stroke=0)
+        T(margin + 7 * mm, y, t, 9, ink)
+
+    rr(margin, 18 * mm, W - 2 * margin, 20 * mm, 12, white, line)
+    T(margin + 5 * mm, 30 * mm, "Dashboard Financeiro · Uso pessoal · Visão clara e simples", 8, muted)
+    T(margin + 5 * mm, 23 * mm, f"Gerado em {date.today().strftime('%d/%m/%Y')} com seus dados do app.", 8, muted)
+
+    footer(3)
+    c.save()
+    buf.seek(0)
+    return buf.getvalue()
 
 
 # ====================== INICIALIZAÇÃO ======================
@@ -3963,6 +4297,17 @@ if pagina == "Nova":
 # ---------- ABA 2: Dashboard ----------
 elif pagina == "Dashboard":
     st.subheader("Como está meu dinheiro?")
+    with st.expander("Baixar relatório em PDF", expanded=False):
+        st.caption("Gera o relatório completo no modelo visual (3 páginas).")
+        st.download_button(
+            "Baixar relatório completo em PDF",
+            data=gerar_pdf(df, investimentos, dividas, metas),
+            file_name=f"relatorio-financeiro-{date.today().strftime('%d-%m-%Y')}.pdf",
+            mime="application/pdf",
+            type="primary",
+            use_container_width=True,
+            key="pdf_dashboard",
+        )
 
     # Indicadores
     st.markdown(
@@ -4747,11 +5092,15 @@ elif pagina == "Histórico":
     )
 
     st.download_button(
-        "⬇️ Baixar relatório em PDF",
+        "Baixar relatório completo em PDF",
         data=gerar_pdf(df, investimentos, dividas, metas),
         file_name=f"relatorio-financeiro-{date.today().strftime('%d-%m-%Y')}.pdf",
         mime="application/pdf",
+        type="primary",
+        use_container_width=True,
     )
+    st.caption("Capa, fluxo, categorias, dívidas, metas, projeção e alertas — modelo visual aprovado.")
+
 
     if len(df):
         with st.expander("🧹 Limpar histórico completo", expanded=False):
