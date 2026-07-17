@@ -1,4 +1,6 @@
+import hashlib
 import math
+import secrets as py_secrets
 import sqlite3
 import textwrap
 from datetime import date, datetime, timedelta
@@ -689,14 +691,22 @@ button[kind="primaryFormSubmit"]:hover {
 }
 
 div[data-testid="stDownloadButton"] button {
-    color: var(--ink) !important;
-    background: #fff !important;
-    border: 1px solid var(--line) !important;
+    color: #ffffff !important;
+    -webkit-text-fill-color: #ffffff !important;
+    background: #1c1f26 !important;
+    border: none !important;
+    font-weight: 800 !important;
+}
+div[data-testid="stDownloadButton"] button p,
+div[data-testid="stDownloadButton"] button span {
+    color: #ffffff !important;
+    -webkit-text-fill-color: #ffffff !important;
 }
 
 div[data-testid="stDownloadButton"] button:hover {
-    border-color: rgba(217, 255, 0, 0.6) !important;
-    background: #fefff5 !important;
+    background: #2d323c !important;
+    color: #ffffff !important;
+    -webkit-text-fill-color: #ffffff !important;
 }
 
 /* ========== FORMS / LABELS ========== */
@@ -2611,19 +2621,163 @@ button[data-testid="baseButton-secondary"] p,
     -webkit-text-fill-color: #1c1f26 !important;
 }
 
+
+/* ========== BOTÃO PDF + MENU MOBILE VISÍVEIS ========== */
+
+/* Download / primary: fundo escuro, texto branco FORÇADO */
+div[data-testid="stDownloadButton"] button,
+div[data-testid="stDownloadButton"] button[kind="primary"],
+button[data-testid="baseButton-primary"],
+button[kind="primary"],
+.stDownloadButton > button {
+    background: #1c1f26 !important;
+    background-color: #1c1f26 !important;
+    color: #ffffff !important;
+    -webkit-text-fill-color: #ffffff !important;
+    border: none !important;
+    border-radius: 999px !important;
+    font-weight: 800 !important;
+    min-height: 2.85rem !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+    box-shadow: 0 6px 16px rgba(28, 31, 38, 0.14) !important;
+}
+div[data-testid="stDownloadButton"] button *,
+div[data-testid="stDownloadButton"] button p,
+div[data-testid="stDownloadButton"] button span,
+button[data-testid="baseButton-primary"] *,
+button[kind="primary"] *,
+.stDownloadButton > button * {
+    color: #ffffff !important;
+    -webkit-text-fill-color: #ffffff !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+}
+div[data-testid="stDownloadButton"] button:hover,
+button[kind="primary"]:hover {
+    background: #2d323c !important;
+    color: #ffffff !important;
+    -webkit-text-fill-color: #ffffff !important;
+}
+
+/* Alternativa se primary ficar ilegível: versão lime */
+div[data-testid="stDownloadButton"] button:focus {
+    outline: 2px solid #d9ff00 !important;
+}
+
+/* MENU recolhido no mobile — pílula vermelha bem visível */
+[data-testid="stSidebarCollapsedControl"],
+[data-testid="collapsedControl"],
+section[data-testid="stSidebar"] ~ div [data-testid="stSidebarCollapsedControl"] {
+    position: fixed !important;
+    top: 0.55rem !important;
+    left: 0.55rem !important;
+    z-index: 2147483647 !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 0.25rem !important;
+    min-width: 2.75rem !important;
+    min-height: 2.75rem !important;
+    padding: 0.35rem 0.75rem !important;
+    border-radius: 999px !important;
+    background: #e11d48 !important;
+    border: 2px solid #ffffff !important;
+    box-shadow: 0 8px 22px rgba(225, 29, 72, 0.4) !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+    pointer-events: auto !important;
+}
+
+[data-testid="stSidebarCollapsedControl"] button,
+[data-testid="collapsedControl"] button,
+[data-testid="stSidebarCollapsedControl"] > button,
+[data-testid="collapsedControl"] > button {
+    background: transparent !important;
+    color: #ffffff !important;
+    -webkit-text-fill-color: #ffffff !important;
+    border: none !important;
+    box-shadow: none !important;
+    min-width: 1.75rem !important;
+    min-height: 1.75rem !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+}
+
+[data-testid="stSidebarCollapsedControl"] svg,
+[data-testid="collapsedControl"] svg,
+[data-testid="stSidebarCollapsedControl"] path,
+[data-testid="collapsedControl"] path,
+[data-testid="stSidebarCollapsedControl"] button svg,
+[data-testid="collapsedControl"] button svg {
+    fill: #ffffff !important;
+    color: #ffffff !important;
+    stroke: #ffffff !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+    width: 1.35rem !important;
+    height: 1.35rem !important;
+}
+
+/* Texto "Menu" ao lado do >> */
+[data-testid="stSidebarCollapsedControl"]::after,
+[data-testid="collapsedControl"]::after {
+    content: "Menu" !important;
+    color: #ffffff !important;
+    -webkit-text-fill-color: #ffffff !important;
+    font-weight: 800 !important;
+    font-size: 0.9rem !important;
+    font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif !important;
+    letter-spacing: 0.02em;
+    margin-left: 0.1rem;
+    opacity: 1 !important;
+    visibility: visible !important;
+}
+
+@media (max-width: 768px) {
+    [data-testid="stSidebarCollapsedControl"],
+    [data-testid="collapsedControl"] {
+        top: 0.45rem !important;
+        left: 0.45rem !important;
+        min-height: 3rem !important;
+        padding: 0.4rem 0.85rem 0.4rem 0.55rem !important;
+        background: #e11d48 !important;
+        border: 2px solid #fff !important;
+    }
+}
+
 </style>
 """,
     unsafe_allow_html=True,
 )
 
 # ====================== BANCO DE DADOS ======================
+def _ensure_column(cur, tabela: str, coluna: str, tipo_sql: str = "INTEGER"):
+    cur.execute(f"PRAGMA table_info({tabela})")
+    cols = {row[1] for row in cur.fetchall()}
+    if coluna not in cols:
+        cur.execute(f"ALTER TABLE {tabela} ADD COLUMN {coluna} {tipo_sql}")
+
+
 def init_db():
     conn = get_conn()
     cur = conn.cursor()
 
     cur.execute("""
+        CREATE TABLE IF NOT EXISTS usuarios (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            email TEXT NOT NULL UNIQUE,
+            nome TEXT NOT NULL,
+            senha_hash TEXT NOT NULL,
+            salt TEXT NOT NULL,
+            criado_em TEXT NOT NULL
+        )
+    """)
+
+    cur.execute("""
         CREATE TABLE IF NOT EXISTS transacoes (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER,
             data TEXT NOT NULL,
             descricao TEXT,
             categoria TEXT,
@@ -2636,6 +2790,7 @@ def init_db():
     cur.execute("""
         CREATE TABLE IF NOT EXISTS investimentos (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER,
             data TEXT,
             tipo TEXT,
             valor REAL,
@@ -2648,6 +2803,7 @@ def init_db():
     cur.execute("""
         CREATE TABLE IF NOT EXISTS dividas (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER,
             data TEXT,
             credor TEXT,
             tipo TEXT,
@@ -2667,6 +2823,7 @@ def init_db():
     cur.execute("""
         CREATE TABLE IF NOT EXISTS metas (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER,
             data TEXT,
             nome TEXT,
             valor_meta REAL,
@@ -2677,100 +2834,309 @@ def init_db():
             anotacoes TEXT
         )
     """)
+
+    for tabela in ("transacoes", "investimentos", "dividas", "metas"):
+        try:
+            _ensure_column(cur, tabela, "user_id", "INTEGER")
+        except Exception:
+            pass
+
     conn.commit()
     conn.close()
 
 
-def carregar_dados() -> pd.DataFrame:
+# ====================== AUTENTICAÇÃO ======================
+def _hash_senha(senha: str, salt: str | None = None) -> tuple[str, str]:
+    if not salt:
+        salt = py_secrets.token_hex(16)
+    digest = hashlib.pbkdf2_hmac("sha256", senha.encode("utf-8"), salt.encode("utf-8"), 120_000)
+    return digest.hex(), salt
+
+
+def criar_usuario(email: str, nome: str, senha: str) -> tuple[bool, str]:
+    email_n = limpar_texto(email).lower()
+    nome_n = limpar_texto(nome)
+    if not email_n or "@" not in email_n:
+        return False, "Informe um e-mail válido."
+    if len(limpar_texto(senha)) < 6:
+        return False, "A senha precisa ter pelo menos 6 caracteres."
+    if not nome_n:
+        return False, "Informe seu nome."
+    senha_hash, salt = _hash_senha(senha)
     conn = get_conn()
     try:
-        df = pd.read_sql_query("SELECT * FROM transacoes ORDER BY data DESC, id DESC", conn)
+        cur = conn.execute(
+            "INSERT INTO usuarios (email, nome, senha_hash, salt, criado_em) VALUES (?, ?, ?, ?, ?)",
+            (email_n, nome_n, senha_hash, salt, date.today().isoformat()),
+        )
+        novo_id = cur.lastrowid
+        # Se for o primeiro usuário, associa dados antigos (sem dono) a esta conta
+        total_users = conn.execute("SELECT COUNT(*) FROM usuarios").fetchone()[0]
+        if total_users == 1 and novo_id:
+            for tabela in ("transacoes", "investimentos", "dividas", "metas"):
+                try:
+                    conn.execute(
+                        f"UPDATE {tabela} SET user_id = ? WHERE user_id IS NULL",
+                        (novo_id,),
+                    )
+                except Exception:
+                    pass
+        conn.commit()
+        return True, "Conta criada com sucesso."
+    except sqlite3.IntegrityError:
+        return False, "Este e-mail já está cadastrado."
+    finally:
+        conn.close()
+
+
+def autenticar_usuario(email: str, senha: str):
+    email_n = limpar_texto(email).lower()
+    conn = get_conn()
+    cur = conn.execute(
+        "SELECT id, email, nome, senha_hash, salt FROM usuarios WHERE email = ?",
+        (email_n,),
+    )
+    row = cur.fetchone()
+    conn.close()
+    if not row:
+        return None
+    uid, em, nome, senha_hash, salt = row
+    teste, _ = _hash_senha(senha, salt)
+    if py_secrets.compare_digest(teste, senha_hash):
+        return {"id": int(uid), "email": em, "nome": nome}
+    return None
+
+
+def contar_usuarios() -> int:
+    conn = get_conn()
+    try:
+        n = conn.execute("SELECT COUNT(*) FROM usuarios").fetchone()[0]
     except Exception:
-        df = pd.DataFrame(columns=["id", "data", "descricao", "categoria", "valor", "tipo", "cartao"])
+        n = 0
+    conn.close()
+    return int(n)
+
+
+def usuario_atual():
+    return st.session_state.get("usuario")
+
+
+def user_id_atual() -> int | None:
+    u = usuario_atual()
+    return int(u["id"]) if u else None
+
+
+def fazer_logout():
+    for k in ("usuario", "pagina_atual", "menu_mounted"):
+        if k in st.session_state:
+            del st.session_state[k]
+
+
+def render_login_page():
+    """Tela de entrada — login e criação de conta."""
+    st.markdown(
+        """
+        <div style="max-width:420px;margin:1.5rem auto 0;">
+            <div style="text-align:center;margin-bottom:1.25rem;">
+                <div style="display:inline-flex;align-items:center;gap:0.4rem;
+                    background:#fff;border:1px solid rgba(28,31,38,0.08);
+                    border-radius:999px;padding:0.35rem 0.85rem;font-size:0.78rem;
+                    font-weight:800;color:#6b7280;letter-spacing:0.04em;text-transform:uppercase;">
+                    <span style="width:0.5rem;height:0.5rem;border-radius:50%;background:#d9ff00;display:inline-block;"></span>
+                    Financeiro pessoal
+                </div>
+                <h1 style="font-size:1.85rem;font-weight:800;color:#1c1f26;margin:0.85rem 0 0.35rem;letter-spacing:-0.03em;">
+                    Meu dinheiro
+                </h1>
+                <p style="color:#6b7280;font-size:0.95rem;margin:0;">
+                    Entre na sua conta. Seus dados ficam só com você.
+                </p>
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    col_l, col_c, col_r = st.columns([1, 1.35, 1])
+    with col_c:
+        tem_usuarios = contar_usuarios() > 0
+        modo = st.radio(
+            "Acesso",
+            ["Entrar", "Criar conta"] if tem_usuarios else ["Criar conta", "Entrar"],
+            horizontal=True,
+            label_visibility="collapsed",
+            key="login_modo",
+        )
+
+        if modo == "Entrar":
+            with st.form("form_login", clear_on_submit=False):
+                email = st.text_input("E-mail", placeholder="voce@email.com")
+                senha = st.text_input("Senha", type="password", placeholder="Sua senha")
+                ok = st.form_submit_button("Entrar", use_container_width=True)
+                if ok:
+                    user = autenticar_usuario(email, senha)
+                    if user:
+                        st.session_state.usuario = user
+                        st.session_state.pagina_atual = "Dashboard"
+                        st.success(f"Olá, {user['nome'].split()[0]}!")
+                        st.rerun()
+                    else:
+                        st.error("E-mail ou senha incorretos.")
+        else:
+            with st.form("form_registro", clear_on_submit=False):
+                nome = st.text_input("Seu nome", placeholder="Como quer ser chamado")
+                email = st.text_input("E-mail", placeholder="voce@email.com")
+                senha = st.text_input("Senha", type="password", placeholder="Mínimo 6 caracteres")
+                senha2 = st.text_input("Confirmar senha", type="password", placeholder="Repita a senha")
+                ok = st.form_submit_button("Criar minha conta", use_container_width=True)
+                if ok:
+                    if senha != senha2:
+                        st.error("As senhas não coincidem.")
+                    else:
+                        ok_c, msg = criar_usuario(email, nome, senha)
+                        if ok_c:
+                            user = autenticar_usuario(email, senha)
+                            if user:
+                                st.session_state.usuario = user
+                                st.session_state.pagina_atual = "Dashboard"
+                                st.success(msg)
+                                st.rerun()
+                        else:
+                            st.error(msg)
+
+        st.caption("Cada conta tem seus próprios lançamentos, dívidas e metas.")
+
+
+def carregar_dados(uid: int | None = None) -> pd.DataFrame:
+    uid = uid if uid is not None else user_id_atual()
+    conn = get_conn()
+    try:
+        if uid is None:
+            df = pd.DataFrame(columns=["id", "user_id", "data", "descricao", "categoria", "valor", "tipo", "cartao"])
+        else:
+            df = pd.read_sql_query(
+                "SELECT * FROM transacoes WHERE user_id = ? ORDER BY data DESC, id DESC",
+                conn, params=(uid,),
+            )
+    except Exception:
+        df = pd.DataFrame(columns=["id", "user_id", "data", "descricao", "categoria", "valor", "tipo", "cartao"])
     conn.close()
     if len(df) and "tipo" in df.columns:
         df["tipo"] = df["tipo"].replace({"Saida": "Saída", "saida": "Saída", "Entrada": "Entrada", "entrada": "Entrada"})
     return df
 
 
-def carregar_investimentos() -> pd.DataFrame:
+def carregar_investimentos(uid: int | None = None) -> pd.DataFrame:
+    uid = uid if uid is not None else user_id_atual()
     conn = get_conn()
     try:
-        df = pd.read_sql_query("SELECT * FROM investimentos ORDER BY data DESC, id DESC", conn)
+        if uid is None:
+            df = pd.DataFrame(columns=["id", "user_id", "data", "tipo", "valor", "rentabilidade", "descricao", "status"])
+        else:
+            df = pd.read_sql_query(
+                "SELECT * FROM investimentos WHERE user_id = ? ORDER BY data DESC, id DESC",
+                conn, params=(uid,),
+            )
     except Exception:
-        df = pd.DataFrame(columns=["id", "data", "tipo", "valor", "rentabilidade", "descricao", "status"])
+        df = pd.DataFrame(columns=["id", "user_id", "data", "tipo", "valor", "rentabilidade", "descricao", "status"])
     conn.close()
     return df
 
 
-def carregar_dividas() -> pd.DataFrame:
+def carregar_dividas(uid: int | None = None) -> pd.DataFrame:
+    uid = uid if uid is not None else user_id_atual()
     conn = get_conn()
     try:
-        df = pd.read_sql_query("SELECT * FROM dividas ORDER BY data DESC, id DESC", conn)
-    except Exception:
-        df = pd.DataFrame(
-            columns=[
-                "id", "data", "credor", "tipo", "saldo_original", "desconto",
+        if uid is None:
+            df = pd.DataFrame(columns=[
+                "id", "user_id", "data", "credor", "tipo", "saldo_original", "desconto",
                 "saldo_negociado", "parcela_possivel", "vencimento", "prioridade",
                 "consequencia", "status", "proxima_acao", "anotacoes",
-            ]
-        )
+            ])
+        else:
+            df = pd.read_sql_query(
+                "SELECT * FROM dividas WHERE user_id = ? ORDER BY data DESC, id DESC",
+                conn, params=(uid,),
+            )
+    except Exception:
+        df = pd.DataFrame(columns=[
+            "id", "user_id", "data", "credor", "tipo", "saldo_original", "desconto",
+            "saldo_negociado", "parcela_possivel", "vencimento", "prioridade",
+            "consequencia", "status", "proxima_acao", "anotacoes",
+        ])
     conn.close()
     return df
 
 
-def carregar_metas() -> pd.DataFrame:
+def carregar_metas(uid: int | None = None) -> pd.DataFrame:
+    uid = uid if uid is not None else user_id_atual()
     conn = get_conn()
     try:
-        df = pd.read_sql_query("SELECT * FROM metas ORDER BY data DESC, id DESC", conn)
-    except Exception:
-        df = pd.DataFrame(
-            columns=[
-                "id", "data", "nome", "valor_meta", "valor_atual",
+        if uid is None:
+            df = pd.DataFrame(columns=[
+                "id", "user_id", "data", "nome", "valor_meta", "valor_atual",
                 "aporte_mensal", "prazo", "status", "anotacoes",
-            ]
-        )
+            ])
+        else:
+            df = pd.read_sql_query(
+                "SELECT * FROM metas WHERE user_id = ? ORDER BY data DESC, id DESC",
+                conn, params=(uid,),
+            )
+    except Exception:
+        df = pd.DataFrame(columns=[
+            "id", "user_id", "data", "nome", "valor_meta", "valor_atual",
+            "aporte_mensal", "prazo", "status", "anotacoes",
+        ])
     conn.close()
     return df
 
 
-def salvar_transacao(data, descricao, categoria, valor, tipo, cartao):
+def salvar_transacao(data, descricao, categoria, valor, tipo, cartao, uid: int | None = None):
+    uid = uid if uid is not None else user_id_atual()
+    if uid is None:
+        raise ValueError("Usuário não autenticado.")
     conn = get_conn()
     conn.execute(
-        "INSERT INTO transacoes (data, descricao, categoria, valor, tipo, cartao) VALUES (?, ?, ?, ?, ?, ?)",
-        (str(data), descricao, categoria, float(valor), tipo, cartao),
+        "INSERT INTO transacoes (user_id, data, descricao, categoria, valor, tipo, cartao) VALUES (?, ?, ?, ?, ?, ?, ?)",
+        (uid, str(data), descricao, categoria, float(valor), tipo, cartao),
     )
     conn.commit()
     conn.close()
 
 
-def excluir_transacao(id_):
+def excluir_transacao(id_, uid: int | None = None):
+    uid = uid if uid is not None else user_id_atual()
     conn = get_conn()
-    conn.execute("DELETE FROM transacoes WHERE id = ?", (int(id_),))
+    conn.execute("DELETE FROM transacoes WHERE id = ? AND user_id = ?", (int(id_), uid))
     conn.commit()
     conn.close()
 
 
-def limpar_historico():
+def limpar_historico(uid: int | None = None):
+    uid = uid if uid is not None else user_id_atual()
     conn = get_conn()
-    conn.execute("DELETE FROM transacoes")
+    conn.execute("DELETE FROM transacoes WHERE user_id = ?", (uid,))
     conn.commit()
     conn.close()
 
 
-def salvar_investimento(data, tipo, valor, rentabilidade, descricao, status):
+def salvar_investimento(data, tipo, valor, rentabilidade, descricao, status, uid: int | None = None):
+    uid = uid if uid is not None else user_id_atual()
+    if uid is None:
+        raise ValueError("Usuário não autenticado.")
     conn = get_conn()
     conn.execute(
-        "INSERT INTO investimentos (data, tipo, valor, rentabilidade, descricao, status) VALUES (?, ?, ?, ?, ?, ?)",
-        (str(data), tipo, float(valor), rentabilidade, descricao, status),
+        "INSERT INTO investimentos (user_id, data, tipo, valor, rentabilidade, descricao, status) VALUES (?, ?, ?, ?, ?, ?, ?)",
+        (uid, str(data), tipo, float(valor), rentabilidade, descricao, status),
     )
     conn.commit()
     conn.close()
 
 
-def excluir_investimento(id_):
+def excluir_investimento(id_, uid: int | None = None):
+    uid = uid if uid is not None else user_id_atual()
     conn = get_conn()
-    conn.execute("DELETE FROM investimentos WHERE id = ?", (int(id_),))
+    conn.execute("DELETE FROM investimentos WHERE id = ? AND user_id = ?", (int(id_), uid))
     conn.commit()
     conn.close()
 
@@ -2778,19 +3144,22 @@ def excluir_investimento(id_):
 def salvar_divida(
     data, credor, tipo, saldo_original, desconto, saldo_negociado,
     parcela_possivel, vencimento, prioridade, consequencia, status,
-    proxima_acao, anotacoes,
+    proxima_acao, anotacoes, uid: int | None = None,
 ):
+    uid = uid if uid is not None else user_id_atual()
+    if uid is None:
+        raise ValueError("Usuário não autenticado.")
     conn = get_conn()
     conn.execute(
         """
         INSERT INTO dividas (
-            data, credor, tipo, saldo_original, desconto, saldo_negociado,
+            user_id, data, credor, tipo, saldo_original, desconto, saldo_negociado,
             parcela_possivel, vencimento, prioridade, consequencia, status,
             proxima_acao, anotacoes
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
         (
-            str(data), credor, tipo, float(saldo_original), float(desconto),
+            uid, str(data), credor, tipo, float(saldo_original), float(desconto),
             float(saldo_negociado), float(parcela_possivel), str(vencimento),
             prioridade, consequencia, status, proxima_acao, anotacoes,
         ),
@@ -2799,29 +3168,34 @@ def salvar_divida(
     conn.close()
 
 
-def excluir_divida(id_):
+def excluir_divida(id_, uid: int | None = None):
+    uid = uid if uid is not None else user_id_atual()
     conn = get_conn()
-    conn.execute("DELETE FROM dividas WHERE id = ?", (int(id_),))
+    conn.execute("DELETE FROM dividas WHERE id = ? AND user_id = ?", (int(id_), uid))
     conn.commit()
     conn.close()
 
 
-def salvar_meta(data, nome, valor_meta, valor_atual, aporte_mensal, prazo, status, anotacoes):
+def salvar_meta(data, nome, valor_meta, valor_atual, aporte_mensal, prazo, status, anotacoes, uid: int | None = None):
+    uid = uid if uid is not None else user_id_atual()
+    if uid is None:
+        raise ValueError("Usuário não autenticado.")
     conn = get_conn()
     conn.execute(
         """
-        INSERT INTO metas (data, nome, valor_meta, valor_atual, aporte_mensal, prazo, status, anotacoes)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO metas (user_id, data, nome, valor_meta, valor_atual, aporte_mensal, prazo, status, anotacoes)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
-        (str(data), nome, float(valor_meta), float(valor_atual), float(aporte_mensal), prazo, status, anotacoes),
+        (uid, str(data), nome, float(valor_meta), float(valor_atual), float(aporte_mensal), prazo, status, anotacoes),
     )
     conn.commit()
     conn.close()
 
 
-def excluir_meta(id_):
+def excluir_meta(id_, uid: int | None = None):
+    uid = uid if uid is not None else user_id_atual()
     conn = get_conn()
-    conn.execute("DELETE FROM metas WHERE id = ?", (int(id_),))
+    conn.execute("DELETE FROM metas WHERE id = ? AND user_id = ?", (int(id_), uid))
     conn.commit()
     conn.close()
 
@@ -3609,9 +3983,16 @@ def importar_movimentacoes(df_importado: pd.DataFrame):
         return 0, duplicadas
 
     conn = get_conn()
+    uid = user_id_atual()
+    if uid is None:
+        return 0, duplicadas
+    rows = [
+        (uid, r.data, r.descricao, r.categoria, r.valor, r.tipo, r.cartao)
+        for r in df_novo[["data", "descricao", "categoria", "valor", "tipo", "cartao"]].itertuples(index=False)
+    ]
     conn.executemany(
-        "INSERT INTO transacoes (data, descricao, categoria, valor, tipo, cartao) VALUES (?, ?, ?, ?, ?, ?)",
-        df_novo[["data", "descricao", "categoria", "valor", "tipo", "cartao"]].itertuples(index=False, name=None),
+        "INSERT INTO transacoes (user_id, data, descricao, categoria, valor, tipo, cartao) VALUES (?, ?, ?, ?, ?, ?, ?)",
+        rows,
     )
     conn.commit()
     conn.close()
@@ -4113,6 +4494,14 @@ def gerar_pdf(df, investimentos, dividas, metas) -> bytes:
 
 # ====================== INICIALIZAÇÃO ======================
 init_db()
+
+# ---- Login obrigatório ----
+if "usuario" not in st.session_state or not st.session_state.get("usuario"):
+    render_login_page()
+    st.stop()
+
+_usuario = st.session_state["usuario"]
+
 df = carregar_dados()
 investimentos = carregar_investimentos()
 dividas = carregar_dividas()
@@ -4248,6 +4637,20 @@ with st.sidebar:
         """,
         unsafe_allow_html=True,
     )
+    st.markdown(
+        f"""
+        <div style="margin-top:0.85rem;padding:0.7rem 0.85rem;border-radius:12px;
+            background:#fff;border:1px solid rgba(28,31,38,0.06);">
+            <div style="font-size:0.72rem;font-weight:700;color:#8a90a0;">Conta</div>
+            <div style="font-size:0.9rem;font-weight:700;color:#1c1f26;margin-top:0.15rem;">{escape(_usuario.get('nome',''))}</div>
+            <div style="font-size:0.75rem;color:#6b7280;">{escape(_usuario.get('email',''))}</div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+    if st.button("Sair da conta", use_container_width=True, key="btn_logout"):
+        fazer_logout()
+        st.rerun()
 
 # ---------- PÁGINA: Nova Movimentação ----------
 if pagina == "Nova":
@@ -4312,7 +4715,6 @@ elif pagina == "Dashboard":
                 data=_pdf_bytes,
                 file_name=f"relatorio-financeiro-{date.today().strftime('%d-%m-%Y')}.pdf",
                 mime="application/pdf",
-                type="primary",
                 use_container_width=True,
                 key="pdf_dashboard",
             )
@@ -5114,7 +5516,6 @@ elif pagina == "Histórico":
             data=_pdf_hist,
             file_name=f"relatorio-financeiro-{date.today().strftime('%d-%m-%Y')}.pdf",
             mime="application/pdf",
-            type="primary",
             use_container_width=True,
             key="pdf_historico",
         )
