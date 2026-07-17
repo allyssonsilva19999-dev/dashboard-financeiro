@@ -1,7 +1,7 @@
 import math
 import sqlite3
 import textwrap
-from datetime import date
+from datetime import date, datetime, timedelta
 from html import escape
 from io import BytesIO
 
@@ -2851,6 +2851,427 @@ PALAVRAS_ENTRADA = {"entrada", "receita", "recebimento", "salario", "renda", "fr
 PALAVRAS_SAIDA = {"saida", "despesa", "debito", "credito", "cartao", "gasto", "fixo", "parcelado"}
 
 
+def excel_serial_para_data(valor, ano_padrao: int | None = None, mes_padrao: int | None = None) -> date:
+    """Converte data do Excel (serial, datetime ou texto) para date."""
+    if valor is None or (isinstance(valor, float) and math.isnan(valor)):
+        if ano_padrao and mes_padrao:
+            return date(ano_padrao, mes_padrao, 1)
+        return date.today()
+
+    if isinstance(valor, datetime):
+        return valor.date()
+    if isinstance(valor, date):
+        return valor
+
+    # Serial do Excel (número de dias desde 1899-12-30)
+    if isinstance(valor, (int, float)) and not isinstance(valor, bool):
+        try:
+            n = float(valor)
+            if 20000 < n < 80000:  # faixa típica de datas Excel modernas
+                return (datetime(1899, 12, 30) + timedelta(days=int(n))).date()
+        except Exception:
+            pass
+
+    texto = str(valor).strip()
+    if not texto:
+        if ano_padrao and mes_padrao:
+            return date(ano_padrao, mes_padrao, 1)
+        return date.today()
+
+    dt = pd.to_datetime(texto, errors="coerce", dayfirst=True)
+    if not pd.isna(dt):
+        return dt.date()
+
+    if ano_padrao and mes_padrao:
+        return date(ano_padrao, mes_padrao, 1)
+    return date.today()
+
+
+def _cel(df: pd.DataFrame, r: int, c: int):
+    if r < 0 or c < 0 or r >= len(df.index) or c >= len(df.columns):
+        return None
+    try:
+        return df.iat[r, c]
+    except Exception:
+        return None
+
+
+def _linha_norm(df: pd.DataFrame, r: int) -> list[str]:
+    return [normalizar(_cel(df, r, c)) for c in range(len(df.columns))]
+
+
+def _achar_cabecalho(
+    df: pd.DataFrame,
+    obrigatorios: set[str],
+    linha_inicio: int = 0,
+    linha_fim: int | None = None,
+    col_min: int = 0,
+    col_max: int | None = None,
+):
+    """Retorna (linha, mapa col_nome_normalizado -> índice) limitado a um intervalo de colunas."""
+    fim = linha_fim if linha_fim is not None else len(df.index)
+    cmax = col_max if col_max is not None else len(df.columns)
+    for r in range(linha_inicio, min(fim, len(df.index))):
+        vals = _linha_norm(df, r)
+        mapa = {}
+        for c, v in enumerate(vals):
+            if c < col_min or c >= cmax or not v:
+                continue
+            if v not in mapa:
+                mapa[v] = c
+        if obrigatorios.issubset(set(mapa.keys())):
+            return r, mapa
+    return None, {}
+
+
+def _ler_bloco_tabela(
+    df: pd.DataFrame,
+    linha_header: int,
+    mapa: dict,
+    col_nome: str,
+    col_valor: str,
+    ano: int,
+    mes: int,
+    tipo_forcado: str | None = None,
+    forma_pagamento: str = "Débito",
+    parar_em: set[str] | None = None,
+) -> list[dict]:
+    """Lê linhas de dados abaixo de um cabeçalho até linha vazia ou marcador de fim."""
+    parar_em = parar_em or {
+        "total", "totais", "saidas", "entradas", "investimentos", "reserva",
+        "cartao de credito", "fixos", "gastos do mes", "resumo",
+    }
+    idx_nome = mapa.get(col_nome, mapa.get("nome", mapa.get("descricao")))
+    idx_valor = mapa.get(col_valor, mapa.get("valor"))
+    idx_data = mapa.get("data")
+    idx_tipo = mapa.get("tipo")
+    idx_cat = mapa.get("categoria")
+    idx_obs = mapa.get("observacao")
+    idx_status = mapa.get("status")
+    idx_pago = mapa.get("pago?")
+
+    if idx_nome is None or idx_valor is None:
+        return []
+
+    linhas = []
+    vazias = 0
+    for r in range(linha_header + 1, len(df.index)):
+        nome = limpar_texto(_cel(df, r, idx_nome))
+        valor = converter_valor(_cel(df, r, idx_valor))
+        nome_n = normalizar(nome)
+
+        if not nome and (valor is None or valor == 0):
+            vazias += 1
+            if vazias >= 3:
+                break
+            continue
+        vazias = 0
+
+        if nome_n.startswith("total") or nome_n in parar_em:
+            break
+        # Evita capturar cabeçalhos repetidos
+        if nome_n in ("nome", "descricao", "objetivo", "categoria"):
+            continue
+        if valor is None or valor == 0:
+            continue
+
+        tipo = tipo_forcado
+        if not tipo:
+            tipo_txt = normalizar(_cel(df, r, idx_tipo)) if idx_tipo is not None else ""
+            if any(p in tipo_txt for p in PALAVRAS_ENTRADA) or tipo_txt in ("recebido",):
+                tipo = "Entrada"
+            elif any(p in tipo_txt for p in PALAVRAS_SAIDA) or "credito" in tipo_txt:
+                tipo = "Saída"
+            elif any(p in nome_n for p in PALAVRAS_ENTRADA):
+                tipo = "Entrada"
+            else:
+                tipo = "Saída"
+
+        categoria = limpar_texto(_cel(df, r, idx_cat), "Importado") if idx_cat is not None else "Importado"
+        if tipo == "Entrada" and categoria in ("Importado", "Outros", ""):
+            categoria = limpar_texto(nome, "Receita")
+
+        data_mov = excel_serial_para_data(
+            _cel(df, r, idx_data) if idx_data is not None else None,
+            ano_padrao=ano,
+            mes_padrao=mes,
+        )
+
+        # Forma de pagamento a partir do Tipo da planilha (Débito / Crédito 1...)
+        cartao = forma_pagamento
+        if idx_tipo is not None:
+            tipo_plan = limpar_texto(_cel(df, r, idx_tipo))
+            if tipo_plan:
+                cartao = tipo_plan
+
+        obs = limpar_texto(_cel(df, r, idx_obs)) if idx_obs is not None else ""
+        status = limpar_texto(_cel(df, r, idx_status)) if idx_status is not None else ""
+        pago = limpar_texto(_cel(df, r, idx_pago)) if idx_pago is not None else ""
+
+        descricao = nome
+        extras = []
+        if obs and normalizar(obs) not in ("recebido", "sim", "nao", "pago"):
+            extras.append(obs)
+        if pago and normalizar(pago) in ("sim", "nao", "pendente"):
+            extras.append(f"Pago: {pago}")
+        if status and normalizar(status) not in ("recebido",) and tipo == "Entrada":
+            extras.append(status)
+        if extras:
+            descricao = f"{nome} — " + " | ".join(extras)
+
+        linhas.append({
+            "data": data_mov.isoformat(),
+            "descricao": descricao,
+            "categoria": categoria if categoria else ("Receita" if tipo == "Entrada" else "Outros"),
+            "valor": abs(float(valor)) if tipo == "Entrada" else -abs(float(valor)),
+            "tipo": tipo,
+            "cartao": cartao or "Planilha",
+            "origem": "mes",
+        })
+    return linhas
+
+
+def parse_aba_mensal(nome_aba: str, df_aba: pd.DataFrame, ano: int) -> list[dict]:
+    """Interpreta abas Janeiro–Dezembro da Planilha Financeira Inteligente."""
+    mes = MESES_PLANILHA.get(normalizar(nome_aba))
+    if not mes or df_aba is None or df_aba.empty:
+        return []
+
+    linhas: list[dict] = []
+
+    # --- FIXOS: Nome + Valor (+ Data, Tipo, Categoria) nas colunas da esquerda ---
+    r, mapa = _achar_cabecalho(df_aba, {"nome", "valor"}, 0, 15, col_min=0, col_max=8)
+    if r is not None:
+        linhas.extend(_ler_bloco_tabela(
+            df_aba, r, mapa, "nome", "valor", ano, mes,
+            tipo_forcado="Saída", forma_pagamento="Débito",
+        ))
+
+    # --- GASTOS DO MÊS: segundo bloco com Nome/Data/Tipo/Categoria/Valor ---
+    # Busca cabeçalho cujo "nome" está em colunas intermediárias (por volta de 9)
+    for r in range(0, min(15, len(df_aba.index))):
+        vals = _linha_norm(df_aba, r)
+        cols_nome = [c for c, v in enumerate(vals) if v == "nome"]
+        cols_valor = [c for c, v in enumerate(vals) if v == "valor"]
+        cols_cat = [c for c, v in enumerate(vals) if v == "categoria"]
+        for cn in cols_nome:
+            if cn < 5:
+                continue  # já tratado como fixos
+            cv = next((c for c in cols_valor if c > cn), None)
+            cc = next((c for c in cols_cat if c > cn), None)
+            if cv is None:
+                continue
+            mapa_g = {"nome": cn, "valor": cv}
+            if cc is not None:
+                mapa_g["categoria"] = cc
+            for label, key in (("data", "data"), ("tipo", "tipo"), ("observacao", "observacao")):
+                for c, v in enumerate(vals):
+                    if v == label and cn < c < cv + 2:
+                        mapa_g[key] = c
+            linhas.extend(_ler_bloco_tabela(
+                df_aba, r, mapa_g, "nome", "valor", ano, mes,
+                tipo_forcado="Saída", forma_pagamento="Débito",
+            ))
+            break
+
+    # --- ENTRADAS: Descrição + Valor (+ Status) ---
+    for r in range(0, min(20, len(df_aba.index))):
+        vals = _linha_norm(df_aba, r)
+        if "descricao" in vals and "valor" in vals:
+            cd = vals.index("descricao")
+            # Preferir bloco da direita (entradas)
+            if cd < 10:
+                continue
+            cv = next((c for c, v in enumerate(vals) if v == "valor" and c > cd), None)
+            if cv is None:
+                continue
+            mapa_e = {"descricao": cd, "valor": cv, "nome": cd}
+            if "status" in vals:
+                mapa_e["status"] = vals.index("status")
+            linhas.extend(_ler_bloco_tabela(
+                df_aba, r, mapa_e, "descricao", "valor", ano, mes,
+                tipo_forcado="Entrada", forma_pagamento="Conta",
+            ))
+            break
+
+    # --- CARTÃO DE CRÉDITO: Nome, Parcelas, Data, Tipo, Categoria, Valor ---
+    for r in range(20, min(40, len(df_aba.index))):
+        vals = _linha_norm(df_aba, r)
+        if "nome" in vals and "valor" in vals and ("parcelas" in vals or "categoria" in vals):
+            cn = vals.index("nome")
+            if cn > 5:
+                continue
+            cv = next((c for c, v in enumerate(vals) if v == "valor" and c > cn), None)
+            if cv is None:
+                continue
+            mapa_c = {"nome": cn, "valor": cv}
+            for label in ("data", "tipo", "categoria", "observacao", "parcelas"):
+                if label in vals:
+                    mapa_c[label] = vals.index(label)
+            bloc = _ler_bloco_tabela(
+                df_aba, r, mapa_c, "nome", "valor", ano, mes,
+                tipo_forcado="Saída", forma_pagamento="Cartão",
+            )
+            for item in bloc:
+                item["cartao"] = limpar_texto(item.get("cartao"), "Cartão")
+                if "Crédito" not in item["cartao"] and "Cartão" not in item["cartao"]:
+                    item["cartao"] = f"Cartão — {item['cartao']}"
+            linhas.extend(bloc)
+            break
+
+    # --- INVESTIMENTOS / RESERVA: Objetivo + Valor ---
+    for r in range(20, min(40, len(df_aba.index))):
+        vals = _linha_norm(df_aba, r)
+        if "objetivo" in vals and "valor" in vals:
+            co = vals.index("objetivo")
+            cv = next((c for c, v in enumerate(vals) if v == "valor" and c > co), None)
+            if cv is None:
+                continue
+            mapa_i = {"nome": co, "descricao": co, "valor": cv}
+            if "data" in vals:
+                mapa_i["data"] = vals.index("data")
+            inv = _ler_bloco_tabela(
+                df_aba, r, mapa_i, "nome", "valor", ano, mes,
+                tipo_forcado="Entrada", forma_pagamento="Investimento",
+                parar_em={"total", "debito", "credito 1", "resumo"},
+            )
+            for item in inv:
+                item["categoria"] = "Investimento/Reserva"
+                item["origem"] = "investimento"
+                # Mantém como saída de caixa para reserva (dinheiro separado)
+                # mas registra valor positivo em categoria especial — trata como saída de gasto livre
+                item["tipo"] = "Saída"
+                item["valor"] = -abs(float(item["valor"]))
+                item["cartao"] = "Reserva/Investimento"
+            linhas.extend(inv)
+            break
+
+    return linhas
+
+
+def parse_aba_dividas(df_aba: pd.DataFrame) -> list[dict]:
+    """Lê a aba Dividas da planilha inteligente."""
+    if df_aba is None or df_aba.empty:
+        return []
+    r, mapa = _achar_cabecalho(df_aba, {"credor", "saldo original"}, 0, 20)
+    # fallback: procura "credor" e "saldo negociado"
+    if r is None:
+        r, mapa = _achar_cabecalho(df_aba, {"credor"}, 0, 20)
+    if r is None:
+        return []
+
+    def col(*nomes):
+        for n in nomes:
+            if n in mapa:
+                return mapa[n]
+        return None
+
+    idx = {
+        "data": col("data"),
+        "credor": col("credor"),
+        "tipo": col("tipo"),
+        "saldo_original": col("saldo original", "saldo"),
+        "desconto": col("desconto / abatimento", "desconto", "desconto abatimento"),
+        "saldo_negociado": col("saldo negociado"),
+        "parcela": col("parcela possivel", "parcela possível", "parcela"),
+        "vencimento": col("vencimento"),
+        "prioridade": col("prioridade"),
+        "consequencia": col("consequencia se atrasar", "consequencia"),
+        "status": col("status"),
+        "proxima": col("proxima acao", "próxima ação", "proxima acao"),
+    }
+    if idx["credor"] is None:
+        return []
+
+    out = []
+    for row in range(r + 1, len(df_aba.index)):
+        credor = limpar_texto(_cel(df_aba, row, idx["credor"]))
+        if not credor or normalizar(credor) in ("credor", "total"):
+            if not credor:
+                continue
+            break
+        saldo_neg = converter_valor(_cel(df_aba, row, idx["saldo_negociado"])) if idx["saldo_negociado"] is not None else None
+        saldo_orig = converter_valor(_cel(df_aba, row, idx["saldo_original"])) if idx["saldo_original"] is not None else None
+        if (saldo_neg is None or saldo_neg == 0) and (saldo_orig is None or saldo_orig == 0):
+            continue
+        out.append({
+            "data": excel_serial_para_data(_cel(df_aba, row, idx["data"]) if idx["data"] is not None else None).isoformat(),
+            "credor": credor,
+            "tipo": limpar_texto(_cel(df_aba, row, idx["tipo"]), "Outro") if idx["tipo"] is not None else "Outro",
+            "saldo_original": float(saldo_orig or saldo_neg or 0),
+            "desconto": float(converter_valor(_cel(df_aba, row, idx["desconto"])) or 0) if idx["desconto"] is not None else 0.0,
+            "saldo_negociado": float(saldo_neg or saldo_orig or 0),
+            "parcela_possivel": float(converter_valor(_cel(df_aba, row, idx["parcela"])) or 0) if idx["parcela"] is not None else 0.0,
+            "vencimento": excel_serial_para_data(_cel(df_aba, row, idx["vencimento"]) if idx["vencimento"] is not None else None).isoformat(),
+            "prioridade": limpar_texto(_cel(df_aba, row, idx["prioridade"]), "Média") if idx["prioridade"] is not None else "Média",
+            "consequencia": limpar_texto(_cel(df_aba, row, idx["consequencia"])) if idx["consequencia"] is not None else "",
+            "status": limpar_texto(_cel(df_aba, row, idx["status"]), "Mapear") if idx["status"] is not None else "Mapear",
+            "proxima_acao": limpar_texto(_cel(df_aba, row, idx["proxima"])) if idx["proxima"] is not None else "",
+            "anotacoes": "Importado da planilha",
+        })
+    return out
+
+
+def parse_aba_metas(df_aba: pd.DataFrame) -> list[dict]:
+    """Lê a aba Metas da planilha inteligente."""
+    if df_aba is None or df_aba.empty:
+        return []
+    r, mapa = _achar_cabecalho(df_aba, {"meta", "valor alvo"}, 0, 15)
+    if r is None:
+        r, mapa = _achar_cabecalho(df_aba, {"meta"}, 0, 15)
+    if r is None:
+        return []
+
+    def col(*nomes):
+        for n in nomes:
+            if n in mapa:
+                return mapa[n]
+        return None
+
+    idx_meta = col("meta")
+    idx_alvo = col("valor alvo", "valor meta", "alvo")
+    idx_atual = col("valor atual", "atual")
+    idx_prazo = col("prazo")
+    idx_prio = col("prioridade")
+    idx_acao = col("proxima acao", "próxima ação", "proxima acao")
+    if idx_meta is None:
+        return []
+
+    out = []
+    for row in range(r + 1, len(df_aba.index)):
+        nome = limpar_texto(_cel(df_aba, row, idx_meta))
+        if not nome or normalizar(nome) in ("meta", "indicador"):
+            if not nome:
+                continue
+            if normalizar(nome) in ("meta", "indicador"):
+                break
+            continue
+        alvo = converter_valor(_cel(df_aba, row, idx_alvo)) if idx_alvo is not None else None
+        if alvo is None or alvo == 0:
+            continue
+        atual = converter_valor(_cel(df_aba, row, idx_atual)) if idx_atual is not None else 0
+        prazo_raw = _cel(df_aba, row, idx_prazo) if idx_prazo is not None else None
+        try:
+            prazo = excel_serial_para_data(prazo_raw).isoformat() if prazo_raw is not None else ""
+        except Exception:
+            prazo = limpar_texto(prazo_raw)
+        prio = limpar_texto(_cel(df_aba, row, idx_prio), "Média") if idx_prio is not None else "Média"
+        acao = limpar_texto(_cel(df_aba, row, idx_acao)) if idx_acao is not None else ""
+        progresso = (float(atual or 0) / float(alvo)) if alvo else 0
+        status = "Concluída" if progresso >= 1 else ("Em andamento" if progresso > 0 else "Planejada")
+        out.append({
+            "data": date.today().isoformat(),
+            "nome": nome,
+            "valor_meta": float(alvo),
+            "valor_atual": float(atual or 0),
+            "aporte_mensal": 0.0,
+            "prazo": prazo,
+            "status": status,
+            "anotacoes": f"{prio}. {acao}".strip(". "),
+        })
+    return out
+
+
 def gerar_modelo_excel() -> bytes:
     arquivo = BytesIO()
     wb = Workbook()
@@ -2907,63 +3328,70 @@ def ler_planilha(arquivo):
     raise ValueError("Envie uma planilha CSV, XLSX ou XLS.")
 
 
-def preparar_importacao(dados):
-    """Suporta planilha simples (colunas Data/Descrição/Valor...) ou abas mensais."""
+def preparar_importacao(dados, ano: int | None = None):
+    """
+    Suporta:
+    1) Planilha Financeira Inteligente (abas Janeiro–Dezembro + Dividas + Metas)
+    2) Planilha simples tabular (Data/Descrição/Valor/Tipo)
+    Retorna dict com dataframes e contagens.
+    """
+    ano = ano or date.today().year
+    resultado = {
+        "movimentacoes": pd.DataFrame(),
+        "dividas": [],
+        "metas": [],
+        "ignoradas": 0,
+        "abas_lidas": [],
+        "modelo": "desconhecido",
+    }
+
     if isinstance(dados, dict):
-        # Tenta modelo de organização financeira (abas Janeiro, Fevereiro...)
-        linhas = []
-        for nome_aba, df_aba in dados.items():
-            mes = MESES_PLANILHA.get(normalizar(nome_aba))
-            if not mes:
-                continue
-            # Procura blocos com "valor" e "descricao/nome"
-            for i in range(len(df_aba.index)):
-                valores_linha = [normalizar(df_aba.iat[i, c]) for c in range(len(df_aba.columns))]
-                if "valor" not in valores_linha:
+        nomes_norm = {normalizar(k): k for k in dados.keys()}
+        tem_meses = any(m in nomes_norm for m in MESES_PLANILHA)
+        tem_dividas = any(n in nomes_norm for n in ("dividas", "dívidas", "divida"))
+        tem_metas = "metas" in nomes_norm
+
+        if tem_meses or tem_dividas or tem_metas:
+            resultado["modelo"] = "planilha_inteligente"
+            movs = []
+            for mes_nome, num in MESES_PLANILHA.items():
+                if mes_nome not in nomes_norm:
                     continue
-                col_desc = next((c for c, v in enumerate(valores_linha) if v in ("descricao", "nome")), None)
-                col_valor = next((c for c, v in enumerate(valores_linha) if v == "valor" and (col_desc is None or c > col_desc)), None)
-                if col_desc is None or col_valor is None:
-                    continue
+                aba = dados[nomes_norm[mes_nome]]
+                parsed = parse_aba_mensal(mes_nome, aba, ano)
+                if parsed:
+                    resultado["abas_lidas"].append(mes_nome.capitalize())
+                    movs.extend(parsed)
 
-                for j in range(i + 1, len(df_aba.index)):
-                    descricao = limpar_texto(df_aba.iat[j, col_desc])
-                    valor_raw = converter_valor(df_aba.iat[j, col_valor])
-                    desc_n = normalizar(descricao)
-                    if not descricao and valor_raw is None:
-                        break
-                    if desc_n.startswith("total") or desc_n in ("saidas", "entradas", "investimentos", "reserva"):
-                        break
-                    if valor_raw is None or valor_raw == 0:
-                        continue
+            if tem_dividas:
+                chave = next(nomes_norm[n] for n in nomes_norm if n in ("dividas", "dívidas", "divida"))
+                resultado["dividas"] = parse_aba_dividas(dados[chave])
+                resultado["abas_lidas"].append("Dividas")
 
-                    tipo = "Entrada" if valor_raw > 0 or any(p in desc_n for p in PALAVRAS_ENTRADA) else "Saída"
-                    if any(p in desc_n for p in PALAVRAS_SAIDA):
-                        tipo = "Saída"
-                    if any(p in desc_n for p in PALAVRAS_ENTRADA):
-                        tipo = "Entrada"
+            if tem_metas:
+                resultado["metas"] = parse_aba_metas(dados[nomes_norm["metas"]])
+                resultado["abas_lidas"].append("Metas")
 
-                    linhas.append({
-                        "data": date(date.today().year, mes, 1).isoformat(),
-                        "descricao": descricao or "Importado",
-                        "categoria": "Receita" if tipo == "Entrada" else "Outros",
-                        "valor": abs(valor_raw) if tipo == "Entrada" else -abs(valor_raw),
-                        "tipo": tipo,
-                        "cartao": "Planilha",
-                    })
+            if movs:
+                df_m = pd.DataFrame(movs)
+                # remove coluna auxiliar
+                if "origem" in df_m.columns:
+                    df_m = df_m.drop(columns=["origem"])
+                resultado["movimentacoes"] = df_m.drop_duplicates(
+                    subset=["data", "descricao", "valor", "tipo"], keep="first"
+                ).reset_index(drop=True)
+            return resultado
 
-        if linhas:
-            return pd.DataFrame(linhas).drop_duplicates(), 0
-
-        # Fallback: primeira aba com header
+        # Fallback: primeira aba com header tabular
         primeira = next(iter(dados.values()), pd.DataFrame())
         if primeira.empty:
-            return pd.DataFrame(), 0
+            return resultado
         primeira = primeira.copy()
         primeira.columns = primeira.iloc[0]
         dados = primeira.iloc[1:].reset_index(drop=True)
 
     # Planilha tabular normal
+    resultado["modelo"] = "tabular"
     aliases = {
         "data": ["data", "dt", "dia", "date"],
         "descricao": ["descricao", "descrição", "historico", "histórico", "nome", "lancamento"],
@@ -2981,7 +3409,7 @@ def preparar_importacao(dados):
                 break
 
     if "valor" not in mapa:
-        raise ValueError("A planilha precisa ter uma coluna de valor.")
+        raise ValueError("A planilha precisa ter uma coluna de valor ou abas mensais (Janeiro–Dezembro).")
 
     linhas = []
     ignoradas = 0
@@ -3012,7 +3440,9 @@ def preparar_importacao(dados):
             "cartao": limpar_texto(row.get(mapa.get("cartao")), "Planilha"),
         })
 
-    return pd.DataFrame(linhas), ignoradas
+    resultado["movimentacoes"] = pd.DataFrame(linhas)
+    resultado["ignoradas"] = ignoradas
+    return resultado
 
 
 def chave_movimentacao(registro) -> tuple:
@@ -3057,6 +3487,63 @@ def importar_movimentacoes(df_importado: pd.DataFrame):
     conn.commit()
     conn.close()
     return len(df_novo), duplicadas
+
+
+def importar_dividas_lista(lista: list[dict]) -> int:
+    if not lista:
+        return 0
+    existentes = carregar_dividas()
+    chaves = set()
+    if len(existentes):
+        for _, r in existentes.iterrows():
+            chaves.add((normalizar(r.get("credor")), round(float(r.get("saldo_negociado") or 0), 2)))
+    gravados = 0
+    for d in lista:
+        chave = (normalizar(d.get("credor")), round(float(d.get("saldo_negociado") or 0), 2))
+        if chave in chaves:
+            continue
+        salvar_divida(
+            d.get("data"),
+            d.get("credor"),
+            d.get("tipo"),
+            d.get("saldo_original") or 0,
+            d.get("desconto") or 0,
+            d.get("saldo_negociado") or 0,
+            d.get("parcela_possivel") or 0,
+            d.get("vencimento"),
+            d.get("prioridade") or "Média",
+            d.get("consequencia") or "",
+            d.get("status") or "Mapear",
+            d.get("proxima_acao") or "",
+            d.get("anotacoes") or "Importado da planilha",
+        )
+        chaves.add(chave)
+        gravados += 1
+    return gravados
+
+
+def importar_metas_lista(lista: list[dict]) -> int:
+    if not lista:
+        return 0
+    existentes = carregar_metas()
+    nomes = set(normalizar(x) for x in existentes["nome"].tolist()) if len(existentes) and "nome" in existentes.columns else set()
+    gravados = 0
+    for m in lista:
+        if normalizar(m.get("nome")) in nomes:
+            continue
+        salvar_meta(
+            m.get("data") or date.today().isoformat(),
+            m.get("nome"),
+            m.get("valor_meta") or 0,
+            m.get("valor_atual") or 0,
+            m.get("aporte_mensal") or 0,
+            m.get("prazo") or "",
+            m.get("status") or "Em andamento",
+            m.get("anotacoes") or "",
+        )
+        nomes.add(normalizar(m.get("nome")))
+        gravados += 1
+    return gravados
 
 
 # ====================== RELATÓRIO PDF ======================
@@ -3494,46 +3981,94 @@ elif pagina == "Dashboard":
         st.plotly_chart(fig, use_container_width=True, config=PLOTLY_CONFIG)
 
     # Importação
-    with st.expander("📤 Subir planilha de movimentações", expanded=False):
-        st.caption("Novos registros entram no mesmo histórico. Duplicados são ignorados.")
+    with st.expander("📤 Subir planilha (Financeira Inteligente ou modelo simples)", expanded=False):
+        st.caption(
+            "Aceita a Planilha Financeira Inteligente (abas Janeiro–Dezembro, Dívidas e Metas) "
+            "ou uma planilha simples com colunas Data/Descrição/Valor. Duplicados são ignorados."
+        )
         st.download_button(
-            "Baixar modelo Excel",
+            "Baixar modelo Excel simples",
             data=gerar_modelo_excel(),
             file_name="modelo-dashboard-financeiro.xlsx",
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         )
-        arquivo = st.file_uploader("Escolha a planilha", type=["csv", "xlsx", "xls"])
+        arquivo = st.file_uploader("Escolha a planilha", type=["csv", "xlsx", "xls"], key="upload_planilha_intel")
         if arquivo is not None:
             try:
                 dados = ler_planilha(arquivo)
-                df_imp, ignoradas = preparar_importacao(dados)
-                df_novo, duplicadas = conciliar_movimentacoes(df_imp, df)
+                pacote = preparar_importacao(dados)
+                df_imp = pacote.get("movimentacoes", pd.DataFrame())
+                if not isinstance(df_imp, pd.DataFrame):
+                    df_imp = pd.DataFrame()
+                ignoradas = pacote.get("ignoradas", 0)
+                lista_div = pacote.get("dividas", []) or []
+                lista_meta = pacote.get("metas", []) or []
+                abas = pacote.get("abas_lidas", []) or []
+                modelo = pacote.get("modelo", "")
+
+                df_novo, duplicadas = conciliar_movimentacoes(df_imp, df) if len(df_imp) else (pd.DataFrame(), 0)
+
+                if modelo == "planilha_inteligente":
+                    st.success(
+                        "Planilha Financeira Inteligente reconhecida"
+                        + (f" — abas: {', '.join(abas)}" if abas else "")
+                    )
 
                 c1, c2, c3, c4 = st.columns(4)
                 c1.metric("Novas entradas", brl(df_novo[df_novo["valor"] > 0]["valor"].sum() if len(df_novo) else 0))
                 c2.metric("Novas saídas", brl(abs(df_novo[df_novo["valor"] < 0]["valor"].sum() if len(df_novo) else 0)))
-                c3.metric("Impacto no saldo", brl(df_novo["valor"].sum() if len(df_novo) else 0))
-                c4.metric("Novos registros", len(df_novo))
+                c3.metric("Dívidas lidas", len(lista_div))
+                c4.metric("Metas lidas", len(lista_meta))
 
-                if ignoradas:
-                    st.caption(f"{ignoradas} linhas ignoradas (sem valor válido).")
-                if duplicadas:
-                    st.info(f"{duplicadas} lançamentos duplicados foram reconhecidos e ignorados.")
+                st.caption(
+                    f"Movimentações novas: {len(df_novo)} · Duplicadas: {duplicadas} · "
+                    f"Ignoradas: {ignoradas} · Impacto no saldo: {brl(df_novo['valor'].sum() if len(df_novo) else 0)}"
+                )
 
                 if len(df_novo):
                     previa = df_novo.rename(columns={
                         "data": "Data", "descricao": "Descrição", "categoria": "Categoria",
                         "valor": "Valor", "tipo": "Tipo", "cartao": "Pagamento",
-                    })
+                    }).copy()
                     previa["Data"] = previa["Data"].map(data_br)
                     previa["Valor"] = previa["Valor"].map(brl)
-                    st.dataframe(previa, use_container_width=True, hide_index=True)
-                    if st.button("Integrar movimentações ao dashboard", type="primary"):
-                        total, dup = importar_movimentacoes(df_imp)
-                        st.success(f"{total} movimentações integradas. {dup} duplicadas ignoradas.")
+                    st.dataframe(previa.head(80), use_container_width=True, hide_index=True)
+                    if len(previa) > 80:
+                        st.caption(f"Mostrando 80 de {len(previa)} lançamentos.")
+
+                if lista_div:
+                    st.markdown("**Dívidas encontradas**")
+                    st.dataframe(
+                        pd.DataFrame(lista_div)[
+                            [c for c in ["credor", "tipo", "saldo_negociado", "parcela_possivel", "prioridade", "status"] if c in pd.DataFrame(lista_div).columns]
+                        ],
+                        use_container_width=True,
+                        hide_index=True,
+                    )
+
+                if lista_meta:
+                    st.markdown("**Metas encontradas**")
+                    st.dataframe(
+                        pd.DataFrame(lista_meta)[
+                            [c for c in ["nome", "valor_meta", "valor_atual", "prazo", "status"] if c in pd.DataFrame(lista_meta).columns]
+                        ],
+                        use_container_width=True,
+                        hide_index=True,
+                    )
+
+                pode_integrar = len(df_novo) > 0 or len(lista_div) > 0 or len(lista_meta) > 0
+                if pode_integrar:
+                    if st.button("Integrar tudo ao dashboard", type="primary", key="btn_integrar_planilha"):
+                        total, dup = importar_movimentacoes(df_imp) if len(df_imp) else (0, 0)
+                        n_div = importar_dividas_lista(lista_div)
+                        n_meta = importar_metas_lista(lista_meta)
+                        st.success(
+                            f"Integrado: {total} movimentações ({dup} duplicadas ignoradas), "
+                            f"{n_div} dívidas, {n_meta} metas."
+                        )
                         st.rerun()
                 else:
-                    st.info("Todos os lançamentos já estão no dashboard ou não foram reconhecidos.")
+                    st.info("Nada novo para importar — tudo já está no dashboard ou não foi reconhecido.")
             except Exception as e:
                 st.error(f"Não consegui importar: {mensagem_erro_usuario(e)}")
 
