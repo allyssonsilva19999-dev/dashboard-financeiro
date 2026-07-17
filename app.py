@@ -2170,6 +2170,225 @@ div[data-baseweb="select"] svg {
     content: none !important;
 }
 
+
+/* ========== MENU MOBILE VISÍVEL + TEXTO SEMPRE LEGÍVEL ========== */
+
+/* Controle da sidebar recolhida: botão vermelho sólido + texto Menu */
+[data-testid="stSidebarCollapsedControl"],
+[data-testid="collapsedControl"] {
+    position: fixed !important;
+    top: 0.65rem !important;
+    left: 0.65rem !important;
+    z-index: 1000000 !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 0.35rem !important;
+    padding: 0.35rem 0.65rem 0.35rem 0.4rem !important;
+    border-radius: 999px !important;
+    background: #e11d48 !important;
+    box-shadow: 0 6px 18px rgba(225, 29, 72, 0.35) !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+    pointer-events: auto !important;
+}
+
+[data-testid="stSidebarCollapsedControl"] button,
+[data-testid="collapsedControl"] button,
+[data-testid="stSidebarCollapsedControl"] > button,
+[data-testid="collapsedControl"] > button {
+    color: #ffffff !important;
+    -webkit-text-fill-color: #ffffff !important;
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    min-width: 2.4rem !important;
+    min-height: 2.4rem !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+}
+
+[data-testid="stSidebarCollapsedControl"] button svg,
+[data-testid="collapsedControl"] button svg,
+[data-testid="stSidebarCollapsedControl"] svg,
+[data-testid="collapsedControl"] svg,
+[data-testid="stSidebarCollapsedControl"] path,
+[data-testid="collapsedControl"] path {
+    fill: #ffffff !important;
+    color: #ffffff !important;
+    stroke: #ffffff !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+    width: 1.25rem !important;
+    height: 1.25rem !important;
+}
+
+[data-testid="stSidebarCollapsedControl"]::after,
+[data-testid="collapsedControl"]::after {
+    content: "Menu" !important;
+    color: #ffffff !important;
+    -webkit-text-fill-color: #ffffff !important;
+    font-weight: 800 !important;
+    font-size: 0.9rem !important;
+    letter-spacing: 0.02em;
+    font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    line-height: 1;
+    margin-right: 0.25rem;
+    opacity: 1 !important;
+    visibility: visible !important;
+}
+
+/* Também quando Streamlit usa outros testids no mobile */
+section[data-testid="stSidebar"] + div [data-testid="stBaseButton-headerNoPadding"],
+button[data-testid="baseButton-headerNoPadding"],
+[data-testid="stBaseButton-headerNoPadding"] {
+    color: #ffffff !important;
+    background: #e11d48 !important;
+    border-radius: 999px !important;
+    min-width: 2.5rem !important;
+    min-height: 2.5rem !important;
+    box-shadow: 0 6px 18px rgba(225, 29, 72, 0.35) !important;
+    opacity: 1 !important;
+}
+[data-testid="stBaseButton-headerNoPadding"] svg,
+button[data-testid="baseButton-headerNoPadding"] svg {
+    fill: #ffffff !important;
+    color: #ffffff !important;
+    stroke: #ffffff !important;
+}
+
+/* Mobile: área de toque maior */
+@media (max-width: 768px) {
+    [data-testid="stSidebarCollapsedControl"],
+    [data-testid="collapsedControl"] {
+        top: 0.55rem !important;
+        left: 0.55rem !important;
+        padding: 0.4rem 0.75rem 0.4rem 0.45rem !important;
+        background: #e11d48 !important;
+        border: 2px solid #ffffff !important;
+    }
+    [data-testid="stSidebarCollapsedControl"] button,
+    [data-testid="collapsedControl"] button {
+        min-width: 2.6rem !important;
+        min-height: 2.6rem !important;
+    }
+    [data-testid="stSidebarCollapsedControl"]::after,
+    [data-testid="collapsedControl"]::after {
+        font-size: 0.95rem !important;
+        color: #ffffff !important;
+    }
+    /* Empurra o header um pouco para não colidir com o botão Menu */
+    .page-header {
+        padding-top: 0.35rem !important;
+    }
+}
+
+/* ========== TEXTO SEMPRE VISÍVEL (claro e escuro) ========== */
+
+/* Força contraste no app principal — não some no dark mode do sistema/Streamlit */
+[data-testid="stAppViewContainer"],
+[data-testid="stAppViewContainer"] p,
+[data-testid="stAppViewContainer"] label,
+[data-testid="stAppViewContainer"] span,
+[data-testid="stAppViewContainer"] h1,
+[data-testid="stAppViewContainer"] h2,
+[data-testid="stAppViewContainer"] h3,
+[data-testid="stAppViewContainer"] h4,
+.main .block-container,
+.main .block-container p,
+.main .block-container label,
+[data-testid="stMarkdownContainer"],
+[data-testid="stMarkdownContainer"] p,
+[data-testid="stWidgetLabel"],
+[data-testid="stWidgetLabel"] p {
+    color: #1c1f26 !important;
+    -webkit-text-fill-color: #1c1f26 !important;
+    opacity: 1 !important;
+}
+
+/* Secundário permanece legível (cinza escuro, não claro) */
+.page-sub,
+.page-kicker,
+.metric-label,
+.metric-foot,
+.indicator-top,
+.indicator-note,
+.answer-question,
+.answer-action,
+.side-score-label,
+.side-score-note,
+[data-testid="stCaptionContainer"],
+[data-testid="stCaptionContainer"] p,
+.stCaption {
+    color: #4b5563 !important;
+    -webkit-text-fill-color: #4b5563 !important;
+    opacity: 1 !important;
+}
+
+/* Valores e títulos bem escuros */
+.metric-value,
+.indicator-value,
+.answer-value,
+.page-header h1,
+.side-title {
+    color: #1c1f26 !important;
+    -webkit-text-fill-color: #1c1f26 !important;
+}
+
+/* Inputs legíveis em qualquer tema */
+input, textarea, select,
+[data-baseweb="input"] input,
+[data-baseweb="select"] span,
+[data-baseweb="select"] div {
+    color: #1c1f26 !important;
+    -webkit-text-fill-color: #1c1f26 !important;
+    background-color: #ffffff !important;
+}
+
+/* Sidebar texto legível */
+[data-testid="stSidebar"],
+[data-testid="stSidebar"] p,
+[data-testid="stSidebar"] label,
+[data-testid="stSidebar"] span {
+    color: #1c1f26 !important;
+    -webkit-text-fill-color: #1c1f26 !important;
+    opacity: 1 !important;
+}
+
+/* Dark mode do sistema: mantém fundo claro do app (evita texto sumir) */
+@media (prefers-color-scheme: dark) {
+    [data-testid="stAppViewContainer"] {
+        color-scheme: light !important;
+    }
+    .main, .main .block-container,
+    [data-testid="stAppViewContainer"] {
+        color: #1c1f26 !important;
+    }
+    /* Botão menu continua vermelho com texto branco */
+    [data-testid="stSidebarCollapsedControl"],
+    [data-testid="collapsedControl"] {
+        background: #e11d48 !important;
+    }
+    [data-testid="stSidebarCollapsedControl"]::after,
+    [data-testid="collapsedControl"]::after,
+    [data-testid="stSidebarCollapsedControl"] button,
+    [data-testid="collapsedControl"] button {
+        color: #ffffff !important;
+        -webkit-text-fill-color: #ffffff !important;
+    }
+    [data-testid="stSidebarCollapsedControl"] svg,
+    [data-testid="collapsedControl"] svg {
+        fill: #ffffff !important;
+        stroke: #ffffff !important;
+    }
+}
+
+/* Streamlit theme dark class fallback */
+[data-theme="dark"] .main,
+[data-theme="dark"] [data-testid="stAppViewContainer"],
+.stApp[data-theme="dark"] {
+    color: #1c1f26 !important;
+}
+
 </style>
 """,
     unsafe_allow_html=True,
