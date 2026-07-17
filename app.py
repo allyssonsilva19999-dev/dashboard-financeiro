@@ -2285,24 +2285,24 @@ button[data-testid="baseButton-headerNoPadding"] svg {
 /* ========== TEXTO SEMPRE VISÍVEL (claro e escuro) ========== */
 
 /* Força contraste no app principal — não some no dark mode do sistema/Streamlit */
-[data-testid="stAppViewContainer"],
 [data-testid="stAppViewContainer"] p,
 [data-testid="stAppViewContainer"] label,
-[data-testid="stAppViewContainer"] span,
 [data-testid="stAppViewContainer"] h1,
 [data-testid="stAppViewContainer"] h2,
 [data-testid="stAppViewContainer"] h3,
 [data-testid="stAppViewContainer"] h4,
-.main .block-container,
 .main .block-container p,
 .main .block-container label,
-[data-testid="stMarkdownContainer"],
 [data-testid="stMarkdownContainer"] p,
 [data-testid="stWidgetLabel"],
 [data-testid="stWidgetLabel"] p {
     color: #1c1f26 !important;
     -webkit-text-fill-color: #1c1f26 !important;
     opacity: 1 !important;
+}
+/* spans genéricos: não forçar dentro de botões */
+[data-testid="stAppViewContainer"] span:not(button span):not([data-testid="stFormSubmitButton"] *) {
+    color: inherit;
 }
 
 /* Secundário permanece legível (cinza escuro, não claro) */
@@ -2480,6 +2480,135 @@ ul[role="listbox"] * {
     background-repeat: no-repeat !important;
     background-position: center !important;
     background-size: 0.95rem 0.95rem !important;
+}
+
+
+/* ========== BOTÕES: TEXTO SEMPRE LEGÍVEL ========== */
+
+/* Primário / submit: fundo escuro + texto BRANCO */
+button[kind="primary"],
+button[kind="primaryFormSubmit"],
+button[data-testid="baseButton-primary"],
+button[data-testid="baseButton-primaryFormSubmit"],
+[data-testid="stFormSubmitButton"] button,
+div[data-testid="stForm"] button,
+.stButton > button[kind="primary"] {
+    background: #1c1f26 !important;
+    background-color: #1c1f26 !important;
+    color: #ffffff !important;
+    -webkit-text-fill-color: #ffffff !important;
+    border: none !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+}
+
+button[kind="primary"] *,
+button[kind="primaryFormSubmit"] *,
+button[data-testid="baseButton-primary"] *,
+button[data-testid="baseButton-primaryFormSubmit"] *,
+[data-testid="stFormSubmitButton"] button *,
+div[data-testid="stForm"] button *,
+.stButton > button[kind="primary"] * {
+    color: #ffffff !important;
+    -webkit-text-fill-color: #ffffff !important;
+    fill: #ffffff !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+}
+
+/* Secundário / apagar: fundo claro + texto ESCURO (nunca preto no preto) */
+button[kind="secondary"],
+button[kind="secondaryFormSubmit"],
+button[data-testid="baseButton-secondary"],
+button[data-testid="baseButton-secondaryFormSubmit"],
+.stButton > button[kind="secondary"],
+.stButton > button:not([kind="primary"]) {
+    background: #ffffff !important;
+    background-color: #ffffff !important;
+    color: #1c1f26 !important;
+    -webkit-text-fill-color: #1c1f26 !important;
+    border: 1.5px solid rgba(28, 31, 38, 0.16) !important;
+    box-shadow: 0 4px 12px rgba(28, 31, 38, 0.06) !important;
+    opacity: 1 !important;
+}
+
+button[kind="secondary"] *,
+button[kind="secondaryFormSubmit"] *,
+button[data-testid="baseButton-secondary"] *,
+button[data-testid="baseButton-secondaryFormSubmit"] *,
+.stButton > button[kind="secondary"] *,
+.stButton > button:not([kind="primary"]) * {
+    color: #1c1f26 !important;
+    -webkit-text-fill-color: #1c1f26 !important;
+    fill: #1c1f26 !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+}
+
+/* Botões de apagar: vermelho suave com texto legível */
+.stButton > button[kind="secondary"]:hover,
+button[data-testid="baseButton-secondary"]:hover {
+    background: #ffe4e8 !important;
+    color: #9b1c2e !important;
+    -webkit-text-fill-color: #9b1c2e !important;
+    border-color: rgba(225, 29, 72, 0.35) !important;
+}
+
+/* Fallback geral: qualquer botão do main */
+.main button,
+[data-testid="stAppViewContainer"] button {
+    opacity: 1 !important;
+}
+.main button p,
+.main button span,
+.main button div,
+[data-testid="stAppViewContainer"] button p,
+[data-testid="stAppViewContainer"] button span {
+    opacity: 1 !important;
+    visibility: visible !important;
+}
+
+
+/* ÚLTIMA CAMADA: botões nunca ficam com texto invisível */
+button[kind="primary"],
+button[kind="primaryFormSubmit"],
+button[data-testid="baseButton-primary"],
+button[data-testid="baseButton-primaryFormSubmit"],
+[data-testid="stFormSubmitButton"] button {
+    color: #ffffff !important;
+    -webkit-text-fill-color: #ffffff !important;
+    background: #1c1f26 !important;
+}
+button[kind="primary"] span,
+button[kind="primary"] p,
+button[kind="primaryFormSubmit"] span,
+button[kind="primaryFormSubmit"] p,
+button[data-testid="baseButton-primary"] span,
+button[data-testid="baseButton-primary"] p,
+button[data-testid="baseButton-primaryFormSubmit"] span,
+button[data-testid="baseButton-primaryFormSubmit"] p,
+[data-testid="stFormSubmitButton"] button span,
+[data-testid="stFormSubmitButton"] button p {
+    color: #ffffff !important;
+    -webkit-text-fill-color: #ffffff !important;
+}
+
+button[kind="secondary"],
+button[data-testid="baseButton-secondary"],
+.stButton > button[kind="secondary"] {
+    color: #1c1f26 !important;
+    -webkit-text-fill-color: #1c1f26 !important;
+    background: #ffffff !important;
+    border: 1.5px solid rgba(28,31,38,0.16) !important;
+}
+button[kind="secondary"] span,
+button[kind="secondary"] p,
+button[data-testid="baseButton-secondary"] span,
+button[data-testid="baseButton-secondary"] p,
+.stButton > button[kind="secondary"] span,
+.stButton > button[kind="secondary"] p {
+    color: #1c1f26 !important;
+    -webkit-text-fill-color: #1c1f26 !important;
 }
 
 </style>
@@ -4058,7 +4187,7 @@ elif pagina == "Dashboard":
 
                 pode_integrar = len(df_novo) > 0 or len(lista_div) > 0 or len(lista_meta) > 0
                 if pode_integrar:
-                    if st.button("Integrar tudo ao dashboard", type="primary", key="btn_integrar_planilha"):
+                    if st.button("Integrar tudo ao dashboard", type="primary", key="btn_integrar_planilha", use_container_width=True):
                         total, dup = importar_movimentacoes(df_imp) if len(df_imp) else (0, 0)
                         n_div = importar_dividas_lista(lista_div)
                         n_meta = importar_metas_lista(lista_meta)
@@ -4354,7 +4483,7 @@ elif pagina == "Metas":
 """,
                 unsafe_allow_html=True,
             )
-            if st.button("🗑️ Apagar meta", key=f"del_meta_{m['id']}"):
+            if st.button("Apagar meta", key=f"del_meta_{m['id']}", type="secondary"):
                 excluir_meta(m["id"])
                 st.rerun()
     else:
@@ -4477,7 +4606,7 @@ elif pagina == "Dívidas":
 """,
                 unsafe_allow_html=True,
             )
-            if st.button("🗑️ Apagar dívida", key=f"del_div_{d['id']}"):
+            if st.button("Apagar dívida", key=f"del_div_{d['id']}", type="secondary"):
                 excluir_divida(d["id"])
                 st.rerun()
     else:
@@ -4602,7 +4731,7 @@ elif pagina == "Investir":
 """,
                 unsafe_allow_html=True,
             )
-            if st.button("🗑️ Apagar investimento", key=f"del_inv_{inv['id']}"):
+            if st.button("Apagar investimento", key=f"del_inv_{inv['id']}", type="secondary"):
                 excluir_investimento(inv["id"])
                 st.rerun()
     else:
@@ -4702,7 +4831,7 @@ elif pagina == "Histórico":
                 rid = int(rec.get("id") or 0)
             except Exception:
                 rid = 0
-            if rid and st.button("Apagar", key=f"del_t_{rid}"):
+            if rid and st.button("Apagar", key=f"del_t_{rid}", type="secondary"):
                 excluir_transacao(rid)
                 st.rerun()
 
