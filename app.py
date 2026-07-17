@@ -2187,16 +2187,16 @@ div[data-baseweb="select"] svg {
 [data-testid="stSidebarCollapsedControl"],
 [data-testid="collapsedControl"] {
     position: fixed !important;
-    top: 0.65rem !important;
-    left: 0.65rem !important;
+    top: 0.5rem !important;
+    left: 0.5rem !important;
     z-index: 1000000 !important;
     display: flex !important;
     align-items: center !important;
-    gap: 0.35rem !important;
-    padding: 0.35rem 0.65rem 0.35rem 0.4rem !important;
+    gap: 0.3rem !important;
+    padding: 0.35rem 0.7rem 0.35rem 0.45rem !important;
     border-radius: 999px !important;
-    background: #e11d48 !important;
-    box-shadow: 0 6px 18px rgba(225, 29, 72, 0.35) !important;
+    background: #1c1f26 !important;
+    box-shadow: 0 4px 14px rgba(225, 29, 72, 0.35), 0 0 0 3px rgba(225, 29, 72, 0.12) !important;
     opacity: 1 !important;
     visibility: visible !important;
     pointer-events: auto !important;
@@ -2743,6 +2743,84 @@ section[data-testid="stSidebar"] ~ div [data-testid="stSidebarCollapsedControl"]
         padding: 0.4rem 0.85rem 0.4rem 0.55rem !important;
         background: #e11d48 !important;
         border: 2px solid #fff !important;
+    }
+}
+
+
+/* ========== MENU MOBILE: ícone preto + sombra vermelha leve ========== */
+[data-testid="stSidebarCollapsedControl"],
+[data-testid="collapsedControl"] {
+    position: fixed !important;
+    top: 0.5rem !important;
+    left: 0.5rem !important;
+    z-index: 2147483647 !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 0.3rem !important;
+    min-width: 2.6rem !important;
+    min-height: 2.6rem !important;
+    padding: 0.35rem 0.7rem 0.35rem 0.45rem !important;
+    border-radius: 999px !important;
+    background: #1c1f26 !important;
+    border: none !important;
+    box-shadow: 0 4px 14px rgba(225, 29, 72, 0.35), 0 0 0 3px rgba(225, 29, 72, 0.12) !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+    pointer-events: auto !important;
+}
+
+[data-testid="stSidebarCollapsedControl"] button,
+[data-testid="collapsedControl"] button,
+[data-testid="stSidebarCollapsedControl"] > button,
+[data-testid="collapsedControl"] > button {
+    background: transparent !important;
+    color: #ffffff !important;
+    -webkit-text-fill-color: #ffffff !important;
+    border: none !important;
+    box-shadow: none !important;
+    min-width: 1.6rem !important;
+    min-height: 1.6rem !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+}
+
+[data-testid="stSidebarCollapsedControl"] svg,
+[data-testid="collapsedControl"] svg,
+[data-testid="stSidebarCollapsedControl"] path,
+[data-testid="collapsedControl"] path,
+[data-testid="stSidebarCollapsedControl"] button svg,
+[data-testid="collapsedControl"] button svg {
+    fill: #ffffff !important;
+    color: #ffffff !important;
+    stroke: #ffffff !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+    width: 1.25rem !important;
+    height: 1.25rem !important;
+}
+
+[data-testid="stSidebarCollapsedControl"]::after,
+[data-testid="collapsedControl"]::after {
+    content: "Menu" !important;
+    color: #ffffff !important;
+    -webkit-text-fill-color: #ffffff !important;
+    font-weight: 800 !important;
+    font-size: 0.88rem !important;
+    font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif !important;
+    letter-spacing: 0.02em;
+    opacity: 1 !important;
+    visibility: visible !important;
+}
+
+@media (max-width: 768px) {
+    [data-testid="stSidebarCollapsedControl"],
+    [data-testid="collapsedControl"] {
+        top: 0.4rem !important;
+        left: 0.4rem !important;
+        min-height: 2.85rem !important;
+        background: #1c1f26 !important;
+        box-shadow: 0 5px 16px rgba(225, 29, 72, 0.4), 0 0 0 3px rgba(225, 29, 72, 0.14) !important;
     }
 }
 
