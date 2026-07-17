@@ -1189,6 +1189,176 @@ div[role="radiogroup"] label > div:last-child {
     -webkit-text-fill-color: #1c1f26 !important;
 }
 
+
+/* ========== POLISH ESTÉTICO ========== */
+
+/* Números alinhados e legíveis */
+.metric-value,
+.indicator-value,
+.answer-value,
+.positive,
+.negative {
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum" 1;
+}
+
+/* Cards: espaço reservado para ícone (não sobrepõe texto) */
+.metric-card,
+.indicator-card,
+.answer-card {
+    padding-right: 3.1rem !important;
+}
+
+.metric-card .metric-label,
+.metric-card .metric-value,
+.metric-card .metric-foot {
+    max-width: calc(100% - 0.25rem);
+    padding-right: 0.15rem;
+}
+
+.card-icon {
+    z-index: 2;
+    pointer-events: none;
+}
+
+/* Hierarquia: saldo maior */
+.metric-card.accent .metric-value {
+    font-size: clamp(1.55rem, 3vw, 2.15rem) !important;
+}
+
+/* Badges de score semânticos */
+.badge-score {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.28rem 0.75rem;
+    border-radius: 999px;
+    font-size: 0.78rem;
+    font-weight: 800;
+    letter-spacing: 0.01em;
+}
+.badge-score.good {
+    background: #c8f5df;
+    color: #0b6b45;
+}
+.badge-score.mid {
+    background: #fff0c2;
+    color: #8a5a00;
+}
+.badge-score.bad {
+    background: #ffd6db;
+    color: #9b1c2e;
+}
+
+/* Segmented control visual para radio horizontal */
+[data-testid="stRadio"] > div[role="radiogroup"] {
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: wrap !important;
+    gap: 0.5rem !important;
+    background: #eef0f4;
+    padding: 0.35rem;
+    border-radius: 999px;
+    width: fit-content;
+    max-width: 100%;
+}
+[data-testid="stRadio"] > div[role="radiogroup"] > label {
+    margin: 0 !important;
+    padding: 0.5rem 1.15rem !important;
+    border-radius: 999px !important;
+    background: transparent !important;
+    border: none !important;
+    min-height: 2.5rem !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 0.4rem !important;
+}
+[data-testid="stRadio"] > div[role="radiogroup"] > label[data-checked="true"],
+[data-testid="stRadio"] > div[role="radiogroup"] > label:has(input:checked) {
+    background: #d9ff00 !important;
+    box-shadow: 0 2px 10px rgba(217,255,0,0.35) !important;
+}
+[data-testid="stRadio"] label,
+[data-testid="stRadio"] label *,
+[data-testid="stRadio"] p,
+[data-testid="stRadio"] span {
+    color: #1c1f26 !important;
+    opacity: 1 !important;
+    -webkit-text-fill-color: #1c1f26 !important;
+    font-weight: 700 !important;
+    visibility: visible !important;
+}
+
+/* Tabs mais limpas: inativas cinza, ativas lime */
+div[data-testid="stTabs"] button[aria-selected="false"],
+button[role="tab"][aria-selected="false"] {
+    background: #eef0f4 !important;
+    color: #1c1f26 !important;
+    border: none !important;
+    opacity: 1 !important;
+}
+div[data-testid="stTabs"] button[aria-selected="true"],
+button[role="tab"][aria-selected="true"] {
+    background: #d9ff00 !important;
+    color: #1c1f26 !important;
+    border: none !important;
+    font-weight: 800 !important;
+}
+
+/* Subtítulos de seção */
+.section-title {
+    margin: 1.1rem 0 0.55rem;
+    font-size: 1.05rem;
+    font-weight: 800;
+    color: #1c1f26;
+    letter-spacing: -0.02em;
+}
+.section-sub {
+    margin: 0 0 0.9rem;
+    color: #8a90a0;
+    font-size: 0.88rem;
+    font-weight: 500;
+}
+
+/* Empty-ish intro cards */
+.chart-intro {
+    border-left: 3px solid #d9ff00;
+}
+
+/* Mobile: ícone menor e mais espaço para texto */
+@media (max-width: 640px) {
+    .metric-card,
+    .indicator-card,
+    .answer-card {
+        padding-right: 2.6rem !important;
+        padding-top: 0.95rem !important;
+        padding-bottom: 0.95rem !important;
+    }
+    .card-icon {
+        width: 1.55rem !important;
+        height: 1.55rem !important;
+        top: 0.75rem !important;
+        right: 0.7rem !important;
+        font-size: 0.7rem !important;
+    }
+    .metric-card.accent .metric-value {
+        font-size: 1.55rem !important;
+    }
+    [data-testid="stRadio"] > div[role="radiogroup"] {
+        width: 100%;
+    }
+    [data-testid="stRadio"] > div[role="radiogroup"] > label {
+        flex: 1 1 auto !important;
+        justify-content: center !important;
+        padding: 0.55rem 0.75rem !important;
+    }
+    /* Esconde emoji longo nas tabs no CSS se possível — tabs usam texto do st.tabs */
+    div[data-testid="stTabs"] button {
+        font-size: 0.78rem !important;
+        padding: 0.42rem 0.5rem !important;
+    }
+}
+
 </style>
 """,
     unsafe_allow_html=True,
@@ -1897,16 +2067,18 @@ taxa_sobra = (saldo / entradas * 100) if entradas > 0 else 0.0
 comprometimento = ((saidas + parcelas_dividas) / entradas * 100) if entradas > 0 else 0.0
 
 # ====================== CABEÇALHO ======================
+_score_cls = "good" if score >= 70 else ("mid" if score >= 45 else "bad")
+_score_label = "Saudável" if score >= 70 else ("Atenção" if score >= 45 else "Crítico")
 st.markdown(
     f"""
 <div class="page-header">
     <div>
-        <div style="display:flex; align-items:center; gap:0.6rem; margin-bottom:0.15rem;">
-            <span style="color:#8b90a0; font-weight:700; font-size:0.88rem;">Financeiro</span>
-            <span class="badge-new">Saúde {score}/100</span>
+        <div style="display:flex; align-items:center; gap:0.55rem; margin-bottom:0.2rem; flex-wrap:wrap;">
+            <span style="color:#8a90a0; font-weight:700; font-size:0.86rem;">Financeiro pessoal</span>
+            <span class="badge-score {_score_cls}">{_score_label} · {score}/100</span>
         </div>
-        <h1>Dashboard</h1>
-        <p>Veja seu dinheiro, metas e dívidas em um só lugar.</p>
+        <h1>Meu dinheiro</h1>
+        <p>Saldo, gastos, metas e dívidas em um só lugar.</p>
     </div>
     <div class="user-chip">
         <span class="avatar-dot">DF</span>
@@ -1917,33 +2089,33 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-# Cards principais (mix Influency lime + Lodgify mint)
+# Cards principais
 st.markdown(
     f"""
 <div class="metric-grid">
     <div class="metric-card accent">
-        <div class="card-icon">↗</div>
-        <div class="metric-label">Saldo atual</div>
+        <div class="card-icon" aria-hidden="true">↗</div>
+        <div class="metric-label">Saldo</div>
         <div class="metric-value">{brl(saldo)}</div>
-        <div class="metric-foot">Neste período</div>
+        <div class="metric-foot">Resultado do período</div>
     </div>
     <div class="metric-card mint">
-        <div class="card-icon">↑</div>
+        <div class="card-icon" aria-hidden="true">↑</div>
         <div class="metric-label">Entradas</div>
         <div class="metric-value">{brl(entradas)}</div>
-        <div class="metric-foot">Receitas registradas</div>
+        <div class="metric-foot">Tudo que entrou</div>
     </div>
     <div class="metric-card">
-        <div class="card-icon">↓</div>
+        <div class="card-icon" aria-hidden="true">↓</div>
         <div class="metric-label">Saídas</div>
         <div class="metric-value">{brl(saidas)}</div>
-        <div class="metric-foot">Despesas acumuladas</div>
+        <div class="metric-foot">Tudo que saiu</div>
     </div>
     <div class="metric-card">
-        <div class="card-icon">◆</div>
-        <div class="metric-label">Patrimônio</div>
+        <div class="card-icon" aria-hidden="true">◆</div>
+        <div class="metric-label">Investido</div>
         <div class="metric-value">{brl(total_investido)}</div>
-        <div class="metric-foot">Investimentos</div>
+        <div class="metric-foot">Patrimônio registrado</div>
     </div>
 </div>
 """,
@@ -1951,12 +2123,17 @@ st.markdown(
 )
 
 # ====================== ABAS ======================
-aba = st.tabs(["➕ Nova Movimentação", "📊 Dashboard", "🎯 Metas", "🤝 Dívidas", "📈 Investimentos", "📋 Histórico"])
+aba = st.tabs(["➕ Nova", "📊 Resumo", "🎯 Metas", "🤝 Dívidas", "📈 Investir", "📋 Histórico"])
 
 # ---------- ABA 1: Nova Movimentação ----------
 with aba[0]:
-    st.subheader("Adicionar Nova Movimentação")
-    tipo_sel = st.radio("Tipo", ["Entrada", "Saída"], horizontal=True)
+    st.subheader("Registrar movimentação")
+    tipo_sel = st.radio(
+        "Tipo da movimentação",
+        ["Entrada", "Saída"],
+        horizontal=True,
+        help="Entrada = dinheiro que entra. Saída = dinheiro que sai.",
+    )
 
     with st.form("form_mov"):
         c1, c2 = st.columns(2)
@@ -1983,24 +2160,24 @@ with aba[0]:
                 valor_final = valor if tipo_sel == "Entrada" else -abs(valor)
                 try:
                     salvar_transacao(data_mov, descricao.strip(), categoria, valor_final, tipo_sel, cartao.strip())
-                    st.success("Movimentação salva!")
+                    st.success("Pronto! Movimentação registrada.")
                     st.rerun()
                 except Exception as e:
                     st.error(mensagem_erro_usuario(e))
 
 # ---------- ABA 2: Dashboard ----------
 with aba[1]:
-    st.subheader("Dashboard em Tempo Real")
+    st.subheader("Como está meu dinheiro?")
 
     # Indicadores
     st.markdown(
         f"""
 <div class="indicator-grid">
     <div class="indicator-card">
-        <div class="indicator-top">Score financeiro</div>
+        <div class="indicator-top">Saúde financeira</div>
         <div class="indicator-value">{score}/100</div>
-        <div class="indicator-note">Combina saldo, dívidas, reserva e metas.</div>
-        <div class="progress-track"><span style="width:{limitar_percentual(score)}%"></span></div>
+        <div class="indicator-note">{_score_label} · saldo, dívidas, reserva e metas.</div>
+        <div class="progress-track"><span style="width:{limitar_percentual(score)}%;background:{'#0d9f6e' if score >= 70 else ('#e6b400' if score >= 45 else '#e04b5a')}"></span></div>
     </div>
     <div class="indicator-card">
         <div class="indicator-top">Taxa de sobra</div>
@@ -2118,7 +2295,7 @@ with aba[1]:
 
         fig = px.line(
             df_proj, x="Mês", y="Saldo projetado", color="Cenário",
-            title="Como deve ficar meu dinheiro nos próximos meses?",
+            title="E nos próximos meses?",
             markers=True,
             color_discrete_map={"Bom": "#0d9f6e", "Normal": "#d9ff00", "Apertado": "#e04b5a"},
             labels={"Saldo projetado": "Saldo projetado", "Mês": "Mês"},
@@ -2194,7 +2371,7 @@ with aba[1]:
             df_tl["saldo_acumulado"] = df_tl["valor"].cumsum()
             fig_saldo = px.area(
                 df_tl, x="data_convertida", y="saldo_acumulado",
-                title="Saldo acumulado ao longo do tempo",
+                title="Meu saldo ao longo do tempo",
                 labels={"data_convertida": "Data", "saldo_acumulado": "Saldo"},
             )
             fig_saldo.update_traces(
@@ -2233,7 +2410,7 @@ with aba[1]:
                 names="categoria",
                 values="valor_abs",
                 hole=0.58,
-                title="Distribuição por categoria",
+                title="Para onde vai o dinheiro?",
                 color_discrete_sequence=[
                     "#d9ff00", "#1c1f26", "#7ed9b0", "#a8c4ff",
                     "#b8f0d8", "#c5c9d4", "#f3ff9a",
@@ -2270,7 +2447,7 @@ with aba[1]:
                 x="categoria",
                 y="valor_abs",
                 color="tipo",
-                title="Entradas x Saídas",
+                title="O que entra e o que sai",
                 color_discrete_map={"Entrada": "#d9ff00", "Saída": "#1c1f26"},
                 labels={"categoria": "Categoria", "valor_abs": "Valor", "tipo": "Tipo"},
                 barmode="group",
@@ -2298,7 +2475,7 @@ with aba[1]:
                 x="valor_abs",
                 y="categoria",
                 orientation="h",
-                title="Categorias que mais movimentam dinheiro",
+                title="O que mais mexe com o bolso",
                 color="valor_abs",
                 color_continuous_scale=["#e8faf3", "#7ed9b0", "#1c1f26"],
                 labels={"valor_abs": "Valor", "categoria": ""},
@@ -2340,7 +2517,7 @@ with aba[1]:
                 names="cartao",
                 values="valor_abs",
                 hole=0.58,
-                title="Formas de pagamento",
+                title="Como eu pago?",
                 color_discrete_sequence=["#1c1f26", "#d9ff00", "#7ed9b0", "#a8c4ff", "#b8f0d8", "#c5c9d4"],
             )
             fig4.update_traces(
@@ -2372,7 +2549,7 @@ with aba[1]:
                 x="mes",
                 y=["entradas", "saidas"],
                 barmode="group",
-                title="Evolução mensal consolidada",
+                title="Mês a mês",
                 color_discrete_map={"entradas": "#d9ff00", "saidas": "#1c1f26"},
                 labels={"mes": "Mês", "value": "Valor", "variable": "Tipo"},
             )
@@ -2644,7 +2821,7 @@ with aba[4]:
                 names="tipo",
                 values="valor",
                 hole=0.58,
-                title="Distribuição dos investimentos",
+                title="Onde está investido?",
                 color_discrete_sequence=["#1c1f26", "#d9ff00", "#7ed9b0", "#a8c4ff", "#b8f0d8", "#c5c9d4"],
             )
             if len(tipo_inv) > 5:
@@ -2658,7 +2835,7 @@ with aba[4]:
                     names="tipo",
                     values="valor",
                     hole=0.58,
-                    title="Distribuição dos investimentos",
+                    title="Onde está investido?",
                     color_discrete_sequence=["#1c1f26", "#d9ff00", "#7ed9b0", "#a8c4ff", "#b8f0d8", "#c5c9d4"],
                 )
             fig.update_traces(
@@ -2679,7 +2856,7 @@ with aba[4]:
             fig2 = px.bar(
                 investimentos.groupby("status", as_index=False)["valor"].sum(),
                 x="status", y="valor", color="status",
-                title="Valores por status",
+                title="Status dos investimentos",
                 color_discrete_map={"Ativo": "#0d9f6e", "Planejado": "#7ed9b0", "Resgatado": "#a8c4ff"},
                 labels={"status": "Status", "valor": "Valor"},
             )
