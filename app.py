@@ -17,7 +17,7 @@ st.set_page_config(
     page_title="Dashboard Financeiro",
     layout="wide",
     page_icon="📊",
-    initial_sidebar_state="auto",
+    initial_sidebar_state="expanded",
 )
 
 DB_FILE = "financeiro.db"
@@ -397,16 +397,25 @@ h1, h2, h3 {
 }
 
 .answer-good {
-    background: var(--mint-soft);
-    border: 1px solid rgba(126, 217, 176, 0.3);
+    background: #e8faf3;
+    border: 1px solid rgba(126, 217, 176, 0.35);
 }
 .answer-care {
-    background: #fff8e8;
-    border: 1px solid rgba(230, 180, 60, 0.25);
+    background: #f7ffc8;
+    border: 1px solid rgba(217, 255, 0, 0.45);
 }
 .answer-risk {
-    background: #ffecee;
-    border: 1px solid rgba(224, 75, 90, 0.2);
+    background: #eef0f4;
+    border: 1px solid rgba(28, 31, 38, 0.12);
+}
+.answer-card .answer-question {
+    color: #6b7280 !important;
+}
+.answer-card .answer-value {
+    color: #1c1f26 !important;
+}
+.answer-card .answer-action {
+    color: #6b7280 !important;
 }
 
 /* Header */
@@ -635,16 +644,42 @@ div[data-testid="stDownloadButton"] button {
 }
 
 .stButton > button,
-[data-testid="stFormSubmitButton"] button {
+[data-testid="stFormSubmitButton"] button,
+div[data-testid="stForm"] button,
+button[kind="primary"],
+button[kind="primaryFormSubmit"],
+button[data-testid="baseButton-primary"],
+button[data-testid="baseButton-secondaryFormSubmit"],
+button[data-testid="baseButton-primaryFormSubmit"] {
     border: 0 !important;
-    color: #fff !important;
+    color: #ffffff !important;
+    -webkit-text-fill-color: #ffffff !important;
     background: #1c1f26 !important;
+    opacity: 1 !important;
+}
+
+.stButton > button *,
+[data-testid="stFormSubmitButton"] button *,
+div[data-testid="stForm"] button *,
+button[kind="primary"] *,
+button[kind="primaryFormSubmit"] *,
+button[data-testid="baseButton-primary"] p,
+button[data-testid="baseButton-primaryFormSubmit"] p,
+button[data-testid="baseButton-secondaryFormSubmit"] p {
+    color: #ffffff !important;
+    -webkit-text-fill-color: #ffffff !important;
+    opacity: 1 !important;
+    fill: #ffffff !important;
 }
 
 .stButton > button:hover,
-[data-testid="stFormSubmitButton"] button:hover {
+[data-testid="stFormSubmitButton"] button:hover,
+div[data-testid="stForm"] button:hover,
+button[kind="primary"]:hover,
+button[kind="primaryFormSubmit"]:hover {
     background: #2d323c !important;
-    color: #fff !important;
+    color: #ffffff !important;
+    -webkit-text-fill-color: #ffffff !important;
     transform: translateY(-1px);
     box-shadow: 0 8px 20px rgba(28, 31, 38, 0.12) !important;
 }
@@ -1817,18 +1852,87 @@ div[data-testid="stForm"] {
 }
 
 /* Botão primary do form */
+div[data-testid="stForm"] [data-testid="stFormSubmitButton"] button,
 div[data-testid="stForm"] [data-testid="stFormSubmitButton"] button[kind="primary"],
-div[data-testid="stForm"] button[kind="primaryFormSubmit"] {
+div[data-testid="stForm"] button[kind="primaryFormSubmit"],
+div[data-testid="stForm"] button[data-testid="baseButton-primaryFormSubmit"],
+div[data-testid="stForm"] button[data-testid="baseButton-secondaryFormSubmit"] {
     background: #1c1f26 !important;
-    color: #fff !important;
+    color: #ffffff !important;
+    -webkit-text-fill-color: #ffffff !important;
     border: none !important;
     min-height: 3rem !important;
     font-weight: 800 !important;
+    opacity: 1 !important;
+}
+div[data-testid="stForm"] [data-testid="stFormSubmitButton"] button *,
+div[data-testid="stForm"] button[kind="primaryFormSubmit"] *,
+div[data-testid="stForm"] button[data-testid="baseButton-primaryFormSubmit"] * {
+    color: #ffffff !important;
+    -webkit-text-fill-color: #ffffff !important;
+    opacity: 1 !important;
 }
 
 /* Espaço entre radio e formulário */
 div[data-testid="stForm"] {
     margin-top: 0.65rem !important;
+}
+
+
+/* ========== SIDEBAR MENU ========== */
+[data-testid="stSidebar"] {
+    background: #ffffff !important;
+    border-right: 1px solid rgba(28,31,38,0.06);
+}
+[data-testid="stSidebar"] [data-testid="stRadio"] > div[role="radiogroup"] {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 0.35rem !important;
+    background: transparent !important;
+    padding: 0 !important;
+    border-radius: 0 !important;
+    width: 100% !important;
+}
+[data-testid="stSidebar"] [data-testid="stRadio"] > div[role="radiogroup"] > label {
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0.7rem 0.95rem !important;
+    border-radius: 12px !important;
+    background: transparent !important;
+    border: none !important;
+    min-height: 2.7rem !important;
+    justify-content: flex-start !important;
+}
+[data-testid="stSidebar"] [data-testid="stRadio"] > div[role="radiogroup"] > label[data-checked="true"],
+[data-testid="stSidebar"] [data-testid="stRadio"] > div[role="radiogroup"] > label:has(input:checked) {
+    background: #d9ff00 !important;
+    box-shadow: 0 4px 14px rgba(217,255,0,0.25) !important;
+}
+[data-testid="stSidebar"] [data-testid="stRadio"] label,
+[data-testid="stSidebar"] [data-testid="stRadio"] label *,
+[data-testid="stSidebar"] [data-testid="stRadio"] p,
+[data-testid="stSidebar"] [data-testid="stRadio"] span {
+    color: #1c1f26 !important;
+    -webkit-text-fill-color: #1c1f26 !important;
+    opacity: 1 !important;
+    font-weight: 700 !important;
+    visibility: visible !important;
+}
+/* Esconde o círculo do radio na sidebar — parece menu */
+[data-testid="stSidebar"] [data-testid="stRadio"] input,
+[data-testid="stSidebar"] [data-baseweb="radio"] > div:first-child,
+[data-testid="stSidebar"] [data-baseweb="radio"] > span:first-child {
+    display: none !important;
+}
+
+/* Garante texto do botão visível em qualquer tema Streamlit */
+[data-testid="stFormSubmitButton"] button,
+[data-testid="stFormSubmitButton"] button p,
+[data-testid="stFormSubmitButton"] button span,
+[data-testid="stFormSubmitButton"] button div {
+    color: #ffffff !important;
+    -webkit-text-fill-color: #ffffff !important;
+    opacity: 1 !important;
 }
 
 </style>
@@ -2605,11 +2709,38 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-# ====================== ABAS ======================
-aba = st.tabs(["Nova", "Resumo", "Metas", "Dívidas", "Investir", "Histórico"])
+# ====================== MENU LATERAL ======================
+MENU_OPCOES = ["Nova", "Resumo", "Metas", "Dívidas", "Investir", "Histórico"]
+with st.sidebar:
+    st.markdown(
+        """
+        <div style="padding:0.35rem 0.15rem 0.85rem;">
+            <div style="font-size:0.75rem;font-weight:800;letter-spacing:0.04em;color:#8a90a0;text-transform:uppercase;">Menu</div>
+            <div style="font-size:1.15rem;font-weight:800;color:#1c1f26;margin-top:0.2rem;">Meu dinheiro</div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+    pagina = st.radio(
+        "Navegação",
+        MENU_OPCOES,
+        index=0,
+        label_visibility="collapsed",
+        key="menu_nav",
+    )
+    st.markdown(
+        f"""
+        <div style="margin-top:1rem;padding:0.85rem 0.9rem;border-radius:14px;background:#f3f4f7;border:1px solid rgba(28,31,38,0.06);">
+            <div style="font-size:0.75rem;font-weight:700;color:#8a90a0;">Saúde financeira</div>
+            <div style="font-size:1.25rem;font-weight:800;color:#1c1f26;margin-top:0.2rem;">{score}/100</div>
+            <div style="font-size:0.78rem;color:#6b7280;margin-top:0.15rem;">{_score_label}</div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
 # ---------- ABA 1: Nova Movimentação ----------
-with aba[0]:
+if pagina == "Nova":
     st.subheader("Registrar movimentação")
     tipo_sel = st.radio(
         "Tipo da movimentação",
@@ -2644,7 +2775,7 @@ with aba[0]:
             )
             cartao = st.text_input("Forma de pagamento", placeholder="Ex.: Pix, débito, crédito...")
 
-        if st.form_submit_button("Salvar movimentação", use_container_width=True, type="primary"):
+        if st.form_submit_button("Salvar movimentação", use_container_width=True):
             if not descricao.strip():
                 st.error("Informe uma descrição.")
             elif valor is None or float(valor) <= 0:
@@ -2659,7 +2790,7 @@ with aba[0]:
                     st.error(mensagem_erro_usuario(e))
 
 # ---------- ABA 2: Dashboard ----------
-with aba[1]:
+if pagina == "Resumo":
     st.subheader("Como está meu dinheiro?")
 
     # Indicadores
@@ -3071,7 +3202,7 @@ with aba[1]:
         st.info("Cadastre ou importe movimentações para ver os gráficos.")
 
 # ---------- ABA 3: Metas ----------
-with aba[2]:
+if pagina == "Metas":
     st.subheader("Metas")
     st.markdown(
         """<div class="chart-intro"><strong>Minhas metas</strong><br>
@@ -3140,7 +3271,7 @@ with aba[2]:
         st.info("Nenhuma meta cadastrada ainda.")
 
 # ---------- ABA 4: Dívidas ----------
-with aba[3]:
+if pagina == "Dívidas":
     st.subheader("Dívidas e Negociação")
     st.markdown(
         """<div class="chart-intro"><strong>Controle de dívidas</strong><br>
@@ -3263,7 +3394,7 @@ with aba[3]:
         st.info("Nenhuma dívida cadastrada ainda.")
 
 # ---------- ABA 5: Investimentos ----------
-with aba[4]:
+if pagina == "Investir":
     st.subheader("Investimentos")
     with st.form("form_inv"):
         st.markdown("#### Adicionar investimento")
@@ -3388,7 +3519,7 @@ with aba[4]:
         st.info("Nenhum investimento cadastrado ainda.")
 
 # ---------- ABA 6: Histórico ----------
-with aba[5]:
+if pagina == "Histórico":
     st.subheader("Histórico")
     st.markdown(
         f"""<div class="history-summary"><strong>Relatório detalhado</strong><br>
