@@ -3679,12 +3679,18 @@ def importar_metas_lista(lista: list[dict]) -> int:
 def gerar_pdf(df, investimentos, dividas, metas) -> bytes:
     """Relatório visual no modelo aprovado (capa, fluxo, categorias, dívidas, metas, alertas)."""
     from io import BytesIO
-    from reportlab.lib.pagesizes import A4
-    from reportlab.lib.units import mm
-    from reportlab.lib.colors import Color, white
-    from reportlab.pdfgen import canvas as pdf_canvas
-    from reportlab.pdfbase import pdfmetrics
-    from reportlab.pdfbase.ttfonts import TTFont
+    try:
+        from reportlab.lib.pagesizes import A4
+        from reportlab.lib.units import mm
+        from reportlab.lib.colors import Color, white
+        from reportlab.pdfgen import canvas as pdf_canvas
+        from reportlab.pdfbase import pdfmetrics
+        from reportlab.pdfbase.ttfonts import TTFont
+    except ModuleNotFoundError as e:
+        raise ModuleNotFoundError(
+            "Biblioteca reportlab não instalada. No Streamlit Cloud, inclua "
+            "'reportlab>=4.0.0' no requirements.txt e faça o redeploy."
+        ) from e
 
     # Fonte com suporte a português
     try:
@@ -4299,15 +4305,25 @@ elif pagina == "Dashboard":
     st.subheader("Como está meu dinheiro?")
     with st.expander("Baixar relatório em PDF", expanded=False):
         st.caption("Gera o relatório completo no modelo visual (3 páginas).")
-        st.download_button(
-            "Baixar relatório completo em PDF",
-            data=gerar_pdf(df, investimentos, dividas, metas),
-            file_name=f"relatorio-financeiro-{date.today().strftime('%d-%m-%Y')}.pdf",
-            mime="application/pdf",
-            type="primary",
-            use_container_width=True,
-            key="pdf_dashboard",
-        )
+        try:
+            _pdf_bytes = gerar_pdf(df, investimentos, dividas, metas)
+            st.download_button(
+                "Baixar relatório completo em PDF",
+                data=_pdf_bytes,
+                file_name=f"relatorio-financeiro-{date.today().strftime('%d-%m-%Y')}.pdf",
+                mime="application/pdf",
+                type="primary",
+                use_container_width=True,
+                key="pdf_dashboard",
+            )
+        except ModuleNotFoundError:
+            st.error(
+                "Para gerar o PDF no Streamlit Cloud, adicione no requirements.txt:\n"
+                "`reportlab>=4.0.0`\n"
+                "Depois faça **Reboot** / **Redeploy** do app."
+            )
+        except Exception as e:
+            st.error(f"Não foi possível gerar o PDF: {mensagem_erro_usuario(e)}")
 
     # Indicadores
     st.markdown(
@@ -5091,15 +5107,24 @@ elif pagina == "Histórico":
         unsafe_allow_html=True,
     )
 
-    st.download_button(
-        "Baixar relatório completo em PDF",
-        data=gerar_pdf(df, investimentos, dividas, metas),
-        file_name=f"relatorio-financeiro-{date.today().strftime('%d-%m-%Y')}.pdf",
-        mime="application/pdf",
-        type="primary",
-        use_container_width=True,
-    )
-    st.caption("Capa, fluxo, categorias, dívidas, metas, projeção e alertas — modelo visual aprovado.")
+    try:
+        _pdf_hist = gerar_pdf(df, investimentos, dividas, metas)
+        st.download_button(
+            "Baixar relatório completo em PDF",
+            data=_pdf_hist,
+            file_name=f"relatorio-financeiro-{date.today().strftime('%d-%m-%Y')}.pdf",
+            mime="application/pdf",
+            type="primary",
+            use_container_width=True,
+            key="pdf_historico",
+        )
+        st.caption("Capa, fluxo, categorias, dívidas, metas, projeção e alertas — modelo visual aprovado.")
+    except ModuleNotFoundError:
+        st.error(
+            "Para gerar o PDF no Streamlit Cloud, adicione `reportlab>=4.0.0` no requirements.txt e faça redeploy."
+        )
+    except Exception as e:
+        st.error(f"Não foi possível gerar o PDF: {mensagem_erro_usuario(e)}")
 
 
     if len(df):
