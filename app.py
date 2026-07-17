@@ -1551,6 +1551,286 @@ div[data-testid="stTabs"] [data-baseweb="tab-list"]::-webkit-scrollbar {
     }
 }
 
+
+/* ========== HEADER QUOTE + TABS + INPUTS CLEAN ========== */
+
+.page-header {
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: flex-start !important;
+    gap: 1.25rem !important;
+    flex-wrap: wrap !important;
+    margin: 0 0 1.15rem !important;
+}
+
+.page-quote {
+    max-width: 16.5rem;
+    padding: 0.85rem 1rem;
+    border-radius: 16px;
+    background: rgba(255, 255, 255, 0.78);
+    border: 1px solid rgba(28, 31, 38, 0.06);
+    box-shadow: 0 6px 18px rgba(28, 31, 38, 0.04);
+    align-self: center;
+}
+
+.page-quote-mark {
+    display: block;
+    font-size: 1.4rem;
+    line-height: 1;
+    color: #d9ff00;
+    font-weight: 900;
+    margin-bottom: 0.15rem;
+}
+
+.page-quote-text {
+    display: block;
+    color: #374151 !important;
+    font-size: 0.88rem;
+    font-weight: 600;
+    line-height: 1.45;
+}
+
+/* Abas / balões com espaçamento claro */
+div[data-testid="stTabs"] {
+    margin-top: 0.35rem !important;
+    margin-bottom: 0.75rem !important;
+}
+
+div[data-testid="stTabs"] [data-baseweb="tab-list"] {
+    gap: 0.55rem !important;
+    padding: 0.2rem 0 0.55rem !important;
+    flex-wrap: wrap !important;
+    border-bottom: none !important;
+}
+
+div[data-testid="stTabs"] button,
+button[role="tab"],
+button[data-baseweb="tab"] {
+    margin: 0 !important;
+    padding: 0.55rem 1.15rem !important;
+    min-height: 2.55rem !important;
+    border-radius: 999px !important;
+    background: #eef0f4 !important;
+    color: #1c1f26 !important;
+    -webkit-text-fill-color: #1c1f26 !important;
+    border: 1px solid transparent !important;
+    box-shadow: none !important;
+    font-weight: 700 !important;
+    font-size: 0.9rem !important;
+    letter-spacing: 0.01em;
+}
+
+div[data-testid="stTabs"] button[aria-selected="true"],
+button[role="tab"][aria-selected="true"] {
+    background: #d9ff00 !important;
+    color: #1c1f26 !important;
+    -webkit-text-fill-color: #1c1f26 !important;
+    border-color: transparent !important;
+    box-shadow: 0 4px 14px rgba(217, 255, 0, 0.28) !important;
+    font-weight: 800 !important;
+}
+
+div[data-testid="stTabs"] [data-baseweb="tab-highlight"],
+div[data-testid="stTabs"] [data-baseweb="tab-border"],
+div[data-testid="stTabs"] hr {
+    display: none !important;
+    height: 0 !important;
+    opacity: 0 !important;
+}
+
+/* Remove underline vermelha padrão Streamlit */
+div[data-testid="stTabs"] [data-baseweb="tab-border"],
+div[data-testid="stTabs"] button::after {
+    display: none !important;
+}
+
+/* ========== INPUTS: uma linha só (sem borda duplicada) ========== */
+
+/* Container Baseweb sem borda extra */
+div[data-baseweb="input"],
+div[data-baseweb="base-input"],
+div[data-baseweb="select"] > div,
+div[data-baseweb="select"] > div > div {
+    border: none !important;
+    box-shadow: none !important;
+    background: transparent !important;
+    outline: none !important;
+}
+
+/* Campo real com UMA borda */
+.stTextInput input,
+.stNumberInput input,
+.stDateInput input,
+.stTextArea textarea,
+div[data-baseweb="input"] input,
+div[data-baseweb="select"] [data-baseweb="select"] ,
+div[data-baseweb="select"] > div {
+    border: 1.5px solid rgba(28, 31, 38, 0.12) !important;
+    border-radius: 12px !important;
+    background: #ffffff !important;
+    box-shadow: none !important;
+    outline: none !important;
+    min-height: 2.7rem !important;
+}
+
+/* Number input wrapper Streamlit */
+[data-testid="stNumberInput"] > div,
+[data-testid="stTextInput"] > div,
+[data-testid="stDateInput"] > div,
+[data-testid="stSelectbox"] > div {
+    border: none !important;
+    box-shadow: none !important;
+    background: transparent !important;
+}
+
+[data-testid="stNumberInput"] input,
+[data-testid="stTextInput"] input,
+[data-testid="stDateInput"] input {
+    border: 1.5px solid rgba(28, 31, 38, 0.12) !important;
+    border-radius: 12px !important;
+    background: #fff !important;
+    box-shadow: none !important;
+}
+
+/* Remove anel/outline duplicado no focus do wrapper */
+[data-testid="stNumberInput"] div:focus-within,
+[data-testid="stTextInput"] div:focus-within,
+[data-testid="stDateInput"] div:focus-within,
+[data-testid="stSelectbox"] div:focus-within,
+div[data-baseweb="input"]:focus-within,
+div[data-baseweb="select"] > div:focus-within {
+    border: none !important;
+    box-shadow: none !important;
+    outline: none !important;
+}
+
+[data-testid="stNumberInput"] input:focus,
+[data-testid="stTextInput"] input:focus,
+[data-testid="stDateInput"] input:focus,
+.stTextArea textarea:focus {
+    border-color: rgba(126, 217, 176, 0.85) !important;
+    box-shadow: 0 0 0 3px rgba(184, 240, 216, 0.35) !important;
+    outline: none !important;
+}
+
+/* Form surface */
+div[data-testid="stForm"] {
+    border: 1px solid rgba(28, 31, 38, 0.06) !important;
+    box-shadow: 0 6px 18px rgba(28, 31, 38, 0.04) !important;
+    padding: 1rem 1.1rem 1.15rem !important;
+}
+
+@media (max-width: 640px) {
+    .page-header {
+        flex-direction: column !important;
+        gap: 0.75rem !important;
+    }
+    .page-quote {
+        max-width: 100%;
+        width: 100%;
+    }
+    div[data-testid="stTabs"] [data-baseweb="tab-list"] {
+        gap: 0.4rem !important;
+        flex-wrap: nowrap !important;
+        overflow-x: auto !important;
+    }
+    div[data-testid="stTabs"] button,
+    button[role="tab"] {
+        flex: 0 0 auto !important;
+        padding: 0.5rem 0.95rem !important;
+        font-size: 0.84rem !important;
+    }
+}
+
+
+/* ========== NUMBER INPUT + FORM POLISH ========== */
+
+/* Streamlit number input: evita “linha dupla” do stepper */
+[data-testid="stNumberInput"] {
+    width: 100%;
+}
+[data-testid="stNumberInput"] > div {
+    border: none !important;
+    box-shadow: none !important;
+    background: transparent !important;
+}
+[data-testid="stNumberInput"] [data-baseweb="input"] {
+    border: none !important;
+    background: transparent !important;
+    box-shadow: none !important;
+}
+[data-testid="stNumberInput"] input {
+    border: 1.5px solid rgba(28, 31, 38, 0.12) !important;
+    border-radius: 12px !important;
+    background: #fff !important;
+    box-shadow: none !important;
+    min-height: 2.75rem !important;
+    padding: 0.55rem 0.85rem !important;
+    color: #1c1f26 !important;
+    -webkit-text-fill-color: #1c1f26 !important;
+    font-variant-numeric: tabular-nums;
+}
+/* botões +/- do number input */
+[data-testid="stNumberInput"] button {
+    border: none !important;
+    background: #f3f4f7 !important;
+    color: #1c1f26 !important;
+    border-radius: 8px !important;
+    min-height: 1.6rem !important;
+    box-shadow: none !important;
+}
+
+/* Date / text: mesma regra limpa */
+[data-testid="stDateInput"] input,
+[data-testid="stTextInput"] input {
+    border: 1.5px solid rgba(28, 31, 38, 0.12) !important;
+    border-radius: 12px !important;
+    background: #fff !important;
+    box-shadow: none !important;
+    min-height: 2.75rem !important;
+    color: #1c1f26 !important;
+    -webkit-text-fill-color: #1c1f26 !important;
+}
+[data-testid="stDateInput"] > div,
+[data-testid="stTextInput"] > div,
+[data-testid="stSelectbox"] > div {
+    border: none !important;
+    box-shadow: none !important;
+    background: transparent !important;
+}
+
+/* Select */
+[data-testid="stSelectbox"] [data-baseweb="select"] > div {
+    border: 1.5px solid rgba(28, 31, 38, 0.12) !important;
+    border-radius: 12px !important;
+    background: #fff !important;
+    box-shadow: none !important;
+    min-height: 2.75rem !important;
+    color: #1c1f26 !important;
+}
+
+/* Caption de ajuda mais discreta */
+[data-testid="stCaptionContainer"] p,
+.stCaption {
+    color: #6b7280 !important;
+    font-size: 0.84rem !important;
+}
+
+/* Botão primary do form */
+div[data-testid="stForm"] [data-testid="stFormSubmitButton"] button[kind="primary"],
+div[data-testid="stForm"] button[kind="primaryFormSubmit"] {
+    background: #1c1f26 !important;
+    color: #fff !important;
+    border: none !important;
+    min-height: 3rem !important;
+    font-weight: 800 !important;
+}
+
+/* Espaço entre radio e formulário */
+div[data-testid="stForm"] {
+    margin-top: 0.65rem !important;
+}
+
 </style>
 """,
     unsafe_allow_html=True,
@@ -2261,6 +2541,17 @@ comprometimento = ((saidas + parcelas_dividas) / entradas * 100) if entradas > 0
 # ====================== CABEÇALHO ======================
 _score_cls = "good" if score >= 70 else ("mid" if score >= 45 else "bad")
 _score_label = "Saudável" if score >= 70 else ("Atenção" if score >= 45 else "Crítico")
+# Frase motivacional rotativa simples (baseada no dia)
+_frases_futuro = [
+    "Cada real de hoje constrói o amanhã que você escolhe.",
+    "O futuro agradece quem organiza o presente.",
+    "Pequenos passos financeiros hoje viram liberdade depois.",
+    "Cuidar do agora é o jeito mais simples de cuidar do futuro.",
+    "Disciplina no bolso é paz no amanhã.",
+    "Seu futuro financeiro começa na próxima decisão.",
+]
+_frase = _frases_futuro[date.today().toordinal() % len(_frases_futuro)]
+
 st.markdown(
     f"""
 <div class="page-header">
@@ -2271,6 +2562,10 @@ st.markdown(
         </div>
         <h1>Meu dinheiro</h1>
         <p class="page-sub">Saldo, gastos, metas e dívidas em um só lugar.</p>
+    </div>
+    <div class="page-quote">
+        <span class="page-quote-mark">“</span>
+        <span class="page-quote-text">{_frase}</span>
     </div>
 </div>
 """,
@@ -2324,29 +2619,38 @@ with aba[0]:
     )
     st.caption("Entrada = dinheiro que entra · Saída = dinheiro que sai")
 
-    with st.form("form_mov"):
+    with st.form("form_mov", clear_on_submit=False):
         c1, c2 = st.columns(2)
         with c1:
             data_mov = st.date_input("Data", value=date.today(), format="DD/MM/YYYY")
-            descricao = st.text_input("Descrição")
+            descricao = st.text_input("Descrição", placeholder="Ex.: Mercado, salário, Uber...")
             if tipo_sel == "Entrada":
-                categoria = st.selectbox("Categoria", ["Salário", "Rendas Extras", "Freelance", "Reembolso", "Outro"])
+                categoria = st.selectbox(
+                    "Categoria",
+                    ["Salário", "Rendas Extras", "Freelance", "Reembolso", "Outro"],
+                )
             else:
                 categoria = st.selectbox(
                     "Categoria",
                     ["Mercado", "Aluguel", "Contas", "Lazer", "Roupa", "Beleza", "Transporte", "Dívidas", "Outro"],
                 )
         with c2:
-            valor = st.number_input("Valor R$", value=0.0, min_value=0.0, step=0.01)
-            cartao = st.text_input("Forma de pagamento")
+            valor = st.number_input(
+                "Valor (R$)",
+                min_value=0.0,
+                value=0.0,
+                step=1.0,
+                format="%.2f",
+            )
+            cartao = st.text_input("Forma de pagamento", placeholder="Ex.: Pix, débito, crédito...")
 
-        if st.form_submit_button("Salvar movimentação"):
+        if st.form_submit_button("Salvar movimentação", use_container_width=True, type="primary"):
             if not descricao.strip():
                 st.error("Informe uma descrição.")
-            elif valor <= 0:
+            elif valor is None or float(valor) <= 0:
                 st.error("Informe um valor maior que zero.")
             else:
-                valor_final = valor if tipo_sel == "Entrada" else -abs(valor)
+                valor_final = float(valor) if tipo_sel == "Entrada" else -abs(float(valor))
                 try:
                     salvar_transacao(data_mov, descricao.strip(), categoria, valor_final, tipo_sel, cartao.strip())
                     st.success("Pronto! Movimentação registrada.")
