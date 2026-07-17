@@ -259,7 +259,7 @@ h1, h2, h3 {
 
 [data-testid="stSidebar"] .stRadio [role="radiogroup"] label[data-checked="true"],
 [data-testid="stSidebar"] .stRadio [aria-checked="true"] {
-    background: var(--lime) !important;
+    background: #1c1f26 !important;
     color: var(--ink) !important;
     font-weight: 800 !important;
     box-shadow: 0 4px 14px rgba(217, 255, 0, 0.25);
@@ -2763,8 +2763,8 @@ section[data-testid="stSidebar"] ~ div [data-testid="stSidebarCollapsedControl"]
     padding: 0.35rem 0.7rem 0.35rem 0.45rem !important;
     border-radius: 999px !important;
     background: #ffffff !important;
-    border: 1.5px solid rgba(225, 29, 72, 0.45) !important;
-    box-shadow: 0 0 0 3px rgba(225, 29, 72, 0.12), 0 4px 14px rgba(225, 29, 72, 0.28) !important;
+    border: 1.5px solid rgba(225, 29, 72, 0.55) !important;
+    box-shadow: 0 0 0 2px rgba(225, 29, 72, 0.10), 0 3px 10px rgba(225, 29, 72, 0.18) !important;
     opacity: 1 !important;
     visibility: visible !important;
     pointer-events: auto !important;
@@ -2841,8 +2841,8 @@ section[data-testid="stSidebar"] ~ div [data-testid="stSidebarCollapsedControl"]
     background: #ffffff !important;
     background-color: #ffffff !important;
     border-radius: 999px !important;
-    border: 1.5px solid rgba(225, 29, 72, 0.45) !important;
-    box-shadow: 0 0 0 3px rgba(225, 29, 72, 0.12), 0 4px 14px rgba(225, 29, 72, 0.28) !important;
+    border: 1.5px solid rgba(225, 29, 72, 0.55) !important;
+    box-shadow: 0 0 0 2px rgba(225, 29, 72, 0.10), 0 3px 10px rgba(225, 29, 72, 0.18) !important;
     min-width: 2.75rem !important;
     min-height: 2.75rem !important;
     padding: 0.3rem 0.65rem !important;
@@ -2919,9 +2919,192 @@ button[kind="headerNoPadding"] svg,
         min-width: 3rem !important;
         min-height: 3rem !important;
         background: #ffffff !important;
-        border: 1.5px solid rgba(225, 29, 72, 0.5) !important;
-        box-shadow: 0 0 0 3px rgba(225, 29, 72, 0.14), 0 5px 16px rgba(225, 29, 72, 0.3) !important;
+        border: 1.5px solid rgba(225, 29, 72, 0.55) !important;
+        box-shadow: 0 0 0 2px rgba(225, 29, 72, 0.10), 0 3px 10px rgba(225, 29, 72, 0.18) !important;
     }
+}
+
+
+/* ========== MENU ESTILO REFERÊNCIA (rail / painel claro) ========== */
+
+[data-testid="stSidebar"] {
+    background: #f4f5f7 !important;
+    border-right: none !important;
+}
+[data-testid="stSidebar"] > div:first-child {
+    background: #f4f5f7 !important;
+    padding-top: 0.75rem !important;
+}
+[data-testid="stSidebar"] [data-testid="stVerticalBlock"] {
+    gap: 0.35rem !important;
+}
+
+/* Card do menu — painel branco arredondado */
+[data-testid="stSidebar"] [data-testid="stVerticalBlockBorderWrapper"],
+[data-testid="stSidebar"] section {
+    background: transparent !important;
+}
+
+.side-brand {
+    padding: 0.55rem 0.35rem 0.85rem 0.45rem;
+}
+.side-menu-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    font-size: 1.05rem;
+    font-weight: 800;
+    color: #1c1f26;
+    letter-spacing: -0.02em;
+}
+.side-spark {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.55rem;
+    height: 1.55rem;
+    border-radius: 50%;
+    background: #ffffff;
+    color: #1c1f26;
+    font-size: 0.85rem;
+    box-shadow: 0 2px 8px rgba(28, 31, 38, 0.08);
+}
+.side-title { display: none !important; }
+.side-menu-dot { display: none !important; }
+
+/* Radio do menu = lista limpa */
+[data-testid="stSidebar"] [data-testid="stRadio"] > div[role="radiogroup"] {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 0.28rem !important;
+    background: transparent !important;
+    padding: 0.15rem 0 !important;
+    border: none !important;
+    border-radius: 0 !important;
+    width: 100% !important;
+    box-shadow: none !important;
+}
+
+[data-testid="stSidebar"] [data-testid="stRadio"] > div[role="radiogroup"] > label {
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0.72rem 0.95rem !important;
+    border-radius: 999px !important;
+    background: transparent !important;
+    border: none !important;
+    min-height: 2.65rem !important;
+    justify-content: flex-start !important;
+    box-shadow: none !important;
+    transition: background 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
+}
+
+/* Item inativo */
+[data-testid="stSidebar"] [data-testid="stRadio"] > div[role="radiogroup"] > label p,
+[data-testid="stSidebar"] [data-testid="stRadio"] > div[role="radiogroup"] > label span,
+[data-testid="stSidebar"] [data-testid="stRadio"] label,
+[data-testid="stSidebar"] [data-testid="stRadio"] label * {
+    color: #3a3f4b !important;
+    -webkit-text-fill-color: #3a3f4b !important;
+    font-weight: 600 !important;
+    font-size: 0.95rem !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+}
+
+/* Hover */
+[data-testid="stSidebar"] [data-testid="stRadio"] > div[role="radiogroup"] > label:hover {
+    background: #ffffff !important;
+    box-shadow: 0 2px 10px rgba(28, 31, 38, 0.06) !important;
+}
+
+/* Item ATIVO — pílula preta (como Threads na referência) */
+[data-testid="stSidebar"] [data-testid="stRadio"] > div[role="radiogroup"] > label[data-checked="true"],
+[data-testid="stSidebar"] [data-testid="stRadio"] > div[role="radiogroup"] > label:has(input:checked),
+[data-testid="stSidebar"] [data-testid="stRadio"] [aria-checked="true"] {
+    background: #1c1f26 !important;
+    box-shadow: 0 6px 18px rgba(28, 31, 38, 0.16) !important;
+}
+[data-testid="stSidebar"] [data-testid="stRadio"] > div[role="radiogroup"] > label[data-checked="true"] p,
+[data-testid="stSidebar"] [data-testid="stRadio"] > div[role="radiogroup"] > label[data-checked="true"] span,
+[data-testid="stSidebar"] [data-testid="stRadio"] > div[role="radiogroup"] > label[data-checked="true"] *,
+[data-testid="stSidebar"] [data-testid="stRadio"] > div[role="radiogroup"] > label:has(input:checked) p,
+[data-testid="stSidebar"] [data-testid="stRadio"] > div[role="radiogroup"] > label:has(input:checked) span,
+[data-testid="stSidebar"] [data-testid="stRadio"] > div[role="radiogroup"] > label:has(input:checked) *,
+[data-testid="stSidebar"] [data-testid="stRadio"] [aria-checked="true"] p,
+[data-testid="stSidebar"] [data-testid="stRadio"] [aria-checked="true"] * {
+    color: #ffffff !important;
+    -webkit-text-fill-color: #ffffff !important;
+    font-weight: 700 !important;
+}
+
+/* Esconde círculo do radio */
+[data-testid="stSidebar"] [data-testid="stRadio"] input,
+[data-testid="stSidebar"] [data-baseweb="radio"] > div:first-child,
+[data-testid="stSidebar"] [data-baseweb="radio"] > span:first-child {
+    display: none !important;
+}
+
+/* Score card no estilo da referência */
+.side-score {
+    margin-top: 1rem;
+    padding: 0.9rem 1rem;
+    border-radius: 18px;
+    background: #ffffff;
+    border: none;
+    box-shadow: 0 4px 16px rgba(28, 31, 38, 0.06);
+}
+.side-score-label {
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: #8a90a0;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+.side-score-value {
+    font-size: 1.35rem;
+    font-weight: 800;
+    color: #1c1f26;
+    margin-top: 0.25rem;
+}
+.side-score-note {
+    font-size: 0.8rem;
+    color: #6b7280;
+    margin-top: 0.15rem;
+}
+
+/* Card da conta */
+[data-testid="stSidebar"] .stMarkdown + div {
+    border-radius: 16px;
+}
+
+/* Botão Sair — secundário limpo */
+[data-testid="stSidebar"] .stButton > button {
+    background: #ffffff !important;
+    color: #1c1f26 !important;
+    -webkit-text-fill-color: #1c1f26 !important;
+    border: none !important;
+    border-radius: 999px !important;
+    box-shadow: 0 2px 10px rgba(28, 31, 38, 0.06) !important;
+    font-weight: 700 !important;
+}
+[data-testid="stSidebar"] .stButton > button * {
+    color: #1c1f26 !important;
+    -webkit-text-fill-color: #1c1f26 !important;
+}
+[data-testid="stSidebar"] .stButton > button:hover {
+    background: #1c1f26 !important;
+    color: #ffffff !important;
+    -webkit-text-fill-color: #ffffff !important;
+}
+[data-testid="stSidebar"] .stButton > button:hover * {
+    color: #ffffff !important;
+    -webkit-text-fill-color: #ffffff !important;
+}
+
+/* Remove fundo lime antigo do item ativo na sidebar */
+[data-testid="stSidebar"] .stRadio [role="radiogroup"] label[data-checked="true"],
+[data-testid="stSidebar"] .stRadio [aria-checked="true"] {
+    background: #1c1f26 !important;
 }
 
 </style>
@@ -4790,8 +4973,10 @@ with st.sidebar:
     st.markdown(
         """
         <div class="side-brand">
-            <div class="side-menu-label"><span class="side-menu-dot"></span>Menu</div>
-            <div class="side-title">Meu dinheiro</div>
+            <div class="side-menu-label">
+                <span class="side-spark">✦</span>
+                <span>Menu</span>
+            </div>
         </div>
         """,
         unsafe_allow_html=True,
