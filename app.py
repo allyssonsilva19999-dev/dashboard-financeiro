@@ -193,11 +193,15 @@ html, body, [class*="css"] {
 
 [data-testid="stAppViewContainer"] {
     background:
-        radial-gradient(circle at 0% 0%, rgba(184, 240, 216, 0.32), transparent 26rem),
-        radial-gradient(circle at 100% 0%, rgba(217, 255, 0, 0.10), transparent 20rem),
-        radial-gradient(circle at 90% 90%, rgba(168, 196, 255, 0.16), transparent 24rem),
-        var(--bg) !important;
+        radial-gradient(circle at 0% 0%, rgba(217, 255, 0, 0.28), transparent 22rem),
+        radial-gradient(circle at 100% 0%, rgba(184, 240, 216, 0.42), transparent 24rem),
+        radial-gradient(circle at 15% 85%, rgba(168, 196, 255, 0.30), transparent 22rem),
+        radial-gradient(circle at 90% 90%, rgba(217, 255, 0, 0.14), transparent 18rem),
+        linear-gradient(180deg, #f7fff0 0%, #f3f4f7 45%, #eef8ff 100%) !important;
     color: var(--ink);
+}
+section.main {
+    background: transparent !important;
 }
 
 [data-testid="stHeader"],
@@ -1935,6 +1939,102 @@ div[data-testid="stForm"] {
     opacity: 1 !important;
 }
 
+
+/* ========== MENU LABEL + COLLAPSE VERMELHO + SELECT ICON ========== */
+
+.side-brand {
+    padding: 0.2rem 0.1rem 0.9rem;
+}
+.side-menu-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.78rem;
+    font-weight: 800;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: #1c1f26;
+}
+.side-menu-dot {
+    width: 0.55rem;
+    height: 0.55rem;
+    border-radius: 50%;
+    background: #e11d48;
+    box-shadow: 0 0 0 3px rgba(225, 29, 72, 0.18);
+    flex-shrink: 0;
+}
+.side-title {
+    font-size: 1.2rem;
+    font-weight: 800;
+    color: #1c1f26;
+    margin-top: 0.3rem;
+    letter-spacing: -0.02em;
+}
+
+/* Botão de recolher sidebar — ícone/vermelho */
+[data-testid="stSidebarCollapsedControl"] button,
+[data-testid="stSidebarCollapseButton"] button,
+[data-testid="collapsedControl"] button,
+button[kind="headerNoPadding"],
+[data-testid="stBaseButton-headerNoPadding"],
+[data-testid="stSidebar"] button[kind="header"],
+section[data-testid="stSidebar"] > div:first-child button {
+    color: #e11d48 !important;
+}
+[data-testid="stSidebarCollapsedControl"] button svg,
+[data-testid="stSidebarCollapseButton"] button svg,
+[data-testid="collapsedControl"] button svg,
+button[kind="headerNoPadding"] svg,
+[data-testid="stBaseButton-headerNoPadding"] svg,
+section[data-testid="stSidebar"] > div:first-child button svg,
+[data-testid="stSidebarCollapsedControl"] svg,
+[data-testid="collapsedControl"] svg {
+    fill: #e11d48 !important;
+    color: #e11d48 !important;
+    stroke: #e11d48 !important;
+}
+
+/* Select: corrige ícone □ preto — usa chevron legível */
+[data-testid="stSelectbox"] svg,
+div[data-baseweb="select"] svg,
+[data-baseweb="select"] svg {
+    width: 1rem !important;
+    height: 1rem !important;
+    color: #1c1f26 !important;
+    fill: #1c1f26 !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+}
+/* Remove fill agressivo em path que vira quadrado */
+[data-testid="stSelectbox"] svg path,
+div[data-baseweb="select"] svg path {
+    fill: #1c1f26 !important;
+    stroke: none !important;
+}
+
+/* Dropdown do select: texto escuro */
+div[data-baseweb="popover"] li,
+div[data-baseweb="menu"] li,
+ul[role="listbox"] li,
+[role="option"] {
+    color: #1c1f26 !important;
+    -webkit-text-fill-color: #1c1f26 !important;
+}
+
+/* Value do select legível */
+[data-testid="stSelectbox"] [data-baseweb="select"] > div,
+[data-testid="stSelectbox"] [data-baseweb="select"] span {
+    color: #1c1f26 !important;
+    -webkit-text-fill-color: #1c1f26 !important;
+    opacity: 1 !important;
+}
+
+/* Number input steppers: ícones legíveis */
+[data-testid="stNumberInput"] button svg {
+    fill: #1c1f26 !important;
+    color: #1c1f26 !important;
+}
+
 </style>
 """,
     unsafe_allow_html=True,
@@ -2710,13 +2810,16 @@ st.markdown(
 )
 
 # ====================== MENU LATERAL ======================
-MENU_OPCOES = ["Nova", "Resumo", "Metas", "Dívidas", "Investir", "Histórico"]
+MENU_OPCOES = ["Nova", "Dashboard", "Metas", "Dívidas", "Investir", "Histórico"]
 with st.sidebar:
     st.markdown(
         """
-        <div style="padding:0.35rem 0.15rem 0.85rem;">
-            <div style="font-size:0.75rem;font-weight:800;letter-spacing:0.04em;color:#8a90a0;text-transform:uppercase;">Menu</div>
-            <div style="font-size:1.15rem;font-weight:800;color:#1c1f26;margin-top:0.2rem;">Meu dinheiro</div>
+        <div class="side-brand">
+            <div class="side-menu-label">
+                <span class="side-menu-dot"></span>
+                Menu
+            </div>
+            <div class="side-title">Meu dinheiro</div>
         </div>
         """,
         unsafe_allow_html=True,
@@ -2790,7 +2893,7 @@ if pagina == "Nova":
                     st.error(mensagem_erro_usuario(e))
 
 # ---------- ABA 2: Dashboard ----------
-if pagina == "Resumo":
+if pagina == "Dashboard":
     st.subheader("Como está meu dinheiro?")
 
     # Indicadores
