@@ -3688,21 +3688,24 @@ def render_login_page():
     col_l, col_c, col_r = st.columns([1, 1.35, 1])
     with col_c:
         tem_usuarios = contar_usuarios() > 0
-        opcoes = ["Entrar", "Criar conta", "Esqueci a senha"] if tem_usuarios else ["Criar conta", "Entrar"]
+        if "login_modo_ui" not in st.session_state:
+            st.session_state.login_modo_ui = "Criar conta" if not tem_usuarios else "Entrar"
         if st.session_state.get("recup_etapa") in ("codigo", "pedido"):
-            if "Esqueci a senha" not in opcoes:
-                opcoes = [*opcoes, "Esqueci a senha"]
-            default_i = opcoes.index("Esqueci a senha")
-        else:
-            default_i = 0
+            st.session_state.login_modo_ui = "Esqueci a senha"
+
+        opcoes = ["Entrar", "Criar conta", "Esqueci a senha"]
+        if st.session_state.login_modo_ui not in opcoes:
+            st.session_state.login_modo_ui = opcoes[0]
+
         modo = st.radio(
             "Acesso",
             opcoes,
-            index=min(default_i, len(opcoes) - 1),
+            index=opcoes.index(st.session_state.login_modo_ui),
             horizontal=True,
             label_visibility="collapsed",
-            key="login_modo",
+            key="login_modo_radio",
         )
+        st.session_state.login_modo_ui = modo
 
         if modo != "Esqueci a senha":
             st.session_state.pop("recup_etapa", None)
@@ -3723,6 +3726,10 @@ def render_login_page():
                         st.rerun()
                     else:
                         st.error("E-mail ou senha incorretos.")
+            if st.button("Esqueci minha senha", key="btn_esqueci_senha", use_container_width=True):
+                st.session_state.login_modo_ui = "Esqueci a senha"
+                st.session_state.recup_etapa = "pedido"
+                st.rerun()
 
         elif modo == "Criar conta":
             with st.form("form_registro", clear_on_submit=False):
@@ -3747,15 +3754,14 @@ def render_login_page():
 
         else:
             st.markdown("##### Recuperar acesso")
-            st.caption("Informe o e-mail da conta. Você receberá um código de 6 dígitos (válido por 15 minutos).")
-            etapa = st.session_state.get("recup_etapa", "pedido")
+            st.caption("Informe o e-mail da conta. Um código de 6 dígitos será gerado (válido por 15 minutos).")
 
-            if etapa != "codigo":
+            if st.session_state.get("recup_etapa") != "codigo":
                 with st.form("form_recup_pedido", clear_on_submit=False):
                     email_r = st.text_input("E-mail da conta", placeholder="voce@email.com")
                     ok_r = st.form_submit_button("Enviar código", use_container_width=True)
                     if ok_r:
-                        ok_s, msg_s, codigo_demo = solicitar_redefinicao(email_r)
+                        _ok_s, msg_s, codigo_demo = solicitar_redefinicao(email_r)
                         st.session_state.recup_email = limpar_texto(email_r).lower()
                         st.session_state.recup_etapa = "codigo"
                         st.session_state.recup_msg = msg_s
@@ -3788,6 +3794,7 @@ def render_login_page():
                             if ok_x:
                                 for k in ("recup_etapa", "recup_email", "recup_msg", "recup_codigo_demo"):
                                     st.session_state.pop(k, None)
+                                st.session_state.login_modo_ui = "Entrar"
                                 st.success(msg_x)
                                 st.rerun()
                             else:
@@ -3797,7 +3804,13 @@ def render_login_page():
                         st.session_state.pop(k, None)
                     st.rerun()
 
-        st.caption("Cada conta tem seus próprios lançamentos, dívidas e metas. Login válido por 90 dias (renova ao usar).")
+            if st.button("Voltar para Entrar", key="btn_voltar_entrar"):
+                st.session_state.login_modo_ui = "Entrar"
+                for k in ("recup_etapa", "recup_email", "recup_msg", "recup_codigo_demo"):
+                    st.session_state.pop(k, None)
+                st.rerun()
+
+    st.caption("Cada conta tem seus próprios lançamentos, dívidas e metas. Login válido por 90 dias (renova ao usar).")
 
 
 def carregar_dados(uid: int | None = None) -> pd.DataFrame:
