@@ -23,14 +23,60 @@ st.set_page_config(
 )
 
 DB_FILE = "financeiro.db"
+_USANDO_DB_REMOTO = False
+
+
+def _segredo(*chaves: str):
+    """Lê st.secrets ou variável de ambiente."""
+    import os
+    for chave in chaves:
+        try:
+            val = st.secrets.get(chave)
+            if val:
+                return str(val).strip()
+        except Exception:
+            pass
+        val = os.environ.get(chave)
+        if val:
+            return str(val).strip()
+    return None
 
 
 def get_conn():
-    """Conexao SQLite resiliente."""
+    """
+    Conexão durável:
+    1) Turso (remoto) se TURSO_DATABASE_URL + TURSO_AUTH_TOKEN estiverem nos Secrets
+    2) SQLite local (dev / fallback)
+    """
+    global _USANDO_DB_REMOTO
+    url = _segredo("TURSO_DATABASE_URL", "TURSO_URL")
+    token = _segredo("TURSO_AUTH_TOKEN", "TURSO_TOKEN")
+
+    if url and token:
+        try:
+            import libsql_experimental as libsql
+            conn = libsql.connect(url, auth_token=token)
+            _USANDO_DB_REMOTO = True
+            return conn
+        except Exception as e:
+            # Se o remoto falhar, não mascara o erro em produção configurada
+            try:
+                st.warning(f"Banco remoto indisponível, usando SQLite local. ({e})")
+            except Exception:
+                pass
+
+    _USANDO_DB_REMOTO = False
     conn = sqlite3.connect(DB_FILE, timeout=30, check_same_thread=False)
-    conn.execute("PRAGMA journal_mode=DELETE")
-    conn.execute("PRAGMA busy_timeout=30000")
+    try:
+        conn.execute("PRAGMA journal_mode=DELETE")
+        conn.execute("PRAGMA busy_timeout=30000")
+    except Exception:
+        pass
     return conn
+
+
+def banco_eh_remoto() -> bool:
+    return bool(_USANDO_DB_REMOTO)
 
 
 # ====================== UTILITÁRIOS ======================
@@ -3202,6 +3248,27 @@ def init_db():
         except Exception:
             pass
 
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS sessoes (
+            token TEXT PRIMARY KEY,
+            user_id INTEGER NOT NULL,
+            criado_em TEXT NOT NULL,
+            expira_em TEXT NOT NULL
+        )
+    """)
+
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS redefinicoes_senha (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            codigo_hash TEXT NOT NULL,
+            salt TEXT NOT NULL,
+            criado_em TEXT NOT NULL,
+            expira_em TEXT NOT NULL,
+            usado INTEGER NOT NULL DEFAULT 0
+        )
+    """)
+
     conn.commit()
     conn.close()
 
@@ -3287,14 +3354,314 @@ def user_id_atual() -> int | None:
     return int(u["id"]) if u else None
 
 
+COOKIE_SESSAO = "df_sessao"
+DIAS_SESSAO = 90
+
+
+def _cookie_manager():
+    """Cookie no navegador para manter login entre reloads / sono do app."""
+    try:
+        import extra_streamlit_components as stx
+        # key estável evita recriar o component a cada rerun
+        return stx.CookieManager(key="df_cookie_mgr")
+    except Exception:
+        return None
+
+
+def criar_sessao(user_id: int, dias: int = DIAS_SESSAO) -> str:
+    token = py_secrets.token_urlsafe(32)
+    agora = datetime.now()
+    expira = agora + timedelta(days=dias)
+    conn = get_conn()
+    conn.execute(
+        "INSERT INTO sessoes (token, user_id, criado_em, expira_em) VALUES (?, ?, ?, ?)",
+        (token, int(user_id), agora.isoformat(timespec="seconds"), expira.isoformat(timespec="seconds")),
+    )
+    # limpa sessões vencidas
+    conn.execute("DELETE FROM sessoes WHERE expira_em < ?", (agora.isoformat(timespec="seconds"),))
+    conn.commit()
+    conn.close()
+    return token
+
+
+def usuario_por_token(token: str | None):
+    if not token:
+        return None
+    agora = datetime.now().isoformat(timespec="seconds")
+    conn = get_conn()
+    row = conn.execute(
+        """
+        SELECT u.id, u.email, u.nome
+        FROM sessoes s
+        JOIN usuarios u ON u.id = s.user_id
+        WHERE s.token = ? AND s.expira_em >= ?
+        """,
+        (token, agora),
+    ).fetchone()
+    conn.close()
+    if not row:
+        return None
+    return {"id": int(row[0]), "email": row[1], "nome": row[2]}
+
+
+def revogar_sessao(token: str | None):
+    if not token:
+        return
+    conn = get_conn()
+    conn.execute("DELETE FROM sessoes WHERE token = ?", (token,))
+    conn.commit()
+    conn.close()
+
+
+def _salvar_token_cookie(token: str):
+    cm = _cookie_manager()
+    if cm is not None:
+        try:
+            cm.set(COOKIE_SESSAO, token, expires_at=datetime.now() + timedelta(days=DIAS_SESSAO))
+        except Exception:
+            pass
+    # fallback: query param (sobrevive a refresh na mesma aba)
+    try:
+        st.query_params[COOKIE_SESSAO] = token
+    except Exception:
+        pass
+    st.session_state["_token_sessao"] = token
+
+
+def _ler_token_cookie() -> str | None:
+    if st.session_state.get("_token_sessao"):
+        return st.session_state.get("_token_sessao")
+    # query params
+    try:
+        qp = st.query_params.get(COOKIE_SESSAO)
+        if qp:
+            return qp
+    except Exception:
+        pass
+    cm = _cookie_manager()
+    if cm is not None:
+        try:
+            val = cm.get(COOKIE_SESSAO)
+            if val:
+                return val
+        except Exception:
+            pass
+    return None
+
+
+def _limpar_token_cookie():
+    st.session_state.pop("_token_sessao", None)
+    try:
+        if COOKIE_SESSAO in st.query_params:
+            del st.query_params[COOKIE_SESSAO]
+    except Exception:
+        pass
+    cm = _cookie_manager()
+    if cm is not None:
+        try:
+            cm.delete(COOKIE_SESSAO)
+        except Exception:
+            pass
+
+
+def renovar_sessao(token: str | None, dias: int = DIAS_SESSAO):
+    """Estende a validade a cada acesso (sessão deslizante)."""
+    if not token:
+        return
+    nova_expira = (datetime.now() + timedelta(days=dias)).isoformat(timespec="seconds")
+    conn = get_conn()
+    try:
+        conn.execute(
+            "UPDATE sessoes SET expira_em = ? WHERE token = ?",
+            (nova_expira, token),
+        )
+        conn.commit()
+    except Exception:
+        pass
+    finally:
+        conn.close()
+    # renova cookie também
+    cm = _cookie_manager()
+    if cm is not None:
+        try:
+            cm.set(COOKIE_SESSAO, token, expires_at=datetime.now() + timedelta(days=dias))
+        except Exception:
+            pass
+
+
+def restaurar_sessao_se_houver() -> bool:
+    """Se não houver usuário na memória, tenta cookie/token persistente."""
+    if st.session_state.get("usuario"):
+        # renova em acessos seguintes
+        token = st.session_state.get("_token_sessao") or _ler_token_cookie()
+        if token:
+            renovar_sessao(token)
+        return True
+    token = _ler_token_cookie()
+    user = usuario_por_token(token)
+    if user:
+        st.session_state.usuario = user
+        st.session_state["_token_sessao"] = token
+        if "pagina_atual" not in st.session_state:
+            st.session_state.pagina_atual = "Dashboard"
+        renovar_sessao(token)
+        return True
+    return False
+
+
+def iniciar_sessao_usuario(user: dict):
+    token = criar_sessao(user["id"])
+    st.session_state.usuario = user
+    st.session_state.pagina_atual = "Dashboard"
+    _salvar_token_cookie(token)
+
+
 def fazer_logout():
-    for k in ("usuario", "pagina_atual", "menu_mounted"):
+    token = st.session_state.get("_token_sessao") or _ler_token_cookie()
+    revogar_sessao(token)
+    _limpar_token_cookie()
+    for k in ("usuario", "pagina_atual", "menu_mounted", "_token_sessao"):
         if k in st.session_state:
             del st.session_state[k]
 
 
+def _usuario_por_email(email: str):
+    email_n = limpar_texto(email).lower()
+    if not email_n or "@" not in email_n:
+        return None
+    conn = get_conn()
+    row = conn.execute(
+        "SELECT id, email, nome FROM usuarios WHERE email = ?",
+        (email_n,),
+    ).fetchone()
+    conn.close()
+    if not row:
+        return None
+    return {"id": int(row[0]), "email": row[1], "nome": row[2]}
+
+
+def _gerar_codigo_recuperacao() -> str:
+    return f"{py_secrets.randbelow(1_000_000):06d}"
+
+
+def solicitar_redefinicao(email: str) -> tuple[bool, str, str | None]:
+    """Gera código de 6 dígitos válido por 15 minutos."""
+    user = _usuario_por_email(email)
+    msg_padrao = "Se este e-mail estiver cadastrado, um código de recuperação foi gerado."
+    if not user:
+        return True, msg_padrao, None
+
+    codigo = _gerar_codigo_recuperacao()
+    codigo_hash, salt = _hash_senha(codigo)
+    agora = datetime.now()
+    expira = agora + timedelta(minutes=15)
+
+    conn = get_conn()
+    conn.execute(
+        "UPDATE redefinicoes_senha SET usado = 1 WHERE user_id = ? AND usado = 0",
+        (user["id"],),
+    )
+    conn.execute(
+        """
+        INSERT INTO redefinicoes_senha (user_id, codigo_hash, salt, criado_em, expira_em, usado)
+        VALUES (?, ?, ?, ?, ?, 0)
+        """,
+        (
+            user["id"],
+            codigo_hash,
+            salt,
+            agora.isoformat(timespec="seconds"),
+            expira.isoformat(timespec="seconds"),
+        ),
+    )
+    conn.commit()
+    conn.close()
+
+    enviado = _enviar_email_recuperacao(user["email"], user["nome"], codigo)
+    if enviado:
+        return True, "Enviamos um código de 6 dígitos para o seu e-mail. Ele vale por 15 minutos.", None
+    return True, "Código gerado. Use-o abaixo para criar uma nova senha (válido por 15 minutos).", codigo
+
+
+def _enviar_email_recuperacao(email: str, nome: str, codigo: str) -> bool:
+    """Tenta enviar por Resend (RESEND_API_KEY nos Secrets)."""
+    api_key = _segredo("RESEND_API_KEY")
+    de = _segredo("EMAIL_FROM") or "Meu Dinheiro <onboarding@resend.dev>"
+    if not api_key:
+        return False
+    try:
+        import urllib.request
+        import json as _json
+        payload = _json.dumps({
+            "from": de,
+            "to": [email],
+            "subject": "Código para redefinir sua senha",
+            "text": (
+                f"Olá, {nome}!\n\n"
+                f"Seu código de recuperação é: {codigo}\n\n"
+                f"Ele vale por 15 minutos. Se você não pediu isso, ignore este e-mail.\n"
+            ),
+        }).encode("utf-8")
+        req = urllib.request.Request(
+            "https://api.resend.com/emails",
+            data=payload,
+            headers={
+                "Authorization": f"Bearer {api_key}",
+                "Content-Type": "application/json",
+            },
+            method="POST",
+        )
+        with urllib.request.urlopen(req, timeout=12) as resp:
+            return 200 <= getattr(resp, "status", 200) < 300
+    except Exception:
+        return False
+
+
+def redefinir_senha_com_codigo(email: str, codigo: str, nova_senha: str) -> tuple[bool, str]:
+    if len(limpar_texto(nova_senha)) < 6:
+        return False, "A nova senha precisa ter pelo menos 6 caracteres."
+    user = _usuario_por_email(email)
+    if not user:
+        return False, "Não foi possível redefinir. Verifique o e-mail e o código."
+
+    agora = datetime.now().isoformat(timespec="seconds")
+    conn = get_conn()
+    rows = conn.execute(
+        """
+        SELECT id, codigo_hash, salt FROM redefinicoes_senha
+        WHERE user_id = ? AND usado = 0 AND expira_em >= ?
+        ORDER BY id DESC LIMIT 5
+        """,
+        (user["id"], agora),
+    ).fetchall()
+
+    match_id = None
+    for rid, codigo_hash, salt in rows:
+        teste, _ = _hash_senha(limpar_texto(codigo), salt)
+        if py_secrets.compare_digest(teste, codigo_hash):
+            match_id = rid
+            break
+
+    if match_id is None:
+        conn.close()
+        return False, "Código inválido ou expirado. Solicite um novo."
+
+    nova_hash, novo_salt = _hash_senha(nova_senha)
+    conn.execute(
+        "UPDATE usuarios SET senha_hash = ?, salt = ? WHERE id = ?",
+        (nova_hash, novo_salt, user["id"]),
+    )
+    conn.execute("UPDATE redefinicoes_senha SET usado = 1 WHERE user_id = ?", (user["id"],))
+    conn.execute("DELETE FROM sessoes WHERE user_id = ?", (user["id"],))
+    conn.commit()
+    conn.close()
+    return True, "Senha alterada com sucesso. Entre com a nova senha."
+
+
 def render_login_page():
-    """Tela de entrada — login e criação de conta."""
+    """Tela de entrada — login, criação de conta e recuperação de senha."""
+    _cookie_manager()
+
     st.markdown(
         """
         <div style="max-width:420px;margin:1.5rem auto 0;">
@@ -3310,7 +3677,7 @@ def render_login_page():
                     Meu dinheiro
                 </h1>
                 <p style="color:#6b7280;font-size:0.95rem;margin:0;">
-                    Entre na sua conta. Seus dados ficam só com você.
+                    Entre na sua conta. A sessão fica salva por 90 dias e renova a cada acesso.
                 </p>
             </div>
         </div>
@@ -3321,13 +3688,27 @@ def render_login_page():
     col_l, col_c, col_r = st.columns([1, 1.35, 1])
     with col_c:
         tem_usuarios = contar_usuarios() > 0
+        opcoes = ["Entrar", "Criar conta", "Esqueci a senha"] if tem_usuarios else ["Criar conta", "Entrar"]
+        if st.session_state.get("recup_etapa") in ("codigo", "pedido"):
+            if "Esqueci a senha" not in opcoes:
+                opcoes = [*opcoes, "Esqueci a senha"]
+            default_i = opcoes.index("Esqueci a senha")
+        else:
+            default_i = 0
         modo = st.radio(
             "Acesso",
-            ["Entrar", "Criar conta"] if tem_usuarios else ["Criar conta", "Entrar"],
+            opcoes,
+            index=min(default_i, len(opcoes) - 1),
             horizontal=True,
             label_visibility="collapsed",
             key="login_modo",
         )
+
+        if modo != "Esqueci a senha":
+            st.session_state.pop("recup_etapa", None)
+            st.session_state.pop("recup_email", None)
+            st.session_state.pop("recup_codigo_demo", None)
+            st.session_state.pop("recup_msg", None)
 
         if modo == "Entrar":
             with st.form("form_login", clear_on_submit=False):
@@ -3337,13 +3718,13 @@ def render_login_page():
                 if ok:
                     user = autenticar_usuario(email, senha)
                     if user:
-                        st.session_state.usuario = user
-                        st.session_state.pagina_atual = "Dashboard"
+                        iniciar_sessao_usuario(user)
                         st.success(f"Olá, {user['nome'].split()[0]}!")
                         st.rerun()
                     else:
                         st.error("E-mail ou senha incorretos.")
-        else:
+
+        elif modo == "Criar conta":
             with st.form("form_registro", clear_on_submit=False):
                 nome = st.text_input("Seu nome", placeholder="Como quer ser chamado")
                 email = st.text_input("E-mail", placeholder="voce@email.com")
@@ -3358,14 +3739,65 @@ def render_login_page():
                         if ok_c:
                             user = autenticar_usuario(email, senha)
                             if user:
-                                st.session_state.usuario = user
-                                st.session_state.pagina_atual = "Dashboard"
+                                iniciar_sessao_usuario(user)
                                 st.success(msg)
                                 st.rerun()
                         else:
                             st.error(msg)
 
-        st.caption("Cada conta tem seus próprios lançamentos, dívidas e metas.")
+        else:
+            st.markdown("##### Recuperar acesso")
+            st.caption("Informe o e-mail da conta. Você receberá um código de 6 dígitos (válido por 15 minutos).")
+            etapa = st.session_state.get("recup_etapa", "pedido")
+
+            if etapa != "codigo":
+                with st.form("form_recup_pedido", clear_on_submit=False):
+                    email_r = st.text_input("E-mail da conta", placeholder="voce@email.com")
+                    ok_r = st.form_submit_button("Enviar código", use_container_width=True)
+                    if ok_r:
+                        ok_s, msg_s, codigo_demo = solicitar_redefinicao(email_r)
+                        st.session_state.recup_email = limpar_texto(email_r).lower()
+                        st.session_state.recup_etapa = "codigo"
+                        st.session_state.recup_msg = msg_s
+                        st.session_state.recup_codigo_demo = codigo_demo
+                        st.rerun()
+
+            if st.session_state.get("recup_etapa") == "codigo":
+                if st.session_state.get("recup_msg"):
+                    st.info(st.session_state.get("recup_msg"))
+                if st.session_state.get("recup_codigo_demo"):
+                    st.warning(
+                        f"Seu código de recuperação: **{st.session_state['recup_codigo_demo']}**"
+                    )
+                    st.caption("Anote o código. Sem e-mail configurado, ele aparece aqui por 15 minutos.")
+                with st.form("form_recup_nova", clear_on_submit=False):
+                    email_c = st.text_input(
+                        "E-mail",
+                        value=st.session_state.get("recup_email", ""),
+                        placeholder="voce@email.com",
+                    )
+                    codigo_c = st.text_input("Código de 6 dígitos", placeholder="000000")
+                    nova = st.text_input("Nova senha", type="password", placeholder="Mínimo 6 caracteres")
+                    nova2 = st.text_input("Confirmar nova senha", type="password", placeholder="Repita a senha")
+                    ok_n = st.form_submit_button("Redefinir senha", use_container_width=True)
+                    if ok_n:
+                        if nova != nova2:
+                            st.error("As senhas não coincidem.")
+                        else:
+                            ok_x, msg_x = redefinir_senha_com_codigo(email_c, codigo_c, nova)
+                            if ok_x:
+                                for k in ("recup_etapa", "recup_email", "recup_msg", "recup_codigo_demo"):
+                                    st.session_state.pop(k, None)
+                                st.success(msg_x)
+                                st.rerun()
+                            else:
+                                st.error(msg_x)
+                if st.button("Pedir novo código", key="btn_recup_voltar"):
+                    for k in ("recup_etapa", "recup_email", "recup_msg", "recup_codigo_demo"):
+                        st.session_state.pop(k, None)
+                    st.rerun()
+
+        st.caption("Cada conta tem seus próprios lançamentos, dívidas e metas. Login válido por 90 dias (renova ao usar).")
 
 
 def carregar_dados(uid: int | None = None) -> pd.DataFrame:
@@ -4856,6 +5288,9 @@ def gerar_pdf(df, investimentos, dividas, metas) -> bytes:
 # ====================== INICIALIZAÇÃO ======================
 init_db()
 
+# ---- Restaura login do cookie/token (sobrevive a refresh e sono do app) ----
+restaurar_sessao_se_houver()
+
 # ---- Login obrigatório ----
 if "usuario" not in st.session_state or not st.session_state.get("usuario"):
     render_login_page()
@@ -5011,6 +5446,11 @@ with st.sidebar:
         """,
         unsafe_allow_html=True,
     )
+    if banco_eh_remoto():
+        st.caption("Banco remoto ativo · dados persistentes")
+    else:
+        st.caption("Banco local · configure Turso nos Secrets para não perder dados")
+
     if st.button("Sair da conta", use_container_width=True, key="btn_logout"):
         fazer_logout()
         st.rerun()
@@ -5035,12 +5475,57 @@ if pagina == "Nova":
             if tipo_sel == "Entrada":
                 categoria = st.selectbox(
                     "Categoria",
-                    ["Salário", "Rendas Extras", "Freelance", "Reembolso", "Outro"],
+                    [
+                        "Salário",
+                        "Freelance",
+                        "Rendas extras",
+                        "Comissão",
+                        "13º / Férias",
+                        "Reembolso",
+                        "Transferência recebida",
+                        "Rendimentos / Investimentos",
+                        "Presente / Doação",
+                        "Outro",
+                    ],
                 )
             else:
                 categoria = st.selectbox(
                     "Categoria",
-                    ["Mercado", "Aluguel", "Contas", "Lazer", "Roupa", "Beleza", "Transporte", "Dívidas", "Outro"],
+                    [
+                        "Moradia / Aluguel",
+                        "Condomínio",
+                        "Energia",
+                        "Água",
+                        "Internet / Telefone",
+                        "Gás",
+                        "Mercado / Feira",
+                        "Delivery / Restaurante",
+                        "Transporte / Combustível",
+                        "Uber / App",
+                        "Saúde / Farmácia",
+                        "Plano de saúde",
+                        "Educação / Cursos",
+                        "Assinaturas",
+                        "Lazer / Entretenimento",
+                        "Streaming",
+                        "Roupas / Calçados",
+                        "Beleza / Cuidados pessoais",
+                        "Pet",
+                        "Filhos / Família",
+                        "Casa / Manutenção",
+                        "Móveis / Eletro",
+                        "Cartão de crédito",
+                        "Empréstimo / Financiamento",
+                        "Dívidas",
+                        "Impostos / Taxas",
+                        "Seguros",
+                        "Viagem",
+                        "Presentes",
+                        "Doações",
+                        "Investimento / Reserva",
+                        "Trabalho / Home office",
+                        "Outro",
+                    ],
                 )
         with c2:
             valor = st.number_input(
