@@ -28,6 +28,7 @@ A página **Análise** do menu diagnostica o mês escolhido: taxa de poupança, 
 Planejador financeiro completo em um único arquivo HTML. Basta abrir no navegador: não usa servidor nem login, os dados ficam só no `localStorage` do aparelho e podem ser exportados/importados em JSON (backups da versão anterior continuam válidos). Funciona offline; só a fonte vem do Google Fonts, com fonte do sistema como alternativa.
 
 - **Lançamentos**: receitas e despesas com categoria, data, forma de pagamento, situação (pago / a pagar), compras parceladas no crédito, observação, busca, filtros, edição e desfazer.
+- **Importar extrato**: lê CSV (detecta separador, codificação e colunas dos principais bancos), OFX e PDF de extrato ou fatura, inclusive PDF com senha. Mostra uma prévia para conferir tipo e categoria, sugere a categoria (lembrando as que você já usou) e deixa de fora saldos, pagamentos de fatura e lançamentos repetidos. A leitura de PDF usa o pdf.js (Mozilla, Apache 2.0) em `vendor/pdfjs`, no próprio aparelho. PDFs escaneados (imagem) não têm texto para ler: use o CSV ou OFX do banco.
 - **Orçamento**: limite mensal por categoria, alertas a partir de 80% e comparação com a regra 50/30/20.
 - **Contas fixas**: aluguel, luz, assinaturas; marca como paga no mês e avisa atrasos.
 - **Metas**: valor, prazo e quanto guardar por mês, com previsão de conclusão.

@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; manifest-src 'self'; worker-src 'self'; connect-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'unsafe-inline'; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; manifest-src 'self'; worker-src 'self'; connect-src 'none'; base-uri 'none'; form-action 'none'">
 <title>Organizador Financeiro</title>
 <meta name="theme-color" content="#f0f0ec" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#0b0b0c" media="(prefers-color-scheme: dark)">
@@ -348,6 +348,17 @@ dialog.sheet.fechando { animation: popOut .2s ease-in forwards; }
 .sug b { display: block; } .sug span { color: var(--muted); font-size: .88rem; }
 .dist { display: grid; gap: 16px; }
 .dist .topo { display: flex; justify-content: space-between; gap: 8px; font-size: .9rem; margin-bottom: 6px; }
+dialog.sheet.largo { width: min(880px, calc(100% - 32px)); }
+.imp-lista { display: grid; gap: 8px; max-height: min(52vh, 560px); overflow: auto; overscroll-behavior: contain; padding-right: 2px; }
+.imp-item { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 6px 12px; align-items: center; padding: 10px 12px; border-radius: 14px; background: var(--surface-2); transition: opacity .2s; }
+.imp-item.off { opacity: .55; }
+.imp-item > input[type="checkbox"] { width: 22px; height: 22px; min-height: 0; accent-color: var(--ink); }
+.imp-desc { font-weight: 600; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.imp-v { font-weight: 600; white-space: nowrap; }
+.imp-meta { grid-column: 2 / -1; display: flex; flex-wrap: wrap; gap: 6px 8px; align-items: center; font-size: .8rem; color: var(--muted); }
+.imp-meta select { width: auto; max-width: 100%; min-height: 36px; height: 36px; padding: 4px 32px 4px 10px; border-radius: 10px; background-color: var(--surface); }
+.imp-status.erro-msg { color: var(--bad); }
+.solta-aqui { outline: 3px dashed var(--lime); outline-offset: -10px; }
 .painel-confirma { display: grid; gap: 10px; margin-top: 12px; padding: 14px; border-radius: 16px; background: color-mix(in oklab, var(--bad) 12%, transparent); }
 .btn-perigo { background: var(--bad); color: #fff; border: 0; }
 
@@ -366,7 +377,8 @@ dialog.sheet.fechando { animation: popOut .2s ease-in forwards; }
 
 /* ---------- Responsivo ---------- */
 @media (max-width: 639px) {
-  dialog.sheet { width: 100%; max-width: 100%; margin: auto 0 0; border-radius: 28px 28px 0 0; max-height: 94%; }
+  dialog.sheet, dialog.sheet.largo { width: 100%; max-width: 100%; margin: auto 0 0; border-radius: 28px 28px 0 0; max-height: 94%; }
+  .imp-desc { white-space: normal; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; line-height: 1.25; }
   dialog.sheet[open] { animation: sheetUp .4s var(--ease); }
   dialog.sheet.fechando { animation: sheetDown .24s ease-in forwards; }
   .sheet-pegador { display: block; }
@@ -565,7 +577,10 @@ dialog.sheet.fechando { animation: popOut .2s ease-in forwards; }
   <section class="view" data-view="lancamentos" aria-labelledby="t-lanc" hidden>
     <div class="row-between titulo-view reveal">
       <div><h1 id="t-lanc">Lançamentos</h1><p class="muted" id="lanc-resumo"></p></div>
-      <button class="btn btn-lime" type="button" data-acao="novo">Novo lançamento <span class="ico-circle"><svg class="ico"><use href="#i-mais"/></svg></span></button>
+      <div class="row">
+        <button class="btn" type="button" data-acao="importar"><svg class="ico"><use href="#i-sobe-arq"/></svg>Importar extrato</button>
+        <button class="btn btn-lime" type="button" data-acao="novo">Novo lançamento <span class="ico-circle"><svg class="ico"><use href="#i-mais"/></svg></span></button>
+      </div>
     </div>
     <div class="card reveal">
       <div class="filtros">
@@ -722,6 +737,9 @@ dialog.sheet.fechando { animation: popOut .2s ease-in forwards; }
           <button class="btn btn-sm" id="b-colar" type="button">Colar JSON</button>
           <input id="f-import" type="file" accept="application/json,.json" hidden>
         </div>
+        <div class="row" style="margin-top:10px">
+          <button class="btn btn-sm btn-ink" type="button" data-acao="importar"><svg class="ico"><use href="#i-sobe-arq"/></svg>Importar extrato (CSV, OFX, PDF)</button>
+        </div>
         <div id="painel-backup" hidden style="margin-top:14px;display:grid;gap:8px">
           <label class="rotulo" for="f-backup">Backup em texto (JSON)</label>
           <textarea id="f-backup" spellcheck="false" placeholder="Cole aqui um JSON exportado por este organizador"></textarea>
@@ -783,6 +801,36 @@ dialog.sheet.fechando { animation: popOut .2s ease-in forwards; }
       <button class="btn btn-danger btn-ghost" type="button" id="l-excluir" hidden><svg class="ico"><use href="#i-lixo"/></svg>Excluir</button>
     </div>
   </form>
+</dialog>
+
+<!-- Importar extrato -->
+<input id="f-extrato" type="file" accept=".csv,.ofx,.pdf,.txt,text/csv,application/pdf,application/x-ofx" hidden>
+<dialog class="sheet largo" id="dlg-imp" aria-labelledby="imp-titulo">
+  <div class="sheet-pegador" aria-hidden="true"></div>
+  <div class="sheet-in">
+    <div class="sheet-head"><div><h2 id="imp-titulo">Importar extrato</h2><p class="small muted" id="imp-arquivo"></p></div><button class="btn btn-round btn-sm" type="button" data-fechar aria-label="Fechar"><svg class="ico"><use href="#i-x"/></svg></button></div>
+    <p class="small imp-status" id="imp-status" role="status"></p>
+    <form class="row" id="imp-senha-wrap" hidden novalidate style="align-items:flex-end">
+      <div class="campo" style="flex:1;min-width:200px"><label for="imp-senha">Senha do PDF</label><input id="imp-senha" type="password" autocomplete="off"><span class="ajuda">Muitos bancos usam os primeiros dígitos do CPF.</span></div>
+      <button class="btn btn-ink" type="submit">Abrir PDF</button>
+    </form>
+    <div id="imp-corpo" hidden style="display:grid;gap:14px">
+      <div class="row-between">
+        <div class="seg" role="group" aria-label="Tipo de arquivo" id="imp-modo">
+          <button type="button" data-v="conta" aria-pressed="true">Extrato da conta</button>
+          <button type="button" data-v="fatura" aria-pressed="false">Fatura do cartão</button>
+        </div>
+        <div class="row" style="gap:4px">
+          <button class="btn btn-sm btn-ghost" type="button" id="imp-todos">Marcar todos</button>
+          <button class="btn btn-sm btn-ghost" type="button" id="imp-nenhum">Desmarcar todos</button>
+        </div>
+      </div>
+      <p class="small muted" id="imp-resumo"></p>
+      <div class="imp-lista" id="imp-lista"></div>
+      <p class="small muted">Saldos, pagamentos da fatura e lançamentos que já existem vêm desmarcados. Confira tipo e categoria antes de importar; a categoria que você escolher é lembrada nas próximas importações.</p>
+      <div class="row"><button class="btn btn-lime" type="button" id="imp-confirmar">Importar</button><button class="btn" type="button" data-fechar>Cancelar</button></div>
+    </div>
+  </div>
 </dialog>
 
 <!-- Formulário genérico (meta, dívida, conta fixa, investimento) -->
@@ -1180,6 +1228,257 @@ function validarEstado(obj) {
 }
 /* ==== PLANO:FIM ==== */
 
+/* ==== IMPORTACAO:INICIO ==== (extratos CSV, OFX e texto de PDF: funções puras, testadas em tests/organizador.test.js) */
+const semAcento = s => String(s == null ? "" : s).normalize("NFD").replace(/\p{M}/gu, "").toLowerCase().trim();
+const MESES_ABREV = { jan: 1, fev: 2, feb: 2, mar: 3, abr: 4, apr: 4, mai: 5, may: 5, jun: 6, jul: 7, ago: 8, aug: 8, set: 9, sep: 9, out: 10, oct: 10, nov: 11, dez: 12, dec: 12 };
+
+/* Valor como aparece em extratos: "1.234,56", "-1.234,56", "1234.56", "R$ 12", "(12,00)", "12,00-", "12,00 D".
+   Devolve centavos com sinal (negativo = saída) ou null se o texto não for um valor. */
+function valorExtrato(txt) {
+  let s = String(txt == null ? "" : txt).replace(/−/g, "-").trim();
+  if (!s) return null;
+  let neg = false;
+  if (/^\(.*\)$/.test(s)) { neg = true; s = s.slice(1, -1).trim(); }
+  const sufixo = s.match(/\s*([DC])$/i);
+  if (sufixo) { if (sufixo[1].toUpperCase() === "D") neg = true; s = s.slice(0, sufixo.index); }
+  s = s.replace(/R\$|\s/g, "");
+  if (s.endsWith("-")) { neg = true; s = s.slice(0, -1); }
+  if (s.startsWith("-")) { neg = true; s = s.slice(1); } else if (s.startsWith("+")) s = s.slice(1);
+  if (!/^\d[\d.,]*$/.test(s)) return null;
+  const m = s.match(/^(.*?)[.,](\d{1,2})$/);
+  const inteiro = (m ? m[1] : s).replace(/[.,]/g, "");
+  if (!/^\d+$/.test(inteiro)) return null;
+  const c = Number(inteiro) * 100 + Number(m ? m[2].padEnd(2, "0") : 0);
+  if (!isFinite(c) || c > 1e11) return null;
+  return neg ? -c : c;
+}
+
+/* Sem ano na data: usa o ano da referência (AAAA-MM), recuando um ano se o mês ficaria no futuro. */
+function anoInferido(mes, ref) { const [ra, rm] = ref.split("-").map(Number); return mes > rm ? ra - 1 : ra; }
+
+/* "05/10/2026", "05/10/26", "2026-10-05", "05-10-2026", "05.10.2026", "05/10", "12 OUT", "12 de outubro de 2026" → AAAA-MM-DD. */
+function dataExtrato(txt, ref) {
+  const s = semAcento(txt);
+  let a, m, d, r;
+  if ((r = s.match(/^(\d{4})-(\d{2})-(\d{2})/))) { a = +r[1]; m = +r[2]; d = +r[3]; }
+  else if ((r = s.match(/^(\d{1,2})[/.-](\d{1,2})[/.-](\d{2}|\d{4})(?!\d)/))) { d = +r[1]; m = +r[2]; a = +r[3] < 100 ? 2000 + +r[3] : +r[3]; }
+  else if ((r = s.match(/^(\d{1,2})[/.-](\d{1,2})(?![\d/.-])/))) { d = +r[1]; m = +r[2]; a = anoInferido(m, ref); }
+  else if ((r = s.match(/^(\d{1,2})\s*(?:de\s+)?([a-z]{3})[a-z]*\.?(?:\s*(?:de\s+)?(\d{4}|\d{2}))?(?![a-z\d])/))) {
+    d = +r[1]; m = MESES_ABREV[r[2]];
+    if (!m) return null;
+    a = r[3] ? (+r[3] < 100 ? 2000 + +r[3] : +r[3]) : anoInferido(m, ref);
+  } else return null;
+  const iso = `${a}-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+  return dataValida(iso) ? iso : null;
+}
+
+/* CSV com separador detectado (; , tab |), aspas e quebras de linha dentro de campos. */
+function separarCSV(texto, sep) {
+  const linhas = [];
+  let campo = "", linha = [], aspas = false;
+  for (let i = 0; i < texto.length; i++) {
+    const ch = texto[i];
+    if (aspas) {
+      if (ch === '"') { if (texto[i + 1] === '"') { campo += '"'; i++; } else aspas = false; }
+      else campo += ch;
+    } else if (ch === '"' && campo === "") aspas = true;
+    else if (ch === sep) { linha.push(campo.trim()); campo = ""; }
+    else if (ch === "\n" || ch === "\r") {
+      if (ch === "\r" && texto[i + 1] === "\n") i++;
+      linha.push(campo.trim()); campo = "";
+      if (linha.some(c => c !== "")) linhas.push(linha);
+      linha = [];
+    } else campo += ch;
+  }
+  linha.push(campo.trim());
+  if (linha.some(c => c !== "")) linhas.push(linha);
+  return linhas;
+}
+function lerCSV(texto) {
+  const t = String(texto).replace(/^﻿/, "");
+  const amostra = t.split(/\r?\n/).slice(0, 30).join("\n");
+  let melhor = null;
+  for (const sep of [";", ",", "\t", "|"]) {
+    const ls = separarCSV(amostra, sep).filter(l => l.length > 1);
+    if (!ls.length) continue;
+    const freq = {};
+    for (const l of ls) freq[l.length] = (freq[l.length] || 0) + 1;
+    const [cols, n] = Object.entries(freq).sort((x, y) => y[1] - x[1] || y[0] - x[0])[0];
+    const nota = n * 100 + Number(cols);
+    if (!melhor || nota > melhor.nota) melhor = { sep, nota };
+  }
+  return melhor ? separarCSV(t, melhor.sep) : [];
+}
+
+const CABECALHOS = [
+  ["data", /^(data|date|dt|dia|data (do |de )?(lancamento|movimento|movimentacao|transacao|compra)|data mov\.?)$/],
+  ["valor", /^(valor|amount|value|quantia|montante|valor ?\(?r\$\)?|valor da transacao|valor em r\$)$/],
+  ["credito", /^(credito|entrada|receita)s? ?(\(?r\$\)?)?$/],
+  ["debito", /^(debito|saida|despesa)s? ?(\(?r\$\)?)?$/],
+  ["tipo", /^(tipo|natureza|c\/d|d\/c|sinal|tipo de transacao)$/],
+  ["categoria", /^(categoria|category)$/],
+  ["desc", /(descri|historico|lancamento|title|titulo|estabelecimento|memo|detalhe|beneficiario|favorecido)/],
+];
+/* Acha a linha de cabeçalho e o índice de cada coluna; sem cabeçalho, deduz pelas datas e valores. */
+function detectarColunas(linhas) {
+  for (let i = 0; i < Math.min(15, linhas.length); i++) {
+    const mapa = { cabecalho: i, desc: [] };
+    linhas[i].forEach((bruto, j) => {
+      const c = semAcento(bruto);
+      for (const [k, re] of CABECALHOS) {
+        if (!re.test(c)) continue;
+        if (k === "desc") mapa.desc.push(j); else if (mapa[k] === undefined) mapa[k] = j;
+        break;
+      }
+    });
+    if (mapa.data !== undefined && (mapa.valor !== undefined || mapa.credito !== undefined || mapa.debito !== undefined)) return mapa;
+  }
+  const corpo = linhas.filter(l => l.length > 1).slice(0, 60);
+  if (!corpo.length) return null;
+  const cols = Math.max(...corpo.map(l => l.length));
+  const taxa = teste => Array.from({ length: cols }, (_, j) => corpo.filter(l => teste(l[j])).length / corpo.length);
+  const datas = taxa(v => !!dataExtrato(v, "2000-12")), valores = taxa(v => valorExtrato(v) !== null && /[.,]\d{2}\b|^-?\d+$/.test(String(v).trim()));
+  const data = datas.indexOf(Math.max(...datas));
+  if (datas[data] < 0.6) return null;
+  let valor = -1;
+  valores.forEach((t, j) => { if (j !== data && t >= 0.6 && (valor < 0 || t > valores[valor])) valor = j; });
+  if (valor < 0) return null;
+  const textos = Array.from({ length: cols }, (_, j) => (j === data || j === valor ? -1 : corpo.reduce((s, l) => s + String(l[j] || "").replace(/[\d\s.,/-]/g, "").length, 0)));
+  const desc = textos.indexOf(Math.max(...textos));
+  return { cabecalho: -1, data, valor, desc: textos[desc] > 0 ? [desc] : [] };
+}
+function linhasCSVParaLancamentos(linhas, mapa, ref) {
+  const out = [];
+  for (let i = mapa.cabecalho + 1; i < linhas.length; i++) {
+    const l = linhas[i], data = dataExtrato(l[mapa.data], ref);
+    if (!data) continue;
+    let v = null;
+    if (mapa.valor !== undefined) v = valorExtrato(l[mapa.valor]);
+    else {
+      const cr = mapa.credito !== undefined ? valorExtrato(l[mapa.credito]) : null, db = mapa.debito !== undefined ? valorExtrato(l[mapa.debito]) : null;
+      v = cr ? Math.abs(cr) : db ? -Math.abs(db) : null;
+    }
+    if (!v) continue;
+    if (mapa.tipo !== undefined) {
+      const t = semAcento(l[mapa.tipo]);
+      if (/^(d\b|deb|saida|despesa)/.test(t)) v = -Math.abs(v); else if (/^(c\b|cred|entrada|receita)/.test(t)) v = Math.abs(v);
+    }
+    const descricao = mapa.desc.map(j => String(l[j] || "").trim()).filter(Boolean).join(" - ").replace(/\s+/g, " ").slice(0, 80);
+    out.push({ data, valor: v, descricao, categoriaOrigem: mapa.categoria !== undefined ? String(l[mapa.categoria] || "") : "" });
+  }
+  return out;
+}
+
+/* OFX (padrão dos bancos brasileiros): um <STMTTRN> por lançamento. */
+function lerOFX(texto) {
+  const out = [];
+  for (const b of String(texto).split(/<STMTTRN>/i).slice(1)) {
+    const campo = n => { const m = b.match(new RegExp(`<${n}>([^<\\r\\n]*)`, "i")); return m ? m[1].trim() : ""; };
+    const dt = campo("DTPOSTED"), v = valorExtrato(campo("TRNAMT"));
+    const data = /^\d{8}/.test(dt) ? `${dt.slice(0, 4)}-${dt.slice(4, 6)}-${dt.slice(6, 8)}` : null;
+    if (!data || !dataValida(data) || !v) continue;
+    out.push({ data, valor: v, descricao: (campo("MEMO") || campo("NAME")).replace(/\s+/g, " ").slice(0, 80), categoriaOrigem: "" });
+  }
+  return out;
+}
+
+/* Linhas de texto de um PDF de extrato ou fatura: data no começo, valor (e às vezes o saldo) no fim. */
+const RE_DATA_LINHA = /^(\d{1,2}[/.-]\d{1,2}(?:[/.-](?:\d{4}|\d{2}))?|\d{1,2}\s*(?:de\s+)?[a-zA-ZçÇ]{3}[a-zA-ZçÇ]*\.?(?:\s+(?:de\s+)?\d{4})?)\s+/;
+const RE_VALOR_FIM = /(?:^|\s)((?:[-−]\s?)?(?:R\$\s?)?[-−]?\(?(?:\d{1,3}(?:\.\d{3})+|\d+),\d{2}\)?(?:\s?[DC](?![A-Za-z])|-)?)\s*$/;
+function lerLinhasExtrato(linhas, ref) {
+  const out = [];
+  for (const bruta of linhas) {
+    const linha = String(bruta).replace(/\s+/g, " ").trim();
+    const md = linha.match(RE_DATA_LINHA);
+    if (!md) continue;
+    const data = dataExtrato(md[1], ref);
+    if (!data) continue;
+    let resto = linha.slice(md[0].length);
+    const valores = [];
+    for (let m; (m = resto.match(RE_VALOR_FIM)); ) { valores.unshift(m[1]); resto = resto.slice(0, m.index).trim(); }
+    const descricao = resto.replace(/\s+/g, " ").trim();
+    if (!valores.length || !descricao) continue;
+    const v = valorExtrato(valores[0]);
+    if (!v) continue;
+    out.push({ data, valor: v, descricao: descricao.slice(0, 80), categoriaOrigem: "" });
+  }
+  return out;
+}
+/* Mês de referência para datas sem ano: a data completa mais recente do documento, ou hoje. */
+function referenciaDoTexto(linhas, padrao) {
+  let maior = "";
+  for (const l of linhas) for (const m of String(l).matchAll(/\b(\d{2})\/(\d{2})\/(\d{4})\b/g)) {
+    const iso = `${m[3]}-${m[2]}-${m[1]}`;
+    if (dataValida(iso) && iso > maior) maior = iso;
+  }
+  return maior ? maior.slice(0, 7) : padrao;
+}
+/* Fatura de cartão: valores positivos são gastos. Extrato de conta: negativos são saídas. */
+function detectarModo(cands, mapa, texto) {
+  if (mapa && (mapa.credito !== undefined || mapa.debito !== undefined || mapa.tipo !== undefined)) return "conta";
+  const t = semAcento(texto || "");
+  if (/\bfatura\b/.test(t) && !/\bextrato\b/.test(t)) return "fatura";
+  const pos = cands.filter(c => c.valor > 0).length;
+  return cands.length >= 3 && pos / cands.length >= 0.7 ? "fatura" : "conta";
+}
+
+const REGRAS_CATEGORIA = [
+  [/salario|folha de pag|pagto salario|proventos/, "Salário", "receita"],
+  [/rendimento|dividendo|juros sobre capital|resgate/, "Rendimentos / Investimentos", "receita"],
+  [/reembolso|estorno|cashback|devolucao/, "Reembolso", "receita"],
+  [/freela|honorario|prestacao de servico/, "Freelance", "receita"],
+  [/pix recebido|transferencia recebida|ted recebida|doc recebido|recebimento|pix - recebido|credito em conta/, "Transferência recebida", "receita"],
+  [/pagamento de fatura|pagto fatura|pag fatura|fatura (do )?cartao|pagamento cartao/, "Cartão de crédito"],
+  [/supermerc|mercado(?! ?livre| ?pago)|atacad|assai|carrefour|pao de acucar|hortifruti|sacolao|\bfeira\b|sams club|makro|\boxxo\b|\bdia\b/, "Mercado / Feira"],
+  [/ifood|rappi|ze delivery|restaurante|lanchonete|padaria|burger|pizza|mcdonald|\bbk\b|subway|starbucks|cafeteria|\bcafe\b|\bbar\b|churrasc|sushi|acai/, "Delivery / Restaurante"],
+  [/uber|\b99\b|99 ?pop|99app|cabify|indriver|taxi/, "Uber / App"],
+  [/posto|combustiv|gasolina|etanol|shell|ipiranga|petrobras|br mania|estacionamento|pedagio|sem parar|conectcar|veloe|\bmetro\b|onibus|bilhete unico|\btransporte\b/, "Transporte / Combustível"],
+  [/unimed|amil|hapvida|sulamerica|bradesco saude|notredame|plano de saude|odonto/, "Plano de saúde"],
+  [/farmacia|drogaria|droga raia|drogasil|pague menos|panvel|pacheco|\bsaude\b|hospital|clinica|laboratorio/, "Saúde / Farmácia"],
+  [/netflix|spotify|disney|prime video|\bhbo\b|max\.com|globoplay|youtube|deezer|paramount|crunchyroll|apple\.com/, "Streaming"],
+  [/aluguel|imobiliaria|quinto ?andar/, "Moradia / Aluguel"],
+  [/condominio/, "Condomínio"],
+  [/\benel\b|cemig|light s|copel|celesc|coelba|cpfl|energisa|neoenergia|equatorial|eletropaulo|energia eletrica|conta de luz/, "Energia"],
+  [/sabesp|copasa|cedae|sanepar|embasa|compesa|caesb|saneamento|agua e esgoto/, "Água"],
+  [/\bvivo\b|\bclaro\b|\btim\b|\boi\b|internet|telefon|starlink/, "Internet / Telefone"],
+  [/ultragaz|liquigas|supergasbras|copagaz|comgas|gas natural/, "Gás"],
+  [/escola|faculdade|universidade|\bcurso|udemy|alura|coursera|livraria|\beducacao\b/, "Educação / Cursos"],
+  [/academia|smart ?fit|bluefit|gympass|wellhub|cinema|ingresso|cinemark|teatro|steam|playstation|xbox|\blazer\b/, "Lazer / Entretenimento"],
+  [/petz|cobasi|pet ?shop|veterinar/, "Pet"],
+  [/renner|riachuelo|\bc&a\b|zara|shein|centauro|netshoes|\bnike\b|adidas|calcad|vestuario/, "Roupas / Calçados"],
+  [/beleza|salao|barbearia|cabeleir|manicure|boticario|natura|sephora/, "Beleza / Cuidados pessoais"],
+  [/hotel|airbnb|booking|latam|gol linhas|azul linhas|decolar|passagem|123 ?milhas|\bviagem\b/, "Viagem"],
+  [/seguro|porto seguro|tokio marine/, "Seguros"],
+  [/\biof\b|tarifa|anuidade|juros|multa|imposto|ipva|iptu|darf|\btaxa/, "Impostos / Taxas"],
+  [/emprestimo|financiamento|consignado|credito pessoal/, "Empréstimo / Financiamento"],
+  [/aplicacao|investimento|\bcdb\b|tesouro|poupanca|corretora|previdencia/, "Investimento / Reserva"],
+  [/eletronic|magazine luiza|magalu|casas bahia|kabum|fast shop|leroy|tok ?& ?stok|\bikea\b/, "Móveis / Eletro"],
+  [/\bcasa\b|material de construcao|construcao|ferragem/, "Casa / Manutenção"],
+];
+/* Categoria sugerida: a que você já usou para essa descrição; senão, palavras-chave; senão "Outro". */
+function sugerirCategoria(desc, tipo, memoria, origem) {
+  const n = semAcento(desc), validas = tipo === "receita" ? CATEGORIAS_RECEITA : CATEGORIAS_DESPESA;
+  const lembrada = memoria && memoria.get(n);
+  if (lembrada && validas.includes(lembrada)) return lembrada;
+  const alvo = `${n} ${semAcento(origem)}`;
+  for (const [re, cat, so] of REGRAS_CATEGORIA) if ((so || "despesa") === tipo && re.test(alvo)) return cat;
+  return "Outro";
+}
+/* Converte as linhas lidas em itens de prévia; já vêm desmarcados os saldos, pagamentos de fatura e repetidos. */
+function prepararImportacao(cands, modo, memoria, existentes) {
+  const chaves = new Set((existentes || []).map(t => `${t.data}|${t.centavos}|${t.tipo}`));
+  return cands.map(c => {
+    const despesa = modo === "fatura" ? c.valor > 0 : c.valor < 0;
+    const tipo = despesa ? "despesa" : "receita", centavos = Math.abs(c.valor), n = semAcento(c.descricao);
+    let incluir = true, motivo = "";
+    if (/\bsaldo\b|^total\b|\bs\/ ?saldo\b/.test(n)) { incluir = false; motivo = "Linha de saldo ou total"; }
+    else if (modo === "fatura" && !despesa) { incluir = false; motivo = "Pagamento ou estorno da fatura"; }
+    else if (chaves.has(`${c.data}|${centavos}|${tipo}`)) { incluir = false; motivo = "Já lançado"; }
+    return { data: c.data, centavos, tipo, descricao: c.descricao || "Sem descrição", categoria: sugerirCategoria(c.descricao, tipo, memoria, c.categoriaOrigem), incluir, motivo };
+  });
+}
+/* ==== IMPORTACAO:FIM ==== */
+
 /* ---------------- Estado e persistência ---------------- */
 const CHAVE = "organizador-financeiro:v1";
 const VIEWS = ["inicio", "lancamentos", "orcamento", "contas", "metas", "dividas", "investimentos", "diagnostico", "ajustes"];
@@ -1305,7 +1604,6 @@ function lerNumero(txt, min, max, casas) {
   const v = casas ? Math.round(parseFloat(s) * 10 ** casas) / 10 ** casas : Math.round(parseFloat(s));
   return v < min || v > max ? NaN : v;
 }
-const normaliza = s => String(s || "").normalize("NFD").replace(/\p{M}/gu, "").toLowerCase();
 const opcoes = lista => lista.map(o => { const [v, r] = Array.isArray(o) ? o : [o, o]; return h("option", { value: v, text: r }); });
 function gruposDespesa(comPoupanca, excluir) {
   const livre = c => !excluir || !excluir.has(c);
@@ -1635,7 +1933,7 @@ function graficoMensal(box, mesFoco) {
 const textoBusca = new WeakMap();
 function chaveBusca(t) {
   let s = textoBusca.get(t);
-  if (s === undefined) { s = normaliza([t.descricao, t.categoria, t.pagamento, t.obs].join(" ")); textoBusca.set(t, s); }
+  if (s === undefined) { s = semAcento([t.descricao, t.categoria, t.pagamento, t.obs].join(" ")); textoBusca.set(t, s); }
   return s;
 }
 function linhasLista(itens, de, ate) {
@@ -1655,7 +1953,7 @@ RENDER.lancamentos = () => {
     fc.value = cats.includes(filtros.cat) ? filtros.cat : "";
     fc.dataset.versao = versao;
   }
-  const q = normaliza(filtros.busca), noPer = filtroPeriodo();
+  const q = semAcento(filtros.busca), noPer = filtroPeriodo();
   listaAtual = estado.transacoes.filter(t => noPer(t) &&
     (filtros.tipo === "todos" || t.tipo === filtros.tipo) &&
     (filtros.status === "todos" || (t.status || "pago") === filtros.status) &&
@@ -1666,7 +1964,7 @@ RENDER.lancamentos = () => {
   for (const t of listaAtual) if (t.tipo === "receita") ent += t.centavos; else sai += t.centavos;
   $("lanc-resumo").textContent = `${listaAtual.length} ${plural(listaAtual.length, "lançamento", "lançamentos")} · entradas ${brl(ent)} · saídas ${brl(sai)}`;
   $("lanc-lista").replaceChildren(...(listaAtual.length ? linhasLista(listaAtual, 0, visiveis)
-    : [vazio(estado.transacoes.some(noPer) ? "Nada encontrado com esses filtros." : "Nenhum lançamento neste período.", null, ["Novo lançamento", () => abrirLancamento()], "li")]));
+    : [vazio(estado.transacoes.some(noPer) ? "Nada encontrado com esses filtros." : "Nenhum lançamento neste período.", "Lance à mão ou importe o extrato do banco em CSV, OFX ou PDF.", ["Novo lançamento", () => abrirLancamento()], "li")]));
   $("lanc-mais").hidden = listaAtual.length <= visiveis;
 };
 
@@ -1878,11 +2176,11 @@ function limparExemplo() {
 
 /* ---------- Diálogo de lançamento ---------- */
 let editando = null, tipoL = "despesa", statusL = "pago";
-function preencherCategoriasL(alvo) {
-  const s = $("l-cat");
-  s.replaceChildren(...(tipoL === "receita" ? opcoes(CATEGORIAS_RECEITA) : gruposDespesa(true)));
+function preencherCategorias(s, tipo, alvo) {
+  s.replaceChildren(...(tipo === "receita" ? opcoes(CATEGORIAS_RECEITA) : gruposDespesa(true)));
   if (alvo) { if (!Array.from(s.options).some(o => o.value === alvo)) s.append(h("option", { value: alvo, text: alvo })); s.value = alvo; }
 }
+const preencherCategoriasL = alvo => preencherCategorias($("l-cat"), tipoL, alvo);
 function setSeg(id, v) { document.querySelectorAll(`#${id} button`).forEach(b => b.setAttribute("aria-pressed", String(b.dataset.v === v))); }
 function ligarSeg(id, aoMudar) { $(id).addEventListener("click", e => { const b = e.target.closest("button[data-v]"); if (b) { setSeg(id, b.dataset.v); aoMudar(b.dataset.v); } }); }
 function atualizarParcelas() {
@@ -1938,6 +2236,140 @@ function excluirLancamento() {
   const id = editando.id, grupo = editando.parcela && editando.parcela.grupo;
   fecharDialogo($("dlg-lanc"));
   mudar(() => { estado.transacoes = estado.transacoes.filter(t => t.id !== id); }, grupo ? "Parcela excluída (as outras continuam)." : "Lançamento excluído.", true);
+}
+
+/* ---------- Importar extrato (CSV, OFX, PDF) ---------- */
+let imp = null, pdfjs = null;
+function decodificarTexto(buf) {
+  const t = new TextDecoder("utf-8").decode(buf);
+  return t.includes(String.fromCharCode(0xfffd)) ? new TextDecoder("windows-1252").decode(buf) : t;
+}
+const ehPdf = buf => buf.byteLength > 4 && String.fromCharCode(...new Uint8Array(buf, 0, 5)) === "%PDF-";
+function statusImp(msg, erro) { const el = $("imp-status"); el.textContent = msg; el.classList.toggle("erro-msg", !!erro); }
+/* pdf.js fica em vendor/pdfjs e só é carregado quando um PDF é aberto. */
+async function carregarPdfjs() {
+  if (!pdfjs) {
+    const base = new URL("vendor/pdfjs/", location.href).href;
+    pdfjs = await import(base + "pdf.min.mjs");
+    pdfjs.GlobalWorkerOptions.workerSrc = base + "pdf.worker.min.mjs";
+  }
+  return pdfjs;
+}
+/* Texto do PDF em linhas: junta os trechos com a mesma altura na página e ordena da esquerda para a direita. */
+async function linhasDoPdf(buf, senha) {
+  const lib = await carregarPdfjs();
+  const doc = await lib.getDocument({ data: new Uint8Array(buf.slice(0)), password: senha || undefined, isEvalSupported: false, disableFontFace: true }).promise;
+  const linhas = [];
+  try {
+    for (let n = 1; n <= doc.numPages; n++) {
+      const { items } = await (await doc.getPage(n)).getTextContent();
+      const grupos = [];
+      for (const it of items) {
+        if (!it.str || !it.str.trim()) continue;
+        const x = it.transform[4], y = it.transform[5];
+        let g = grupos.find(gr => Math.abs(gr.y - y) < 3);
+        if (!g) grupos.push((g = { y, itens: [] }));
+        g.itens.push({ x, s: it.str });
+      }
+      grupos.sort((a, b) => b.y - a.y);
+      for (const g of grupos) linhas.push(g.itens.sort((a, b) => a.x - b.x).map(i => i.s).join(" "));
+    }
+  } finally { doc.destroy(); }
+  return linhas;
+}
+function abrirImportacao(arq) {
+  imp = { nome: arq.name || "arquivo", cands: [], modo: "conta", itens: [], buf: null, texto: "" };
+  $("imp-arquivo").textContent = imp.nome;
+  $("imp-senha-wrap").hidden = true; $("imp-corpo").hidden = true;
+  $("imp-lista").replaceChildren(); $("imp-resumo").textContent = "";
+  statusImp("Lendo o arquivo…");
+  abrirDialogo($("dlg-imp"));
+  lerArquivoImp(arq).catch(e => statusImp((e && e.message) || "Não consegui ler este arquivo.", true));
+}
+async function lerArquivoImp(arq) {
+  if (arq.size > 25 * 1024 * 1024) throw new Error("Arquivo grande demais (máx. 25 MB).");
+  const buf = await arq.arrayBuffer();
+  if (ehPdf(buf)) { imp.buf = buf; return lerPdfImp(); }
+  const texto = decodificarTexto(buf);
+  if (/<OFX>|OFXHEADER/i.test(texto)) { imp.cands = lerOFX(texto); imp.modo = detectarModo(imp.cands, null, texto); }
+  else {
+    const linhas = lerCSV(texto), mapa = detectarColunas(linhas);
+    if (!mapa) throw new Error("Não encontrei colunas de data e valor neste arquivo. Ele precisa ser um CSV, OFX ou PDF de extrato.");
+    imp.cands = linhasCSVParaLancamentos(linhas, mapa, mesDe(hojeISO()));
+    imp.modo = detectarModo(imp.cands, mapa);
+  }
+  mostrarPrevia();
+}
+async function lerPdfImp(senha) {
+  statusImp(senha ? "Abrindo o PDF…" : "Lendo o PDF…");
+  try {
+    const linhas = await linhasDoPdf(imp.buf, senha);
+    imp.cands = lerLinhasExtrato(linhas, referenciaDoTexto(linhas, mesDe(hojeISO())));
+    imp.modo = detectarModo(imp.cands, null, linhas.join(" "));
+    $("imp-senha-wrap").hidden = true;
+    mostrarPrevia();
+  } catch (e) {
+    if (e && e.name === "PasswordException") {
+      $("imp-senha-wrap").hidden = false; $("imp-senha").value = "";
+      statusImp(senha ? "Senha incorreta. Tente de novo." : "Este PDF tem senha.", !!senha);
+      setTimeout(() => $("imp-senha").focus(), 60);
+      return;
+    }
+    throw e;
+  }
+}
+function mostrarPrevia() {
+  if (!imp.cands.length) {
+    statusImp(imp.buf ? "Não encontrei lançamentos neste PDF. Se ele for uma imagem escaneada, use o CSV ou OFX que o banco oferece." : "Não encontrei lançamentos neste arquivo.", true);
+    return;
+  }
+  const memoria = new Map();
+  for (const t of estado.transacoes) if (!t.exemplo && t.descricao) memoria.set(semAcento(t.descricao), t.categoria);
+  imp.itens = prepararImportacao(imp.cands, imp.modo, memoria, estado.transacoes);
+  setSeg("imp-modo", imp.modo);
+  statusImp("");
+  $("imp-corpo").hidden = false;
+  $("imp-lista").replaceChildren(...imp.itens.map(linhaImp));
+  resumoImp();
+}
+function linhaImp(it) {
+  const chk = h("input", { type: "checkbox", "aria-label": `Importar ${it.descricao}` });
+  chk.checked = it.incluir;
+  const valor = h("span", { class: "imp-v" });
+  const tipo = h("select", { "aria-label": `Tipo de ${it.descricao}` }, opcoes([["despesa", "Despesa"], ["receita", "Receita"]]));
+  const cat = h("select", { "aria-label": `Categoria de ${it.descricao}` });
+  const pintar = () => { tipo.value = it.tipo; valor.className = "imp-v" + (it.tipo === "receita" ? " pos" : ""); valor.textContent = (it.tipo === "receita" ? "+ " : "− ") + brl(it.centavos); preencherCategorias(cat, it.tipo, it.categoria); };
+  pintar();
+  const linha = h("div", { class: "imp-item" + (it.incluir ? "" : " off") }, chk, h("span", { class: "imp-desc", text: it.descricao, title: it.descricao }), valor,
+    h("div", { class: "imp-meta" }, h("span", { text: dataBR(it.data) }), tipo, cat, it.motivo ? etiqueta("warn", it.motivo) : null));
+  chk.addEventListener("change", () => { it.incluir = chk.checked; linha.classList.toggle("off", !chk.checked); resumoImp(); });
+  tipo.addEventListener("change", () => { it.tipo = tipo.value; it.categoria = sugerirCategoria(it.descricao, it.tipo); pintar(); resumoImp(); });
+  cat.addEventListener("change", () => { it.categoria = cat.value; });
+  return linha;
+}
+function resumoImp() {
+  const sel = imp.itens.filter(i => i.incluir);
+  let ent = 0, sai = 0;
+  for (const i of sel) if (i.tipo === "receita") ent += i.centavos; else sai += i.centavos;
+  $("imp-resumo").textContent = `${imp.itens.length} ${plural(imp.itens.length, "lançamento encontrado", "lançamentos encontrados")} · ${sel.length} ${plural(sel.length, "selecionado", "selecionados")} · entradas ${brl(ent)} · saídas ${brl(sai)}`;
+  $("imp-confirmar").textContent = sel.length ? `Importar ${sel.length} ${plural(sel.length, "lançamento", "lançamentos")}` : "Nada selecionado";
+  $("imp-confirmar").disabled = !sel.length;
+}
+function marcarTodosImp(v) {
+  imp.itens.forEach(i => (i.incluir = v));
+  $("imp-lista").querySelectorAll(".imp-item").forEach(l => { l.classList.toggle("off", !v); l.querySelector("input").checked = v; });
+  resumoImp();
+}
+function confirmarImportacao() {
+  const sel = imp.itens.filter(i => i.incluir);
+  if (!sel.length) return;
+  const obs = `Importado de ${imp.nome}`.slice(0, 200), pagamento = imp.modo === "fatura" ? "Crédito" : "";
+  const novos = sel.map(i => ({ id: novoId(), tipo: i.tipo, centavos: i.centavos, categoria: i.categoria, data: i.data, descricao: i.descricao.slice(0, 80), pagamento, status: "pago", obs }));
+  const ultimo = novos.reduce((m, t) => (t.data > m ? t.data : m), "");
+  fecharDialogo($("dlg-imp"));
+  imp = null;
+  if (viewAtual() !== "lancamentos") location.hash = "lancamentos";
+  mudar(() => { estado.transacoes.push(...novos); }, `${novos.length} ${plural(novos.length, "lançamento importado", "lançamentos importados")}.`, true, mesDe(ultimo));
 }
 
 /* ---------- Formulário genérico ---------- */
@@ -2157,6 +2589,7 @@ function init() {
 
   document.addEventListener("click", e => {
     if (e.target.closest("[data-acao='novo']")) { e.preventDefault(); abrirLancamento(); return; }
+    if (e.target.closest("[data-acao='importar']")) { $("f-extrato").click(); return; }
     const n = e.target.closest("[data-novo]"); if (n) { abrirGenerico(n.dataset.novo); return; }
     const f = e.target.closest("[data-fechar]"); if (f) fecharDialogo(f.closest("dialog"));
   });
@@ -2243,6 +2676,24 @@ function init() {
     const antes = desfazer; desfazer = null;
     $("toast").classList.remove("on");
     restaurar(antes);
+  });
+
+  $("f-extrato").addEventListener("change", e => { const f = e.target.files[0]; e.target.value = ""; if (f) abrirImportacao(f); });
+  $("imp-senha-wrap").addEventListener("submit", e => { e.preventDefault(); lerPdfImp($("imp-senha").value).catch(err => statusImp((err && err.message) || "Não consegui ler este PDF.", true)); });
+  ligarSeg("imp-modo", v => { imp.modo = v; mostrarPrevia(); });
+  $("imp-todos").addEventListener("click", () => marcarTodosImp(true));
+  $("imp-nenhum").addEventListener("click", () => marcarTodosImp(false));
+  $("imp-confirmar").addEventListener("click", confirmarImportacao);
+  /* Arrastar um extrato para a página (computador) abre a importação. */
+  const temArquivo = e => e.dataTransfer && Array.from(e.dataTransfer.types || []).includes("Files");
+  document.addEventListener("dragover", e => { if (temArquivo(e) && !document.querySelector("dialog[open]")) { e.preventDefault(); document.body.classList.add("solta-aqui"); } });
+  document.addEventListener("dragleave", e => { if (!e.relatedTarget) document.body.classList.remove("solta-aqui"); });
+  document.addEventListener("drop", e => {
+    document.body.classList.remove("solta-aqui");
+    if (!temArquivo(e) || document.querySelector("dialog[open]")) return;
+    e.preventDefault();
+    const f = e.dataTransfer.files[0];
+    if (f && /\.json$/i.test(f.name)) importarArquivo(f); else if (f) abrirImportacao(f);
   });
 
   $("dica-ant").addEventListener("click", () => passarDica(-1));

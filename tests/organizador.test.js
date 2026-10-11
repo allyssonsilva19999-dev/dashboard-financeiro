@@ -9,6 +9,8 @@ const bloco = html.match(/LOGICA:INICIO ====[^\n]*\n([\s\S]*?)\/\* ==== LOGICA:F
 const plano = html.match(/PLANO:INICIO ====[^\n]*\n([\s\S]*?)\/\* ==== PLANO:FIM/);
 assert.ok(bloco, "bloco LOGICA não encontrado em organizador.html");
 assert.ok(plano, "bloco PLANO não encontrado em organizador.html");
+const importacao = html.match(/IMPORTACAO:INICIO ====[^\n]*\n([\s\S]*?)\/\* ==== IMPORTACAO:FIM/);
+assert.ok(importacao, "bloco IMPORTACAO não encontrado em organizador.html");
 const L = new Function(`${bloco[1]}
   return { analisar, parseValor, dataValida, grupoDaCategoria, validarImportacao, mesesDisponiveis, brl };`)();
 const P = new Function(`${bloco[1]}\n${plano[1]}
@@ -266,4 +268,91 @@ test("conta fixa não aparece em meses anteriores ao cadastro", () => {
   const contas = [{ id: "a", nome: "Aluguel", valor: 1, dia: 5, criadaEm: "2026-10-01" }, { id: "b", nome: "Antiga", valor: 1, dia: 5 }];
   assert.deepStrictEqual(P.statusContas(contas, [], "2026-09", "2026-10-11").map(x => x.conta.id), ["b"]);
   assert.deepStrictEqual(P.statusContas(contas, [], "2026-10", "2026-10-11").map(x => x.conta.id).sort(), ["a", "b"]);
+});
+
+/* ---------------- Importação de extratos (bloco IMPORTACAO) ---------------- */
+const I = new Function(`${bloco[1]}\n${importacao[1]}
+  return { valorExtrato, dataExtrato, lerCSV, detectarColunas, linhasCSVParaLancamentos, lerOFX, lerLinhasExtrato, referenciaDoTexto, detectarModo, sugerirCategoria, prepararImportacao };`)();
+const doCSV = (texto, ref = "2026-10") => { const l = I.lerCSV(texto), m = I.detectarColunas(l); return { mapa: m, itens: I.linhasCSVParaLancamentos(l, m, ref) }; };
+
+test("valorExtrato entende os formatos de banco", () => {
+  const casos = { "1.234,56": 123456, "-1.234,56": -123456, "1234.56": 123456, "R$ 12": 1200, "R$ -45,90": -4590, "- R$ 45,90": -4590, "(12,00)": -1200,
+    "12,00-": -1200, "12,00 D": -1200, "12,00 C": 1200, "45,90C": 4590, "−3,50": -350, "+7,1": 710, "1.500": 150000, "-150.00": -15000, "0,99": 99 };
+  for (const [t, v] of Object.entries(casos)) assert.strictEqual(I.valorExtrato(t), v, t);
+  for (const t of ["", "abc", "12,3,4x", "R$", "D"]) assert.strictEqual(I.valorExtrato(t), null, t);
+});
+
+test("dataExtrato com e sem ano, numérica e por extenso", () => {
+  assert.strictEqual(I.dataExtrato("05/10/2026", "2026-10"), "2026-10-05");
+  assert.strictEqual(I.dataExtrato("05/10/26", "2026-10"), "2026-10-05");
+  assert.strictEqual(I.dataExtrato("2026-10-05T10:00", "2026-10"), "2026-10-05");
+  assert.strictEqual(I.dataExtrato("05.10.2026", "2026-10"), "2026-10-05");
+  assert.strictEqual(I.dataExtrato("05/10", "2026-10"), "2026-10-05");
+  assert.strictEqual(I.dataExtrato("20/12", "2026-01"), "2025-12-20"); // dezembro na fatura de janeiro
+  assert.strictEqual(I.dataExtrato("12 OUT", "2026-10"), "2026-10-12");
+  assert.strictEqual(I.dataExtrato("3 de março de 2026", "2026-10"), "2026-03-03");
+  assert.strictEqual(I.dataExtrato("31/02/2026", "2026-10"), null);
+  assert.strictEqual(I.dataExtrato("12 PIX", "2026-10"), null);
+});
+
+test("CSV da conta Nubank (vírgula, valores com sinal)", () => {
+  const { mapa, itens } = doCSV("Data,Valor,Identificador,Descrição\n05/10/2026,-150.00,abc-1,Transferência enviada pelo Pix - JOAO\n06/10/2026,7200.00,abc-2,Transferência recebida - EMPRESA LTDA\n");
+  assert.deepStrictEqual([mapa.data, mapa.valor, mapa.desc], [0, 1, [3]]);
+  assert.deepStrictEqual(itens.map(i => [i.data, i.valor]), [["2026-10-05", -15000], ["2026-10-06", 720000]]);
+  assert.strictEqual(I.detectarModo(itens, mapa), "conta");
+});
+
+test("CSV da fatura Nubank (positivos são gastos) vira modo fatura", () => {
+  const { mapa, itens } = doCSV("date,category,title,amount\n2026-10-01,restaurante,Ifood *Ifood,45.90\n2026-10-02,supermercado,Carrefour,320.10\n2026-10-03,transporte,Uber *Trip,23.50\n2026-10-04,,Pagamento recebido,-900.00\n");
+  assert.strictEqual(I.detectarModo(itens, mapa), "fatura");
+  const prev = I.prepararImportacao(itens, "fatura", null, []);
+  assert.deepStrictEqual(prev.map(p => [p.tipo, p.categoria, p.incluir]), [["despesa", "Delivery / Restaurante", true], ["despesa", "Mercado / Feira", true], ["despesa", "Uber / App", true], ["receita", "Outro", false]]);
+});
+
+test("CSV com ponto e vírgula, duas colunas de descrição e aspas (Inter)", () => {
+  const { mapa, itens } = doCSV('Extrato Conta Corrente\nConta ;123\n\nData Lançamento;Histórico;Descrição;Valor;Saldo\n05/10/2026;Pix enviado ;"Maria; Silva";-1.234,56;10.000,00\n06/10/2026;Pix recebido;Fulano;500,00;10.500,00\n');
+  assert.strictEqual(mapa.cabecalho, 2); // linhas vazias não contam
+  assert.deepStrictEqual(itens.map(i => [i.descricao, i.valor]), [["Pix enviado - Maria; Silva", -123456], ["Pix recebido - Fulano", 50000]]);
+});
+
+test("CSV com colunas de crédito e débito (Bradesco, C6) e sem cabeçalho", () => {
+  const b = doCSV("Data;Histórico;Docto.;Crédito (R$);Débito (R$);Saldo (R$)\n01/10/2026;SALDO ANTERIOR;;;;1.000,00\n02/10/2026;CONTA DE LUZ ENEL;123;;210,35;789,65\n03/10/2026;TED RECEBIDA;9;1.000,00;;1.789,65\n");
+  assert.deepStrictEqual(b.itens.map(i => i.valor), [-21035, 100000]);
+  const c6 = doCSV("Data Lançamento,Data Contábil,Título,Descrição,Entrada(R$),Saída(R$),Saldo do Dia(R$)\n05/10/2026,05/10/2026,Pix,Padaria,0,12.5,100\n");
+  assert.deepStrictEqual(c6.itens.map(i => [i.descricao, i.valor]), [["Pix - Padaria", -1250]]);
+  const sem = doCSV("05/10/2026;Mercado Bom Preço;-87,40\n06/10/2026;Salário;3500,00\n07/10/2026;Farmácia;-23,10\n");
+  assert.deepStrictEqual(sem.itens.map(i => [i.descricao, i.valor]), [["Mercado Bom Preço", -8740], ["Salário", 350000], ["Farmácia", -2310]]);
+});
+
+test("OFX", () => {
+  const ofx = "OFXHEADER:100\n<OFX><BANKTRANLIST><STMTTRN><TRNTYPE>DEBIT<DTPOSTED>20261005120000[-3:BRT]<TRNAMT>-150.00<FITID>1<MEMO>PIX ENVIADO JOAO</STMTTRN><STMTTRN><TRNTYPE>CREDIT<DTPOSTED>20261006<TRNAMT>7200.00<FITID>2<NAME>SALARIO EMPRESA</STMTTRN></BANKTRANLIST></OFX>";
+  assert.deepStrictEqual(I.lerOFX(ofx).map(i => [i.data, i.valor, i.descricao]), [["2026-10-05", -15000, "PIX ENVIADO JOAO"], ["2026-10-06", 720000, "SALARIO EMPRESA"]]);
+});
+
+test("linhas de PDF: valor e saldo no fim, datas sem ano, linhas que não são lançamento", () => {
+  const linhas = ["EXTRATO DE CONTA CORRENTE - período 01/10/2026 a 31/10/2026", "Data Histórico Valor Saldo",
+    "05/10 PIX ENVIADO JOAO -150,00 1.234,56", "06/10 SALDO DO DIA 1.234,56", "07/10 PAGAMENTO CONTA LUZ ENEL 210,35 D 1.024,21",
+    "08/10 SALARIO EMPRESA LTDA 7.200,00 C 8.224,21", "Total de saídas 360,35", "12 OUT UBER *TRIP R$ 23,50"];
+  const ref = I.referenciaDoTexto(linhas, "2027-01");
+  assert.strictEqual(ref, "2026-10");
+  const r = I.lerLinhasExtrato(linhas, ref);
+  assert.deepStrictEqual(r.map(i => [i.data, i.descricao, i.valor]), [["2026-10-05", "PIX ENVIADO JOAO", -15000], ["2026-10-06", "SALDO DO DIA", 123456],
+    ["2026-10-07", "PAGAMENTO CONTA LUZ ENEL", -21035], ["2026-10-08", "SALARIO EMPRESA LTDA", 720000], ["2026-10-12", "UBER *TRIP", 2350]]);
+  const prev = I.prepararImportacao(r, "conta", null, []);
+  assert.strictEqual(prev[1].incluir, false); // saldo
+  assert.strictEqual(prev[2].categoria, "Energia");
+  assert.strictEqual(prev[3].categoria, "Salário");
+  assert.strictEqual(I.detectarModo(r, null, "FATURA DO CARTÃO VISA"), "fatura");
+});
+
+test("categoria: memória do usuário vem antes das palavras-chave; repetidos vêm desmarcados", () => {
+  const mem = new Map([["uber *trip", "Transporte / Combustível"], ["pix enviado joao", "Salário"]]);
+  assert.strictEqual(I.sugerirCategoria("UBER *TRIP", "despesa", mem), "Transporte / Combustível");
+  assert.strictEqual(I.sugerirCategoria("Pix enviado Joao", "despesa", mem), "Outro"); // lembrada é de receita: ignora
+  assert.strictEqual(I.sugerirCategoria("NETFLIX.COM", "despesa"), "Streaming");
+  assert.strictEqual(I.sugerirCategoria("Mercado Livre", "despesa"), "Outro");
+  assert.strictEqual(I.sugerirCategoria("Tim celular", "despesa"), "Internet / Telefone");
+  assert.strictEqual(I.sugerirCategoria("Rendimento poupança", "receita"), "Rendimentos / Investimentos");
+  const prev = I.prepararImportacao([{ data: "2026-10-05", valor: -15000, descricao: "PIX" }], "conta", null, [{ data: "2026-10-05", centavos: 15000, tipo: "despesa" }]);
+  assert.deepStrictEqual([prev[0].incluir, prev[0].motivo], [false, "Já lançado"]);
 });
