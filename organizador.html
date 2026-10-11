@@ -1,0 +1,627 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'unsafe-inline'; img-src data:; connect-src 'none'; base-uri 'none'; form-action 'none'">
+<meta name="color-scheme" content="dark light">
+<title>Organizador Financeiro</title>
+<style>
+:root {
+  --bg: #0e1119; --card: #171b27; --card-2: #1e2331; --line: rgba(255,255,255,.08);
+  --ink: #eef1f7; --muted: #9aa3b5; --accent: #d9ff00; --accent-ink: #11140a;
+  --pos: #4ade9d; --neg: #ff6b7a; --warn: #f5c24b; --info: #6ea8ff;
+  --radius: 16px; --gap: 14px;
+}
+@media (prefers-color-scheme: light) {
+  :root {
+    --bg: #f3f5f9; --card: #ffffff; --card-2: #eef1f6; --line: rgba(20,25,40,.1);
+    --ink: #1a1f2e; --muted: #5d667a; --accent: #1a1f2e; --accent-ink: #ffffff;
+    --pos: #0b8f5a; --neg: #d6334a; --warn: #a77700; --info: #2a62c9;
+  }
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0; background: var(--bg); color: var(--ink);
+  font: 16px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  padding: 16px max(16px, env(safe-area-inset-right)) 48px max(16px, env(safe-area-inset-left));
+}
+main { max-width: 1100px; margin: 0 auto; display: grid; gap: var(--gap); }
+header { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; }
+h1 { margin: 0; font-size: 1.35rem; letter-spacing: -.02em; }
+h2 { margin: 0 0 12px; font-size: 1.05rem; }
+.sub { color: var(--muted); font-size: .85rem; margin: 2px 0 0; }
+.card { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 16px; min-width: 0; }
+.grid { display: grid; gap: var(--gap); grid-template-columns: 1fr; }
+.cards { display: grid; gap: var(--gap); grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.stat .label { color: var(--muted); font-size: .78rem; font-weight: 600; }
+.stat .value { font-size: 1.3rem; font-weight: 800; letter-spacing: -.03em; margin-top: 4px; overflow-wrap: anywhere; }
+.stat .note { color: var(--muted); font-size: .75rem; margin-top: 2px; }
+.pos { color: var(--pos); } .neg { color: var(--neg); }
+label { display: block; font-size: .8rem; color: var(--muted); font-weight: 600; margin-bottom: 4px; }
+input, select, button { font: inherit; color: var(--ink); }
+input, select {
+  width: 100%; min-height: 44px; padding: 8px 12px; border-radius: 12px;
+  background: var(--card-2); border: 1px solid var(--line);
+}
+input:focus-visible, select:focus-visible, button:focus-visible { outline: 2px solid var(--info); outline-offset: 2px; }
+form { display: grid; gap: 12px; grid-template-columns: 1fr; }
+.seg { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; background: var(--card-2); padding: 4px; border-radius: 14px; }
+.seg button { border: 0; background: transparent; min-height: 42px; border-radius: 10px; font-weight: 700; cursor: pointer; color: var(--muted); }
+.seg button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); }
+.btn { min-height: 44px; padding: 8px 16px; border-radius: 12px; border: 1px solid var(--line); background: var(--card-2); cursor: pointer; font-weight: 700; }
+.btn.primary { background: var(--accent); color: var(--accent-ink); border-color: transparent; }
+.btn.danger { color: var(--neg); }
+.row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.err { color: var(--neg); font-size: .85rem; min-height: 1.2em; margin: 0; }
+.chart-box { position: relative; height: 270px; }
+.empty { color: var(--muted); font-size: .9rem; padding: 12px 0; }
+.dist { display: grid; gap: 12px; }
+.dist-row .top { display: flex; justify-content: space-between; font-size: .85rem; margin-bottom: 4px; gap: 8px; }
+.bar { position: relative; height: 10px; background: var(--card-2); border-radius: 99px; overflow: visible; }
+.bar > span { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 99px; background: var(--info); max-width: 100%; }
+.bar > i { position: absolute; top: -3px; bottom: -3px; width: 2px; background: var(--ink); opacity: .7; }
+.sug { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.sug li { padding: 10px 12px; border-radius: 12px; background: var(--card-2); border-left: 4px solid var(--info); }
+.sug li.alerta { border-color: var(--neg); } .sug li.atencao { border-color: var(--warn); }
+.sug li.ok { border-color: var(--pos); } .sug li.dica { border-color: var(--info); }
+.sug b { display: block; font-size: .9rem; } .sug span { color: var(--muted); font-size: .85rem; }
+.list { list-style: none; margin: 0; padding: 0; }
+.list li { display: grid; grid-template-columns: 1fr auto auto; gap: 4px 10px; align-items: center; padding: 10px 0; border-top: 1px solid var(--line); }
+.list li:first-child { border-top: 0; }
+.list .desc { font-weight: 600; overflow-wrap: anywhere; }
+.list .meta { grid-column: 1; color: var(--muted); font-size: .78rem; overflow-wrap: anywhere; }
+.list .amt { font-weight: 800; white-space: nowrap; text-align: right; }
+.list .del { min-width: 44px; min-height: 44px; border: 0; background: transparent; color: var(--muted); cursor: pointer; font-size: 1.2rem; border-radius: 10px; grid-row: 1 / span 2; grid-column: 3; }
+.list .del:hover { color: var(--neg); }
+.banner { padding: 10px 12px; border-radius: 12px; background: var(--card-2); border: 1px solid var(--warn); font-size: .85rem; }
+#toast { position: fixed; left: 50%; bottom: 20px; transform: translateX(-50%); background: var(--ink); color: var(--bg);
+  padding: 10px 14px; border-radius: 12px; font-size: .9rem; display: none; gap: 12px; align-items: center; max-width: calc(100vw - 32px); z-index: 10; }
+#toast.show { display: flex; }
+#toast button { background: transparent; border: 0; color: inherit; font-weight: 800; text-decoration: underline; cursor: pointer; min-height: 32px; }
+[hidden] { display: none !important; }
+@media (min-width: 640px) {
+  body { padding-top: 24px; }
+  form { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  form .full { grid-column: 1 / -1; }
+  .cards { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .stat .value { font-size: 1.5rem; }
+}
+@media (min-width: 900px) {
+  .grid.two { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <div>
+      <h1>Organizador Financeiro</h1>
+      <p class="sub">Seus dados ficam só neste navegador. Nada é enviado a servidores.</p>
+    </div>
+    <div style="min-width:180px">
+      <label for="periodo">Período</label>
+      <select id="periodo"></select>
+    </div>
+  </header>
+
+  <div id="aviso-storage" class="banner" hidden>Não foi possível salvar neste navegador (modo privado ou armazenamento bloqueado). Os dados somem ao fechar a página — use <b>Exportar JSON</b> para guardar.</div>
+
+  <section class="cards" aria-label="Resumo">
+    <div class="card stat"><div class="label">Receitas</div><div class="value pos" id="s-receitas">R$ 0,00</div></div>
+    <div class="card stat"><div class="label">Despesas</div><div class="value" id="s-despesas">R$ 0,00</div><div class="note">Sem investimentos</div></div>
+    <div class="card stat"><div class="label">Saldo</div><div class="value" id="s-saldo">R$ 0,00</div><div class="note" id="s-saldo-nota"></div></div>
+    <div class="card stat"><div class="label">Taxa de poupança</div><div class="value" id="s-taxa">—</div><div class="note">Meta: 20% ou mais</div></div>
+  </section>
+
+  <section class="card" aria-labelledby="h-nova">
+    <h2 id="h-nova">Nova transação</h2>
+    <form id="form" novalidate>
+      <div class="full">
+        <div class="seg" role="group" aria-label="Tipo">
+          <button type="button" data-tipo="despesa" aria-pressed="true">Despesa</button>
+          <button type="button" data-tipo="receita" aria-pressed="false">Receita</button>
+        </div>
+      </div>
+      <div><label for="f-categoria">Categoria</label><select id="f-categoria"></select></div>
+      <div><label for="f-valor">Valor (R$)</label><input id="f-valor" inputmode="decimal" autocomplete="off" placeholder="0,00"></div>
+      <div><label for="f-data">Data</label><input id="f-data" type="date"></div>
+      <div><label for="f-desc">Descrição</label><input id="f-desc" maxlength="80" autocomplete="off" placeholder="Ex.: Mercado, salário..."></div>
+      <p class="err full" id="f-erro" role="alert"></p>
+      <button class="btn primary full" type="submit">Adicionar</button>
+    </form>
+  </section>
+
+  <div class="grid two">
+    <section class="card" aria-labelledby="h-rosca">
+      <h2 id="h-rosca">Despesas por categoria</h2>
+      <div class="chart-box"><canvas id="c-rosca" role="img" aria-label="Gráfico de rosca das despesas por categoria"></canvas></div>
+      <p class="empty" id="e-rosca" hidden>Sem despesas no período.</p>
+    </section>
+    <section class="card" aria-labelledby="h-barras">
+      <h2 id="h-barras">Receitas vs. despesas por mês</h2>
+      <div class="chart-box"><canvas id="c-barras" role="img" aria-label="Gráfico de barras de receitas e despesas por mês"></canvas></div>
+      <p class="empty" id="e-barras" hidden>Sem dados ainda.</p>
+    </section>
+  </div>
+  <p class="empty" id="e-charts" hidden>Os gráficos precisam carregar o Chart.js da internet. O restante funciona offline.</p>
+
+  <section class="card" aria-labelledby="h-analise">
+    <h2 id="h-analise">Análise e sugestões</h2>
+    <div class="grid two">
+      <div>
+        <div class="dist" id="dist"></div>
+        <p class="sub" id="dist-nota"></p>
+      </div>
+      <ul class="sug" id="sug"></ul>
+    </div>
+  </section>
+
+  <section class="card" aria-labelledby="h-lista">
+    <h2 id="h-lista">Transações</h2>
+    <ul class="list" id="lista"></ul>
+    <p class="empty" id="e-lista" hidden>Nenhuma transação no período.</p>
+    <button class="btn" id="mais" hidden type="button">Mostrar mais</button>
+  </section>
+
+  <section class="card" aria-labelledby="h-dados">
+    <h2 id="h-dados">Seus dados</h2>
+    <div class="row">
+      <button class="btn" id="b-export" type="button">Exportar JSON</button>
+      <button class="btn" id="b-import" type="button">Importar JSON</button>
+      <button class="btn danger" id="b-limpar" type="button">Limpar tudo</button>
+      <input id="f-import" type="file" accept="application/json,.json" hidden>
+    </div>
+    <p class="sub">Importar mescla com o que já existe (ids repetidos são ignorados). Guarde o arquivo exportado como backup.</p>
+    <p class="err" id="d-msg" role="status"></p>
+  </section>
+</main>
+<div id="toast" role="status"><span id="toast-msg"></span><button type="button" id="toast-undo">Desfazer</button></div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.js" integrity="sha384-dug+JxfBvklEQdJ4AYuBBAIScUz0bVN73xpy273gcAwHjb3qI0fXmuYNaNfdyYJG" crossorigin="anonymous"></script>
+<script>
+/* ==== LOGICA:INICIO ==== (funções puras, sem DOM — testadas em tests/organizador.test.js) */
+const CATEGORIAS_RECEITA = ["Salário", "Freelance", "Rendas extras", "Comissão", "13º / Férias", "Reembolso",
+  "Transferência recebida", "Rendimentos / Investimentos", "Presente / Doação", "Outro"];
+const NECESSIDADES = ["Moradia / Aluguel", "Condomínio", "Energia", "Água", "Internet / Telefone", "Gás",
+  "Mercado / Feira", "Transporte / Combustível", "Saúde / Farmácia", "Plano de saúde", "Educação / Cursos",
+  "Casa / Manutenção", "Filhos / Família", "Impostos / Taxas", "Seguros", "Trabalho / Home office",
+  "Cartão de crédito", "Empréstimo / Financiamento", "Dívidas"];
+const DESEJOS = ["Delivery / Restaurante", "Uber / App", "Assinaturas", "Lazer / Entretenimento", "Streaming",
+  "Roupas / Calçados", "Beleza / Cuidados pessoais", "Pet", "Móveis / Eletro", "Viagem", "Presentes", "Doações", "Outro"];
+const POUPANCA_CATS = ["Investimento / Reserva"];
+const CATEGORIAS_DESPESA = NECESSIDADES.concat(DESEJOS.slice(0, -1), POUPANCA_CATS, ["Outro"]);
+const DIVIDA = ["Cartão de crédito", "Empréstimo / Financiamento", "Dívidas"];
+const MORADIA = ["Moradia / Aluguel", "Condomínio"];
+const GENERICAS = ["Outro", "Outros", "Importado", "Sem categoria", ""];
+const G_NEC = "Necessidades", G_DES = "Desejos", G_POU = "Poupança";
+const ALVO_PADRAO = { [G_NEC]: 50, [G_DES]: 30, [G_POU]: 20 };
+const ALVO_BRASIL = { [G_NEC]: 60, [G_DES]: 25, [G_POU]: 15 };
+const LIMITE = { moradia: 30, divida: 20, concentracao: 35, genericas: 20, anomaliaFator: 1.5, anomaliaMinimo: 5000 };
+
+function grupoDaCategoria(cat) {
+  const n = String(cat == null ? "" : cat).trim();
+  if (POUPANCA_CATS.includes(n)) return G_POU;
+  if (NECESSIDADES.includes(n)) return G_NEC;
+  return G_DES; // desconhecida ou genérica: assume desejo
+}
+
+/* "1.234,56" | "1234,56" | "1234.56" | "R$ 12" -> centavos inteiros, ou null se inválido */
+function parseValor(txt) {
+  let s = String(txt == null ? "" : txt).replace(/R\$|\s/g, "");
+  if (!s || !/^[0-9.,]+$/.test(s)) return null;
+  if (s.includes(",")) s = s.replace(/\./g, "").replace(",", ".");
+  else if ((s.match(/\./g) || []).length > 1) s = s.replace(/\./g, "");
+  if (!/^\d+(\.\d{1,2})?$/.test(s)) return null;
+  const c = Math.round(parseFloat(s) * 100);
+  return c > 0 && c <= 100000000000 ? c : null;
+}
+
+function dataValida(s) {
+  if (typeof s !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(s)) return false;
+  const [a, m, d] = s.split("-").map(Number);
+  const dt = new Date(Date.UTC(a, m - 1, d));
+  return a >= 1900 && a <= 2200 && dt.getUTCFullYear() === a && dt.getUTCMonth() === m - 1 && dt.getUTCDate() === d;
+}
+
+function brl(centavos) {
+  return (centavos / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+}
+const pct1 = (parte, total) => (total > 0 ? Math.round((parte / total) * 1000) / 10 : 0);
+
+function mesesDisponiveis(txs) {
+  return Array.from(new Set(txs.map(t => t.data.slice(0, 7)))).sort().reverse();
+}
+
+function analisar(txs, periodo) {
+  const todos = periodo === "all";
+  const noPeriodo = t => todos || t.data.slice(0, 7) === periodo;
+  let receitas = 0;
+  const cats = {};
+  for (const t of txs) {
+    if (!noPeriodo(t)) continue;
+    if (t.tipo === "receita") receitas += t.centavos;
+    else { const c = (t.categoria || "").trim() || "Sem categoria"; cats[c] = (cats[c] || 0) + t.centavos; }
+  }
+  const grupos = { [G_NEC]: 0, [G_DES]: 0, [G_POU]: 0 };
+  for (const c in cats) grupos[grupoDaCategoria(c)] += cats[c];
+  const investido = grupos[G_POU];
+  const gasto = grupos[G_NEC] + grupos[G_DES];
+  const poupado = Math.max(receitas - gasto, 0);
+  const ranking = Object.entries(cats).filter(([c]) => grupoDaCategoria(c) !== G_POU)
+    .sort((a, b) => b[1] - a[1])
+    .map(([c, v]) => ({ categoria: c, valor: v, pctDespesas: pct1(v, gasto), pctRenda: pct1(v, receitas), grupo: grupoDaCategoria(c) }));
+  const a = {
+    periodo, temDados: txs.some(noPeriodo), receitas, despesas: gasto, investido,
+    saldo: receitas - gasto - investido,
+    deficit: gasto > receitas,
+    taxaPoupanca: receitas > 0 ? Math.round(((receitas - gasto) / receitas) * 1000) / 10 : null,
+    distribuicao: {
+      [G_NEC]: { valor: grupos[G_NEC], pct: pct1(grupos[G_NEC], receitas) },
+      [G_DES]: { valor: grupos[G_DES], pct: pct1(grupos[G_DES], receitas) },
+      [G_POU]: { valor: poupado, pct: pct1(poupado, receitas) },
+    },
+    ranking,
+  };
+  a.sugestoes = gerarSugestoes(a, todos ? {} : historicoCategorias(txs, periodo));
+  return a;
+}
+
+/* Gasto por categoria nos meses anteriores ao analisado (meses sem a categoria contam zero). */
+function historicoCategorias(txs, mes) {
+  const porMes = {};
+  for (const t of txs) {
+    if (t.tipo !== "despesa") continue;
+    const m = t.data.slice(0, 7);
+    if (m >= mes) continue;
+    const c = (t.categoria || "").trim() || "Sem categoria";
+    (porMes[m] = porMes[m] || {})[c] = ((porMes[m] || {})[c] || 0) + t.centavos;
+  }
+  const meses = Object.keys(porMes), h = {};
+  for (const m of meses) for (const c in porMes[m]) (h[c] = h[c] || []).push(porMes[m][c]);
+  for (const c in h) while (h[c].length < meses.length) h[c].push(0);
+  return h;
+}
+
+function gerarSugestoes(a, historico) {
+  const sug = (nivel, titulo, texto) => ({ nivel, titulo, texto });
+  if (!a.temDados) return [sug("dica", "Comece registrando", "Cadastre receitas e despesas do mês para receber o diagnóstico.")];
+  const s = [];
+  const { receitas, despesas } = a;
+  const nec = a.distribuicao[G_NEC].pct, des = a.distribuicao[G_DES].pct;
+  const rk = a.ranking;
+  if (receitas <= 0) {
+    return [sug("alerta", "Sem receitas no período", `Há ${brl(despesas)} em despesas e nenhuma receita registrada. Lance os ganhos para o diagnóstico fazer sentido.`)];
+  }
+  if (a.deficit) {
+    const topDes = rk.find(r => r.grupo === G_DES);
+    const corte = topDes ? ` Comece por ${topDes.categoria} (${brl(topDes.valor)}).` : " Revise as despesas fixas.";
+    s.push(sug("alerta", "Déficit no período", `Você gastou ${brl(despesas - receitas)} a mais do que ganhou.${corte}`));
+  }
+  const taxa = a.taxaPoupanca;
+  if (taxa !== null && !a.deficit) {
+    const t = Math.round(taxa);
+    if (taxa < 10) s.push(sug("atencao", `Taxa de poupança baixa (${t}%)`, "Sobrou menos de 10% da renda. Corte um gasto de desejo e reserve o valor assim que receber."));
+    else if (taxa < 20) s.push(sug("dica", `Taxa de poupança razoável (${t}%)`, "Você está perto da meta de 20%. Um pequeno ajuste em desejos fecha a diferença."));
+    else s.push(sug("ok", `Boa taxa de poupança (${t}%)`, "Você guardou 20% ou mais da renda. Direcione para reserva de emergência e investimentos."));
+  }
+  if (nec > 60) {
+    s.push(sug(nec > 75 ? "alerta" : "atencao", `Necessidades pesadas (${Math.round(nec)}% da renda)`,
+      "Acima de 60%, a regra 50/30/20 fica apertada. Use a variação 60/25/15 por ora e renegocie contratos fixos (aluguel, planos, tarifas) para voltar perto de 50%."));
+  } else if (nec > 50) {
+    s.push(sug("dica", `Necessidades um pouco acima do ideal (${Math.round(nec)}%)`, "O ideal é até 50%, mas até 60% é aceitável no Brasil (variação 60/25/15)."));
+  }
+  if (des > 30) {
+    const topo = rk.find(r => r.grupo === G_DES);
+    s.push(sug("atencao", `Desejos acima de 30% (${Math.round(des)}%)`,
+      `Lazer e consumo não essencial passaram do limite.${topo ? ` O maior é ${topo.categoria} (${brl(topo.valor)}).` : ""}`));
+  }
+  if (rk.length) {
+    const top = rk[0];
+    if (top.pctDespesas >= LIMITE.concentracao)
+      s.push(sug("atencao", `Gasto concentrado em ${top.categoria}`, `${Math.round(top.pctDespesas)}% das despesas (${brl(top.valor)}) estão em uma só categoria.`));
+    const moradia = rk.filter(r => MORADIA.includes(r.categoria)).reduce((x, r) => x + r.pctRenda, 0);
+    if (moradia > LIMITE.moradia)
+      s.push(sug("atencao", `Moradia consome ${Math.round(moradia)}% da renda`, `O recomendado é até ${LIMITE.moradia}%. Avalie renegociar aluguel ou condomínio.`));
+    const divida = rk.filter(r => DIVIDA.includes(r.categoria)).reduce((x, r) => x + r.pctRenda, 0);
+    if (divida > LIMITE.divida)
+      s.push(sug("alerta", `Dívidas consomem ${Math.round(divida)}% da renda`,
+        "Priorize quitar as dívidas de juros mais altos (cartão, cheque especial) antes de investir, e tente renegociar."));
+    const gen = rk.filter(r => GENERICAS.includes(r.categoria)).reduce((x, r) => x + r.pctDespesas, 0);
+    if (gen > LIMITE.genericas)
+      s.push(sug("dica", "Muitas despesas sem categoria", `${Math.round(gen)}% das despesas estão em "Outro" ou sem categoria. Categorizar melhor deixa o diagnóstico mais preciso.`));
+  }
+  for (const cat in historico || {}) {
+    const vals = historico[cat];
+    const atual = (rk.find(r => r.categoria === cat) || { valor: 0 }).valor;
+    const media = vals.length ? vals.reduce((x, y) => x + y, 0) / vals.length : 0;
+    if (vals.length >= 2 && media > 0 && atual >= media * LIMITE.anomaliaFator && atual - media >= LIMITE.anomaliaMinimo)
+      s.push(sug("atencao", `${cat} fora do padrão`, `${brl(atual)} neste mês contra média de ${brl(media)} nos anteriores (+${Math.round((atual / media - 1) * 100)}%).`));
+  }
+  if (!a.deficit && a.distribuicao[G_POU].valor > 0)
+    s.push(sug("dica", "Automatize a poupança", "Agende a transferência para a reserva no dia em que o salário cair, antes de gastar. O que sobra no fim do mês costuma sumir."));
+  const ordem = { alerta: 0, atencao: 1, dica: 2, ok: 3 };
+  return s.sort((x, y) => ordem[x.nivel] - ordem[y.nivel]);
+}
+
+/* Valida um arquivo importado; devolve { transacoes, ignoradas } sem confiar em nada do JSON. */
+function validarImportacao(obj) {
+  const lista = Array.isArray(obj) ? obj : obj && Array.isArray(obj.transacoes) ? obj.transacoes : null;
+  if (!lista) return null;
+  const out = []; let ignoradas = 0;
+  for (const r of lista.slice(0, 50000)) {
+    const valor = r && typeof r.valor === "number" && isFinite(r.valor) ? Math.round(Math.abs(r.valor) * 100) : 0;
+    if (!r || (r.tipo !== "receita" && r.tipo !== "despesa") || !dataValida(r.data) || valor <= 0 || valor > 100000000000) { ignoradas++; continue; }
+    out.push({
+      id: typeof r.id === "string" && r.id.length <= 64 ? r.id : novoId(),
+      tipo: r.tipo, centavos: valor,
+      categoria: String(r.categoria == null ? "" : r.categoria).slice(0, 60),
+      data: r.data, descricao: String(r.descricao == null ? "" : r.descricao).slice(0, 80),
+    });
+  }
+  return { transacoes: out, ignoradas: ignoradas + Math.max(lista.length - 50000, 0) };
+}
+function novoId() {
+  return (typeof crypto !== "undefined" && crypto.randomUUID) ? crypto.randomUUID()
+    : Date.now().toString(36) + Math.random().toString(36).slice(2, 10);
+}
+/* ==== LOGICA:FIM ==== */
+
+/* ---------------- Estado e persistência ---------------- */
+const CHAVE = "organizador-financeiro:v1";
+let transacoes = [];
+let storageOk = true;
+let tipoAtual = "despesa";
+let ultimaRemovida = null, toastTimer = null, visiveis = 50;
+
+function carregar() {
+  try {
+    const bruto = localStorage.getItem(CHAVE);
+    if (!bruto) return;
+    const v = validarImportacao(JSON.parse(bruto));
+    if (v) transacoes = v.transacoes;
+  } catch (e) { storageOk = false; }
+}
+function salvar() {
+  try {
+    localStorage.setItem(CHAVE, JSON.stringify({ versao: 1, transacoes: transacoes.map(paraArquivo) }));
+  } catch (e) { storageOk = false; }
+  document.getElementById("aviso-storage").hidden = storageOk;
+}
+const paraArquivo = t => ({ id: t.id, tipo: t.tipo, categoria: t.categoria, valor: t.centavos / 100, data: t.data, descricao: t.descricao });
+
+/* ---------------- Utilidades de UI ---------------- */
+const $ = id => document.getElementById(id);
+const hoje = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; };
+const dataBR = s => `${s.slice(8, 10)}/${s.slice(5, 7)}/${s.slice(0, 4)}`;
+const nomeMes = m => `${m.slice(5)}/${m.slice(0, 4)}`;
+function el(tag, props, ...filhos) {
+  const e = document.createElement(tag);
+  if (props) Object.assign(e, props);
+  for (const f of filhos) e.append(f);
+  return e;
+}
+
+function preencherCategorias() {
+  const sel = $("f-categoria");
+  sel.replaceChildren(...(tipoAtual === "receita" ? CATEGORIAS_RECEITA : CATEGORIAS_DESPESA).map(c => el("option", { value: c, textContent: c })));
+}
+function preencherPeriodos(irParaUltimo) {
+  const sel = $("periodo"), anterior = irParaUltimo ? "" : sel.value;
+  const meses = mesesDisponiveis(transacoes);
+  sel.replaceChildren(...[el("option", { value: "all", textContent: "Todo o período" })]
+    .concat(meses.map(m => el("option", { value: m, textContent: nomeMes(m) }))));
+  if (anterior && (anterior === "all" || meses.includes(anterior))) sel.value = anterior;
+  else sel.value = meses[0] || "all";
+}
+const periodo = () => $("periodo").value || "all";
+const noPeriodo = t => periodo() === "all" || t.data.slice(0, 7) === periodo();
+
+/* ---------------- Renderização ---------------- */
+function render() {
+  const a = analisar(transacoes, periodo());
+  $("s-receitas").textContent = brl(a.receitas);
+  $("s-despesas").textContent = brl(a.despesas);
+  const saldo = $("s-saldo");
+  saldo.textContent = brl(a.saldo);
+  saldo.className = "value " + (a.saldo < 0 ? "neg" : "pos");
+  $("s-saldo-nota").textContent = a.investido > 0 ? `Já descontados ${brl(a.investido)} investidos` : (a.deficit ? "Déficit no período" : "Receitas menos saídas");
+  const taxa = $("s-taxa");
+  taxa.textContent = a.taxaPoupanca === null ? "—" : `${a.taxaPoupanca.toLocaleString("pt-BR")}%`;
+  taxa.className = "value " + (a.taxaPoupanca === null ? "" : a.taxaPoupanca < 0 ? "neg" : a.taxaPoupanca >= 20 ? "pos" : "");
+  renderAnalise(a);
+  renderLista();
+  renderGraficos(a);
+}
+
+function renderAnalise(a) {
+  const dist = $("dist");
+  dist.replaceChildren();
+  if (a.receitas > 0) {
+    for (const g of [G_NEC, G_DES, G_POU]) {
+      const d = a.distribuicao[g];
+      dist.append(el("div", { className: "dist-row" },
+        el("div", { className: "top" }, el("span", { textContent: g }), el("span", { textContent: `${d.pct.toLocaleString("pt-BR")}% · meta ${ALVO_PADRAO[g]}%` })),
+        el("div", { className: "bar" }, el("span", { style: `width:${Math.min(d.pct, 100)}%` }), el("i", { style: `left:${ALVO_PADRAO[g]}%` }))));
+    }
+  }
+  $("dist-nota").textContent = a.receitas > 0 ? "Marcador = regra 50/30/20. Variação mais realista para o Brasil: 60/25/15." : "";
+  $("sug").replaceChildren(...a.sugestoes.map(s => el("li", { className: s.nivel }, el("b", { textContent: s.titulo }), el("span", { textContent: s.texto }))));
+}
+
+function renderLista() {
+  const itens = transacoes.filter(noPeriodo).reverse().sort((x, y) => y.data.localeCompare(x.data));
+  const ul = $("lista");
+  ul.replaceChildren(...itens.slice(0, visiveis).map(t => {
+    const li = el("li", null,
+      el("span", { className: "desc", textContent: t.descricao || t.categoria }),
+      el("span", { className: "amt " + (t.tipo === "receita" ? "pos" : "neg"), textContent: (t.tipo === "receita" ? "+ " : "− ") + brl(t.centavos) }),
+      el("button", { className: "del", type: "button", textContent: "✕", title: "Excluir" }),
+      el("span", { className: "meta", textContent: `${dataBR(t.data)} · ${t.categoria || "Sem categoria"}` }));
+    const del = li.querySelector(".del");
+    del.setAttribute("aria-label", `Excluir ${t.descricao || t.categoria}`);
+    del.addEventListener("click", () => remover(t.id));
+    return li;
+  }));
+  $("e-lista").hidden = itens.length > 0;
+  $("mais").hidden = itens.length <= visiveis;
+}
+
+let rosca = null, barras = null;
+function cores() {
+  const cs = getComputedStyle(document.documentElement);
+  const v = n => cs.getPropertyValue(n).trim();
+  return { ink: v("--ink"), muted: v("--muted"), line: v("--line"), pos: v("--pos"), neg: v("--neg"),
+    paleta: ["#6ea8ff", "#4ade9d", "#f5c24b", "#ff6b7a", "#b58bff", "#5fd6e0", "#9aa3b5"] };
+}
+function renderGraficos(a) {
+  const ok = typeof Chart !== "undefined";
+  $("e-charts").hidden = ok;
+  document.querySelectorAll(".chart-box").forEach(b => (b.hidden = !ok));
+  if (!ok) return;
+  const c = cores();
+  Chart.defaults.color = c.muted;
+  Chart.defaults.animation = window.matchMedia("(prefers-reduced-motion: reduce)").matches ? false : {};
+  Chart.defaults.font.family = getComputedStyle(document.body).fontFamily;
+
+  const top = a.ranking.slice(0, 6), resto = a.ranking.slice(6).reduce((x, r) => x + r.valor, 0);
+  const nomes = top.map(r => r.categoria).concat(resto > 0 ? ["Outras"] : []);
+  const vals = top.map(r => r.valor / 100).concat(resto > 0 ? [resto / 100] : []);
+  $("e-rosca").hidden = vals.length > 0;
+  $("c-rosca").parentElement.hidden = vals.length === 0;
+  if (rosca) rosca.destroy();
+  rosca = vals.length ? new Chart($("c-rosca"), {
+    type: "doughnut",
+    data: { labels: nomes, datasets: [{ data: vals, backgroundColor: c.paleta, borderColor: "transparent" }] },
+    options: { maintainAspectRatio: false, cutout: "62%", plugins: { legend: { position: "bottom", labels: { boxWidth: 12 } },
+      tooltip: { callbacks: { label: ctx => ` ${ctx.label}: ${brl(Math.round(ctx.parsed * 100))}` } } } },
+  }) : null;
+
+  const porMes = {};
+  for (const t of transacoes) {
+    const m = t.data.slice(0, 7);
+    const o = porMes[m] = porMes[m] || { r: 0, d: 0 };
+    if (t.tipo === "receita") o.r += t.centavos;
+    else if (grupoDaCategoria(t.categoria) !== G_POU) o.d += t.centavos;
+  }
+  const meses = Object.keys(porMes).sort().slice(-12);
+  $("e-barras").hidden = meses.length > 0;
+  $("c-barras").parentElement.hidden = meses.length === 0;
+  if (barras) barras.destroy();
+  barras = meses.length ? new Chart($("c-barras"), {
+    type: "bar",
+    data: { labels: meses.map(nomeMes), datasets: [
+      { label: "Receitas", data: meses.map(m => porMes[m].r / 100), backgroundColor: c.pos, borderRadius: 4 },
+      { label: "Despesas", data: meses.map(m => porMes[m].d / 100), backgroundColor: c.neg, borderRadius: 4 } ] },
+    options: { maintainAspectRatio: false,
+      scales: { y: { beginAtZero: true, grid: { color: c.line }, ticks: { callback: v => brl(v * 100).replace(",00", "") } }, x: { grid: { display: false } } },
+      plugins: { legend: { position: "bottom", labels: { boxWidth: 12 } },
+        tooltip: { callbacks: { label: ctx => ` ${ctx.dataset.label}: ${brl(Math.round(ctx.parsed.y * 100))}` } } } },
+  }) : null;
+}
+
+/* ---------------- Ações ---------------- */
+function mostrarToast(msg, desfazer) {
+  $("toast-msg").textContent = msg;
+  $("toast-undo").hidden = !desfazer;
+  $("toast").classList.add("show");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { $("toast").classList.remove("show"); ultimaRemovida = null; }, 6000);
+}
+function remover(id) {
+  const i = transacoes.findIndex(t => t.id === id);
+  if (i < 0) return;
+  ultimaRemovida = transacoes.splice(i, 1)[0];
+  salvar(); preencherPeriodos(); render();
+  mostrarToast("Transação excluída.", true);
+}
+
+function adicionar(ev) {
+  ev.preventDefault();
+  const erro = $("f-erro");
+  const centavos = parseValor($("f-valor").value);
+  const data = $("f-data").value;
+  if (centavos === null) { erro.textContent = "Informe um valor válido maior que zero (ex.: 1.234,56)."; $("f-valor").focus(); return; }
+  if (!dataValida(data)) { erro.textContent = "Informe uma data válida."; $("f-data").focus(); return; }
+  erro.textContent = "";
+  const eraVazio = transacoes.length === 0;
+  transacoes.push({ id: novoId(), tipo: tipoAtual, centavos, categoria: $("f-categoria").value, data, descricao: $("f-desc").value.trim().slice(0, 80) });
+  salvar();
+  $("f-valor").value = ""; $("f-desc").value = "";
+  const mes = data.slice(0, 7);
+  preencherPeriodos();
+  if (eraVazio || (periodo() !== "all" && periodo() !== mes)) $("periodo").value = mes; // mostra o que acabou de lançar
+  render();
+  mostrarToast("Transação adicionada.", false);
+  $("f-valor").focus();
+}
+
+function exportar() {
+  const blob = new Blob([JSON.stringify({ versao: 1, exportadoEm: new Date().toISOString(), transacoes: transacoes.map(paraArquivo) }, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = el("a", { href: url, download: `organizador-financeiro-${hoje()}.json` });
+  document.body.append(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  $("d-msg").textContent = `${transacoes.length} transações exportadas.`;
+}
+
+function importar(arquivo) {
+  const msg = $("d-msg");
+  if (!arquivo) return;
+  if (arquivo.size > 20 * 1024 * 1024) { msg.textContent = "Arquivo grande demais (máx. 20 MB)."; return; }
+  const leitor = new FileReader();
+  leitor.onerror = () => { msg.textContent = "Não foi possível ler o arquivo."; };
+  leitor.onload = () => {
+    let v = null;
+    try { v = validarImportacao(JSON.parse(leitor.result)); } catch (e) { /* JSON inválido */ }
+    if (!v) { msg.textContent = "Arquivo inválido: esperado um JSON exportado por este organizador."; return; }
+    const eraVazio = transacoes.length === 0;
+    const existentes = new Set(transacoes.map(t => t.id));
+    const novas = v.transacoes.filter(t => !existentes.has(t.id));
+    transacoes = transacoes.concat(novas);
+    salvar(); preencherPeriodos(eraVazio); render();
+    msg.textContent = `${novas.length} importadas, ${v.transacoes.length - novas.length} já existiam, ${v.ignoradas} ignoradas por dados inválidos.`;
+  };
+  leitor.readAsText(arquivo);
+}
+
+function limparTudo() {
+  if (!transacoes.length) { $("d-msg").textContent = "Não há dados para apagar."; return; }
+  if (!confirm(`Apagar as ${transacoes.length} transações deste navegador? Isso não pode ser desfeito.\n\nExporte um JSON antes se quiser guardar um backup.`)) return;
+  transacoes = []; ultimaRemovida = null;
+  try { localStorage.removeItem(CHAVE); } catch (e) { storageOk = false; }
+  preencherPeriodos(); render();
+  $("d-msg").textContent = "Todos os dados foram apagados.";
+}
+
+/* ---------------- Inicialização ---------------- */
+function init() {
+  carregar();
+  $("f-data").value = hoje();
+  document.querySelectorAll(".seg button").forEach(b => b.addEventListener("click", () => {
+    tipoAtual = b.dataset.tipo;
+    document.querySelectorAll(".seg button").forEach(x => x.setAttribute("aria-pressed", String(x === b)));
+    preencherCategorias();
+  }));
+  $("form").addEventListener("submit", adicionar);
+  $("periodo").addEventListener("change", () => { visiveis = 50; render(); });
+  $("mais").addEventListener("click", () => { visiveis += 50; renderLista(); });
+  $("b-export").addEventListener("click", exportar);
+  $("b-import").addEventListener("click", () => $("f-import").click());
+  $("f-import").addEventListener("change", e => { importar(e.target.files[0]); e.target.value = ""; });
+  $("b-limpar").addEventListener("click", limparTudo);
+  $("toast-undo").addEventListener("click", () => {
+    if (!ultimaRemovida) return;
+    transacoes.push(ultimaRemovida); ultimaRemovida = null;
+    $("toast").classList.remove("show");
+    salvar(); preencherPeriodos(); render();
+  });
+  window.matchMedia("(prefers-color-scheme: light)").addEventListener("change", () => render());
+  preencherCategorias(); preencherPeriodos(); render();
+  document.getElementById("aviso-storage").hidden = storageOk;
+}
+if (typeof document !== "undefined") init();
+</script>
+</body>
+</html>

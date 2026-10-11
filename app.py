@@ -9,10 +9,13 @@ from io import BytesIO
 
 import pandas as pd
 import plotly.express as px
+import plotly.graph_objects as go
 import streamlit as st
 from openpyxl import Workbook
 from openpyxl.styles import Alignment, Font, PatternFill
 from openpyxl.worksheet.table import Table, TableStyleInfo
+
+import analise_financeira as analise
 
 # ====================== CONFIG ======================
 st.set_page_config(
@@ -5411,7 +5414,7 @@ st.markdown(
 )
 
 # ====================== MENU LATERAL (única instância) ======================
-MENU_OPCOES = ["Nova", "Dashboard", "Metas", "Dívidas", "Investir", "Histórico"]
+MENU_OPCOES = ["Nova", "Dashboard", "Análise", "Metas", "Dívidas", "Investir", "Histórico"]
 
 # Garante que o menu não seja montado duas vezes no mesmo run
 if "menu_mounted" not in st.session_state:
@@ -6043,6 +6046,101 @@ elif pagina == "Dashboard":
             st.plotly_chart(fig_m, use_container_width=True, config=PLOTLY_CONFIG)
     else:
         st.info("Cadastre ou importe movimentações para ver os gráficos.")
+
+# ---------- ABA: Análise (50/30/20) ----------
+elif pagina == "Análise":
+    st.subheader("Análise do mês")
+    st.caption("Taxa de poupança, déficit, regra 50/30/20 e sugestões com base nas suas movimentações.")
+
+    _registros = df.to_dict("records") if len(df) else []
+    _meses = analise.meses_disponiveis(_registros)
+    if not _meses:
+        st.info("Cadastre ou importe movimentações para ver a análise.")
+    else:
+        _mes_sel = st.selectbox(
+            "Mês",
+            _meses,
+            format_func=lambda m: f"{m[5:]}/{m[:4]}",
+            key="analise_mes",
+        )
+        _a = analise.analisar(_registros, _mes_sel)
+        _taxa = _a["taxa_poupanca"]
+        _taxa_txt = f"{analise.arredondar(_taxa)}%" if _taxa is not None else "—"
+        _dist = _a["distribuicao"]
+
+        st.markdown(
+            f"""
+<div class="metric-grid">
+    <div class="metric-card accent">
+        <div class="metric-label">Taxa de poupança</div>
+        <div class="metric-value">{_taxa_txt}</div>
+        <div class="metric-foot">Meta: 20% ou mais</div>
+    </div>
+    <div class="metric-card mint">
+        <div class="metric-label">Receitas</div>
+        <div class="metric-value">{brl(_a["receitas"])}</div>
+        <div class="metric-foot">Entradas no mês</div>
+    </div>
+    <div class="metric-card">
+        <div class="metric-label">Despesas</div>
+        <div class="metric-value">{brl(_a["despesas"])}</div>
+        <div class="metric-foot">Sem contar investimentos</div>
+    </div>
+    <div class="metric-card">
+        <div class="metric-label">{"Déficit" if _a["deficit"] else "Saldo"}</div>
+        <div class="metric-value">{brl(_a["saldo"])}</div>
+        <div class="metric-foot">{"Gastou mais do que ganhou" if _a["deficit"] else "Receitas menos saídas"}</div>
+    </div>
+</div>
+""",
+            unsafe_allow_html=True,
+        )
+
+        st.markdown("#### Sugestões")
+        _icones = {"alerta": st.error, "atencao": st.warning, "dica": st.info, "ok": st.success}
+        for _s in _a["sugestoes"]:
+            _icones[_s["nivel"]](f"**{_s['titulo']}**\n\n{_s['texto']}")
+
+        if _a["receitas"] > 0:
+            c1, c2 = st.columns(2)
+            with c1:
+                _grupos = [analise.NECESSIDADES, analise.DESEJOS, analise.POUPANCA]
+                fig_regra = go.Figure()
+                fig_regra.add_bar(
+                    name="Seu mês", x=_grupos, y=[_dist[g]["pct"] for g in _grupos],
+                    marker_color="#1c1f26",
+                    hovertemplate="%{x}: %{y:.0f}% da renda<extra></extra>",
+                )
+                fig_regra.add_bar(
+                    name="Regra 50/30/20", x=_grupos, y=[analise.ALVO_PADRAO[g] for g in _grupos],
+                    marker_color="#7ed9b0",
+                    hovertemplate="%{x}: %{y:.0f}% (referência)<extra></extra>",
+                )
+                fig_regra.update_layout(barmode="group", title="Sua distribuição vs. 50/30/20")
+                fig_regra.update_yaxes(ticksuffix="%")
+                st.plotly_chart(style_plot(fig_regra, height=320), use_container_width=True, config=PLOTLY_CONFIG)
+                st.caption("Variação mais realista para o Brasil: 60/25/15 (necessidades/desejos/poupança).")
+            with c2:
+                _rank = _a["ranking"]
+                if _rank:
+                    _top = _rank[:5]
+                    _outras = sum(r["valor"] for r in _rank[5:])
+                    _nomes = [r["categoria"] for r in _top] + (["Outras"] if _outras > 0 else [])
+                    _vals = [r["valor"] for r in _top] + ([_outras] if _outras > 0 else [])
+                    fig_cat = px.pie(
+                        names=_nomes, values=_vals, hole=0.58, title="Despesas por categoria",
+                        color_discrete_sequence=["#1c1f26", "#7ed9b0", "#d9ff00", "#8a90a0", "#e6b400", "#c9cdd6"],
+                    )
+                    fig_cat.update_traces(
+                        textinfo="percent", sort=False,
+                        hovertemplate="<b>%{label}</b><br>R$ %{value:,.2f}<extra></extra>",
+                    )
+                    st.plotly_chart(style_plot(fig_cat, height=320), use_container_width=True, config=PLOTLY_CONFIG)
+                    st.caption(
+                        f"Maior peso: {_top[0]['categoria']} · {pct(_top[0]['pct_despesas'])} das despesas."
+                    )
+                else:
+                    st.info("Nenhuma despesa neste mês.")
 
 # ---------- ABA 3: Metas ----------
 elif pagina == "Metas":
