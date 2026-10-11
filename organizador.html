@@ -4,21 +4,25 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'unsafe-inline'; img-src data:; connect-src 'none'; base-uri 'none'; form-action 'none'">
-<meta name="color-scheme" content="dark light">
 <title>Organizador Financeiro</title>
 <style>
 :root {
   --bg: #0e1119; --card: #171b27; --card-2: #1e2331; --line: rgba(255,255,255,.08);
   --ink: #eef1f7; --muted: #9aa3b5; --accent: #d9ff00; --accent-ink: #11140a;
   --pos: #4ade9d; --neg: #ff6b7a; --warn: #f5c24b; --info: #6ea8ff;
-  --radius: 16px; --gap: 14px;
+  --radius: 16px; --gap: 14px; color-scheme: dark;
 }
 @media (prefers-color-scheme: light) {
-  :root {
+  :root:not([data-theme="dark"]) {
     --bg: #f3f5f9; --card: #ffffff; --card-2: #eef1f6; --line: rgba(20,25,40,.1);
     --ink: #1a1f2e; --muted: #5d667a; --accent: #1a1f2e; --accent-ink: #ffffff;
-    --pos: #0b8f5a; --neg: #d6334a; --warn: #a77700; --info: #2a62c9;
+    --pos: #0b8f5a; --neg: #d6334a; --warn: #a77700; --info: #2a62c9; color-scheme: light;
   }
+}
+:root[data-theme="light"] {
+  --bg: #f3f5f9; --card: #ffffff; --card-2: #eef1f6; --line: rgba(20,25,40,.1);
+  --ink: #1a1f2e; --muted: #5d667a; --accent: #1a1f2e; --accent-ink: #ffffff;
+  --pos: #0b8f5a; --neg: #d6334a; --warn: #a77700; --info: #2a62c9; color-scheme: light;
 }
 * { box-sizing: border-box; }
 html { -webkit-text-size-adjust: 100%; }
@@ -40,12 +44,12 @@ h2 { margin: 0 0 12px; font-size: 1.05rem; }
 .stat .note { color: var(--muted); font-size: .75rem; margin-top: 2px; }
 .pos { color: var(--pos); } .neg { color: var(--neg); }
 label { display: block; font-size: .8rem; color: var(--muted); font-weight: 600; margin-bottom: 4px; }
-input, select, button { font: inherit; color: var(--ink); }
-input, select {
+input, select, textarea, button { font: inherit; color: var(--ink); }
+input, select, textarea {
   width: 100%; min-height: 44px; padding: 8px 12px; border-radius: 12px;
   background: var(--card-2); border: 1px solid var(--line);
 }
-input:focus-visible, select:focus-visible, button:focus-visible { outline: 2px solid var(--info); outline-offset: 2px; }
+input:focus-visible, select:focus-visible, textarea:focus-visible, button:focus-visible { outline: 2px solid var(--info); outline-offset: 2px; }
 form { display: grid; gap: 12px; grid-template-columns: 1fr; }
 .seg { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; background: var(--card-2); padding: 4px; border-radius: 14px; }
 .seg button { border: 0; background: transparent; min-height: 42px; border-radius: 10px; font-weight: 700; cursor: pointer; color: var(--muted); }
@@ -53,6 +57,7 @@ form { display: grid; gap: 12px; grid-template-columns: 1fr; }
 .btn { min-height: 44px; padding: 8px 16px; border-radius: 12px; border: 1px solid var(--line); background: var(--card-2); cursor: pointer; font-weight: 700; }
 .btn.primary { background: var(--accent); color: var(--accent-ink); border-color: transparent; }
 .btn.danger { color: var(--neg); }
+textarea { min-height: 130px; resize: vertical; font: .78rem/1.4 ui-monospace, SFMono-Regular, Menlo, monospace; }
 .row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
 .err { color: var(--neg); font-size: .85rem; min-height: 1.2em; margin: 0; }
 .chart-box { position: relative; height: 270px; }
@@ -170,10 +175,27 @@ form { display: grid; gap: 12px; grid-template-columns: 1fr; }
     <div class="row">
       <button class="btn" id="b-export" type="button">Exportar JSON</button>
       <button class="btn" id="b-import" type="button">Importar JSON</button>
+      <button class="btn" id="b-colar" type="button">Colar JSON</button>
       <button class="btn danger" id="b-limpar" type="button">Limpar tudo</button>
       <input id="f-import" type="file" accept="application/json,.json" hidden>
     </div>
-    <p class="sub">Importar mescla com o que já existe (ids repetidos são ignorados). Guarde o arquivo exportado como backup.</p>
+    <div class="banner" id="confirmar-limpar" role="alertdialog" aria-labelledby="confirmar-txt" hidden style="margin-top:12px">
+      <p id="confirmar-txt" style="margin:0 0 10px"></p>
+      <div class="row">
+        <button class="btn danger" id="b-limpar-sim" type="button">Sim, apagar tudo</button>
+        <button class="btn" id="b-limpar-nao" type="button">Cancelar</button>
+      </div>
+    </div>
+    <div id="painel-backup" hidden style="margin-top:12px">
+      <label for="f-backup">Backup em texto (JSON)</label>
+      <textarea id="f-backup" spellcheck="false" placeholder="Cole aqui um JSON exportado por este organizador"></textarea>
+      <div class="row" style="margin-top:8px">
+        <button class="btn" id="b-copiar" type="button">Copiar</button>
+        <button class="btn primary" id="b-importar-texto" type="button">Importar este texto</button>
+        <button class="btn" id="b-fechar-backup" type="button">Fechar</button>
+      </div>
+    </div>
+    <p class="sub">Importar mescla com o que já existe (ids repetidos são ignorados). Guarde o JSON exportado como backup: se o download não iniciar no seu navegador, copie o texto.</p>
     <p class="err" id="d-msg" role="status"></p>
   </section>
 </main>
@@ -558,12 +580,45 @@ function adicionar(ev) {
 }
 
 function exportar() {
-  const blob = new Blob([JSON.stringify({ versao: 1, exportadoEm: new Date().toISOString(), transacoes: transacoes.map(paraArquivo) }, null, 2)], { type: "application/json" });
-  const url = URL.createObjectURL(blob);
+  const texto = JSON.stringify({ versao: 1, exportadoEm: new Date().toISOString(), transacoes: transacoes.map(paraArquivo) }, null, 2);
+  const url = URL.createObjectURL(new Blob([texto], { type: "application/json" }));
   const a = el("a", { href: url, download: `organizador-financeiro-${hoje()}.json` });
   document.body.append(a); a.click(); a.remove();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
-  $("d-msg").textContent = `${transacoes.length} transações exportadas.`;
+  abrirBackup(texto);
+  $("d-msg").textContent = `${transacoes.length} transações exportadas. Sem download? Copie o texto abaixo e guarde num arquivo .json.`;
+}
+
+function abrirBackup(texto) {
+  $("painel-backup").hidden = false;
+  $("f-backup").value = texto;
+  if (!texto) $("f-backup").focus();
+}
+
+function copiarBackup() {
+  const ta = $("f-backup"), msg = $("d-msg");
+  const manual = () => {
+    ta.focus(); ta.select();
+    let ok = false;
+    try { ok = document.execCommand("copy"); } catch (e) { /* sem permissão */ }
+    msg.textContent = ok ? "Texto copiado." : "Selecione o texto e copie manualmente.";
+  };
+  if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(ta.value).then(() => { msg.textContent = "Texto copiado."; }, manual);
+  else manual();
+}
+
+function importarTexto(texto) {
+  const msg = $("d-msg");
+  let v = null;
+  try { v = validarImportacao(JSON.parse(texto)); } catch (e) { /* JSON inválido */ }
+  if (!v) { msg.textContent = "Arquivo inválido: esperado um JSON exportado por este organizador."; return; }
+  const eraVazio = transacoes.length === 0;
+  const existentes = new Set(transacoes.map(t => t.id));
+  const novas = v.transacoes.filter(t => !existentes.has(t.id));
+  transacoes = transacoes.concat(novas);
+  salvar(); preencherPeriodos(eraVazio); render();
+  $("painel-backup").hidden = true;
+  msg.textContent = `${novas.length} importadas, ${v.transacoes.length - novas.length} já existiam, ${v.ignoradas} ignoradas por dados inválidos.`;
 }
 
 function importar(arquivo) {
@@ -572,25 +627,21 @@ function importar(arquivo) {
   if (arquivo.size > 20 * 1024 * 1024) { msg.textContent = "Arquivo grande demais (máx. 20 MB)."; return; }
   const leitor = new FileReader();
   leitor.onerror = () => { msg.textContent = "Não foi possível ler o arquivo."; };
-  leitor.onload = () => {
-    let v = null;
-    try { v = validarImportacao(JSON.parse(leitor.result)); } catch (e) { /* JSON inválido */ }
-    if (!v) { msg.textContent = "Arquivo inválido: esperado um JSON exportado por este organizador."; return; }
-    const eraVazio = transacoes.length === 0;
-    const existentes = new Set(transacoes.map(t => t.id));
-    const novas = v.transacoes.filter(t => !existentes.has(t.id));
-    transacoes = transacoes.concat(novas);
-    salvar(); preencherPeriodos(eraVazio); render();
-    msg.textContent = `${novas.length} importadas, ${v.transacoes.length - novas.length} já existiam, ${v.ignoradas} ignoradas por dados inválidos.`;
-  };
+  leitor.onload = () => importarTexto(leitor.result);
   leitor.readAsText(arquivo);
 }
 
+/* A confirmação fica na própria página: confirm() é bloqueado em visualizadores incorporados e alguns WebViews. */
 function limparTudo() {
   if (!transacoes.length) { $("d-msg").textContent = "Não há dados para apagar."; return; }
-  if (!confirm(`Apagar as ${transacoes.length} transações deste navegador? Isso não pode ser desfeito.\n\nExporte um JSON antes se quiser guardar um backup.`)) return;
+  $("confirmar-txt").textContent = `Apagar as ${transacoes.length} transações deste navegador? Isso não pode ser desfeito. Exporte um JSON antes se quiser um backup.`;
+  $("confirmar-limpar").hidden = false;
+  $("b-limpar-nao").focus();
+}
+function confirmarLimpar() {
   transacoes = []; ultimaRemovida = null;
   try { localStorage.removeItem(CHAVE); } catch (e) { storageOk = false; }
+  $("confirmar-limpar").hidden = true;
   preencherPeriodos(); render();
   $("d-msg").textContent = "Todos os dados foram apagados.";
 }
@@ -610,7 +661,13 @@ function init() {
   $("b-export").addEventListener("click", exportar);
   $("b-import").addEventListener("click", () => $("f-import").click());
   $("f-import").addEventListener("change", e => { importar(e.target.files[0]); e.target.value = ""; });
+  $("b-colar").addEventListener("click", () => abrirBackup(""));
+  $("b-copiar").addEventListener("click", copiarBackup);
+  $("b-importar-texto").addEventListener("click", () => importarTexto($("f-backup").value));
+  $("b-fechar-backup").addEventListener("click", () => { $("painel-backup").hidden = true; });
   $("b-limpar").addEventListener("click", limparTudo);
+  $("b-limpar-sim").addEventListener("click", confirmarLimpar);
+  $("b-limpar-nao").addEventListener("click", () => { $("confirmar-limpar").hidden = true; });
   $("toast-undo").addEventListener("click", () => {
     if (!ultimaRemovida) return;
     transacoes.push(ultimaRemovida); ultimaRemovida = null;
@@ -618,6 +675,7 @@ function init() {
     salvar(); preencherPeriodos(); render();
   });
   window.matchMedia("(prefers-color-scheme: light)").addEventListener("change", () => render());
+  new MutationObserver(() => render()).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
   preencherCategorias(); preencherPeriodos(); render();
   document.getElementById("aviso-storage").hidden = storageOk;
 }
