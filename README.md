@@ -25,7 +25,17 @@ A página **Análise** do menu diagnostica o mês escolhido: taxa de poupança, 
 
 ## Organizador standalone (`organizador.html`)
 
-Versão independente do diagnóstico, em um único arquivo HTML. Basta abrir no navegador: não usa servidor nem login, os dados ficam só no `localStorage` do aparelho e podem ser exportados/importados em JSON. Tem registro de transações, gráficos (Chart.js via CDN; o resto funciona offline), filtro por período, desfazer exclusão e as mesmas análises e sugestões da página Análise.
+Planejador financeiro completo em um único arquivo HTML. Basta abrir no navegador: não usa servidor nem login, os dados ficam só no `localStorage` do aparelho e podem ser exportados/importados em JSON (backups da versão anterior continuam válidos). Funciona offline; só a fonte vem do Google Fonts, com fonte do sistema como alternativa.
+
+- **Lançamentos**: receitas e despesas com categoria, data, forma de pagamento, situação (pago / a pagar), compras parceladas no crédito, observação, busca, filtros, edição e desfazer.
+- **Orçamento**: limite mensal por categoria, alertas a partir de 80% e comparação com a regra 50/30/20.
+- **Contas fixas**: aluguel, luz, assinaturas; marca como paga no mês e avisa atrasos.
+- **Metas**: valor, prazo e quanto guardar por mês, com previsão de conclusão.
+- **Dívidas**: saldo, juros e parcela, simulação de quitação e ordem "maior juro primeiro" ou "menor saldo primeiro".
+- **Investimentos**: patrimônio, rendimento e reserva de emergência comparada ao custo de vida.
+- **Diagnóstico**: nota de saúde financeira, regra 50/30/20 e as mesmas sugestões da página Análise, mais as do planejamento.
+
+Na primeira visita ele abre com dados de exemplo (marcados e removíveis em "Começar do zero"). Responsivo do celular ao desktop, com tema claro/escuro do sistema e animações que respeitam a preferência de movimento reduzido.
 
 ## Testes
 
