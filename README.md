@@ -37,6 +37,17 @@ Planejador financeiro completo em um único arquivo HTML. Basta abrir no navegad
 
 Na primeira visita ele abre com dados de exemplo (marcados e removíveis em "Começar do zero"). Responsivo do celular ao desktop, com tema claro/escuro do sistema e animações que respeitam a preferência de movimento reduzido.
 
+### Publicar e instalar no celular
+
+O repositório já tem o necessário para virar app instalável (`manifest.webmanifest`, ícones, `sw.js` para funcionar offline e `index.html`, que abre o organizador):
+
+1. No GitHub, abra **Settings → Pages**.
+2. Em **Build and deployment**, escolha **Deploy from a branch**, selecione o branch (`main`, ou o branch desta PR para testar antes) e a pasta **/ (root)**. Salve.
+3. Em um ou dois minutos o site fica em `https://allyssonsilva19999-dev.github.io/dashboard-financeiro/`.
+4. No iPhone, abra esse endereço no **Safari**, toque em **Compartilhar → Adicionar à Tela de Início**. O app abre em tela cheia, com ícone próprio, e funciona sem internet.
+
+No iPhone, o app da Tela de Início guarda os dados separado do Safari. Use sempre o ícone e faça **Ajustes → Exportar** de vez em quando como backup.
+
 ## Testes
 
 ```bash

@@ -253,6 +253,8 @@ test("validarEstado aceita backup v1 e limpa campos do v2", () => {
   assert.deepStrictEqual(v2.orcamentos, { "Mercado / Feira": 50050 });
   assert.strictEqual(v2.metas.length, 1); assert.strictEqual(v2.metas[0].atual, 0); assert.strictEqual(v2.metas[0].prazo, "");
   assert.strictEqual(v2.dividas[0].juros, 100); assert.strictEqual(v2.dividas[0].dia, 31);
+  assert.strictEqual(v2.dividas[0].categoria, "Dívidas"); // tipo ausente vira "Dívidas"
+  assert.strictEqual(P.validarEstado({ transacoes: [], dividas: [{ nome: "C", categoria: "Cartão de crédito", saldo: 1, parcela: 1 }] }).dividas[0].categoria, "Cartão de crédito");
   assert.deepStrictEqual(v2.contas.map(c => [c.nome, c.ativa]), [["Net", false]]);
   assert.strictEqual(v2.investimentos[0].tipo, "Outro");
   assert.strictEqual(v2.perfil.mesesReserva, 24); assert.deepStrictEqual(v2.perfil.exemplo, ["renda"]); assert.strictEqual(v2.perfil.renda, 500000);
