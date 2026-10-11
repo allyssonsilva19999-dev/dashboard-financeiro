@@ -357,6 +357,7 @@ dialog.sheet.largo { width: min(880px, calc(100% - 32px)); }
 .imp-v { font-weight: 600; white-space: nowrap; }
 .imp-meta { grid-column: 2 / -1; display: flex; flex-wrap: wrap; gap: 6px 8px; align-items: center; font-size: .8rem; color: var(--muted); }
 .imp-meta select { width: auto; max-width: 100%; min-height: 36px; height: 36px; padding: 4px 32px 4px 10px; border-radius: 10px; background-color: var(--surface); }
+.painel-fatura { display: grid; gap: 10px; padding: 14px; border-radius: var(--r-md); background: var(--surface-2); }
 .imp-status.erro-msg { color: var(--bad); }
 .solta-aqui { outline: 3px dashed var(--lime); outline-offset: -10px; }
 .painel-confirma { display: grid; gap: 10px; margin-top: 12px; padding: 14px; border-radius: 16px; background: color-mix(in oklab, var(--bad) 12%, transparent); }
@@ -825,6 +826,18 @@ dialog.sheet.largo { width: min(880px, calc(100% - 32px)); }
           <button class="btn btn-sm btn-ghost" type="button" id="imp-nenhum">Desmarcar todos</button>
         </div>
       </div>
+      <div class="painel-fatura" id="imp-fatura-box" hidden>
+        <div class="form-grid">
+          <div class="campo"><label for="imp-venc">Vencimento da fatura</label><input id="imp-venc" type="date"></div>
+          <div class="campo"><span class="rotulo" id="imp-paga-lbl">Situação</span>
+            <div class="seg" role="group" aria-labelledby="imp-paga-lbl" id="imp-paga">
+              <button type="button" data-v="pendente" aria-pressed="true">A pagar</button>
+              <button type="button" data-v="pago" aria-pressed="false">Já paga</button>
+            </div>
+          </div>
+        </div>
+        <p class="small muted" id="imp-venc-nota"></p>
+      </div>
       <p class="small muted" id="imp-resumo"></p>
       <div class="imp-lista" id="imp-lista"></div>
       <p class="small muted">Saldos, pagamentos da fatura e lançamentos que já existem vêm desmarcados. Confira tipo e categoria antes de importar; a categoria que você escolher é lembrada nas próximas importações.</p>
@@ -1033,6 +1046,8 @@ function validarImportacao(obj) {
     typeof r.contaId === "string" && r.contaId.length <= 64 ? { contaId: r.contaId } : {},
     p && typeof p === "object" && typeof p.grupo === "string" && p.grupo.length <= 64 && Number.isInteger(p.n) && Number.isInteger(p.total) && p.n >= 1 && p.n <= p.total && p.total <= 48
       ? { parcela: { grupo: p.grupo, n: p.n, total: p.total } } : {},
+    dataValida(r.compra) ? { compra: r.compra } : {},
+    dataValida(r.fatura) ? { fatura: r.fatura } : {},
     r.exemplo === true ? { exemplo: true } : {}));
   }
   return { transacoes: out, ignoradas: ignoradas + Math.max(lista.length - 50000, 0) };
@@ -1464,9 +1479,33 @@ function sugerirCategoria(desc, tipo, memoria, origem) {
   for (const [re, cat, so] of REGRAS_CATEGORIA) if ((so || "despesa") === tipo && re.test(alvo)) return cat;
   return "Outro";
 }
+/* Vencimento da fatura no texto do PDF ("Vencimento: 10/10/2026", "Data de vencimento 10 OUT 2026"). */
+function vencimentoNoTexto(texto, ref) {
+  const t = semAcento(texto);
+  for (const m of t.matchAll(/venc\w*\D{0,30}?(\d{1,2}\s*(?:[/.-]\s*\d{1,2}|(?:de\s+)?[a-z]{3,9})(?:\s*(?:[/.-]\s*|de\s+)?\d{2,4})?)/g)) {
+    const texto = m[1].replace(/\s+/g, " "), temAno = (texto.match(/\d+/g) || []).length >= (/[a-z]/.test(texto) ? 2 : 3);
+    let iso = dataExtrato(texto, ref);
+    if (iso && !temAno && iso.slice(0, 4) < ref.slice(0, 4)) iso = `${Number(iso.slice(0, 4)) + 1}${iso.slice(4)}`; // vencimento sem ano é futuro
+    if (iso) return iso;
+  }
+  return null;
+}
+/* Sem vencimento no arquivo: o primeiro dia 10 depois da última compra (o mais comum entre os bancos). */
+function vencimentoPadrao(cands) {
+  const ultima = cands.reduce((m, c) => (c.data > m ? c.data : m), "");
+  if (!ultima) return "";
+  return dataNoMes(Number(ultima.slice(8, 10)) < 10 ? mesDe(ultima) : somarMeses(mesDe(ultima), 1), 10);
+}
+/* Faturas já importadas (vencimento e total), para não contar de novo o pagamento delas na conta. */
+function faturasConhecidas(txs) {
+  const g = {};
+  for (const t of txs) if (t.fatura && t.tipo === "despesa") g[t.fatura] = (g[t.fatura] || 0) + t.centavos;
+  return Object.entries(g).map(([venc, total]) => ({ venc, total }));
+}
+const RE_PAG_FATURA = /pagamento de fatura|pagto fatura|pgto fatura|pag fatura|pagamento fatura|fatura (do )?cartao/;
 /* Converte as linhas lidas em itens de prévia; já vêm desmarcados os saldos, pagamentos de fatura e repetidos. */
-function prepararImportacao(cands, modo, memoria, existentes) {
-  const chaves = new Set((existentes || []).map(t => `${t.data}|${t.centavos}|${t.tipo}`));
+function prepararImportacao(cands, modo, memoria, existentes, faturas) {
+  const chaves = new Set((existentes || []).map(t => `${t.compra || t.data}|${t.centavos}|${t.tipo}`));
   return cands.map(c => {
     const despesa = modo === "fatura" ? c.valor > 0 : c.valor < 0;
     const tipo = despesa ? "despesa" : "receita", centavos = Math.abs(c.valor), n = semAcento(c.descricao);
@@ -1474,6 +1513,11 @@ function prepararImportacao(cands, modo, memoria, existentes) {
     if (/\bsaldo\b|^total\b|\bs\/ ?saldo\b/.test(n)) { incluir = false; motivo = "Linha de saldo ou total"; }
     else if (modo === "fatura" && !despesa) { incluir = false; motivo = "Pagamento ou estorno da fatura"; }
     else if (chaves.has(`${c.data}|${centavos}|${tipo}`)) { incluir = false; motivo = "Já lançado"; }
+    else if (modo === "conta" && despesa && RE_PAG_FATURA.test(n)) {
+      const f = (faturas || []).find(x => x.total === centavos && Math.abs(diasEntre(c.data, x.venc)) <= 7);
+      if (f) { incluir = false; motivo = "Fatura já importada: não conta duas vezes"; }
+      else motivo = "Pagamento de fatura: deixe desmarcado se for importar a fatura do cartão";
+    }
     return { data: c.data, centavos, tipo, descricao: c.descricao || "Sem descrição", categoria: sugerirCategoria(c.descricao, tipo, memoria, c.categoriaOrigem), incluir, motivo };
   });
 }
@@ -1509,7 +1553,7 @@ function carregar() {
 const reais = c => Math.round(c) / 100;
 function paraArquivo() {
   const tx = t => Object.assign({ id: t.id, tipo: t.tipo, categoria: t.categoria, valor: reais(t.centavos), data: t.data, descricao: t.descricao, pagamento: t.pagamento, status: t.status, obs: t.obs },
-    t.contaId ? { contaId: t.contaId } : {}, t.parcela ? { parcela: t.parcela } : {}, t.exemplo ? { exemplo: true } : {});
+    t.contaId ? { contaId: t.contaId } : {}, t.parcela ? { parcela: t.parcela } : {}, t.compra ? { compra: t.compra } : {}, t.fatura ? { fatura: t.fatura } : {}, t.exemplo ? { exemplo: true } : {});
   const orc = {}; for (const k in estado.orcamentos) orc[k] = reais(estado.orcamentos[k]);
   return {
     versao: 2, transacoes: estado.transacoes.map(tx), orcamentos: orc,
@@ -1767,7 +1811,7 @@ function entrar(v) {
 const visualTx = t => (t.tipo === "receita" ? ["g-rec", "entra"] : grupoDaCategoria(t.categoria) === G_POU ? ["g-pou", "sobe"] : ["", "sai"]);
 function itemTx(t, comData) {
   const [av, ico] = visualTx(t);
-  const li = linhaItem({ av, ico, t1: t.descricao || t.categoria, t2: [comData ? rotuloDia(t.data) : null, t.categoria, t.pagamento].filter(Boolean).join(" · "),
+  const li = linhaItem({ av, ico, t1: t.descricao || t.categoria, t2: [comData ? rotuloDia(t.data) : null, t.categoria, t.pagamento, t.compra ? `compra em ${dataBR(t.compra).slice(0, 5)}` : null].filter(Boolean).join(" · "),
     dir: [h("span", { class: "v " + (t.tipo === "receita" ? "pos" : ""), text: (t.tipo === "receita" ? "+ " : "− ") + brl(t.centavos) }),
       t.status === "pendente" ? h("button", { class: "tag warn", type: "button", title: "Marcar como pago", onclick: e => { e.stopPropagation(); marcarPago(t.id); } }, h("i"), "A pagar · pagar") : null] });
   if (t.id === ultimoNovo) li.classList.add("novo");
@@ -2278,7 +2322,7 @@ async function linhasDoPdf(buf, senha) {
   return linhas;
 }
 function abrirImportacao(arq) {
-  imp = { nome: arq.name || "arquivo", cands: [], modo: "conta", itens: [], buf: null, texto: "" };
+  imp = { nome: arq.name || "arquivo", cands: [], modo: "conta", itens: [], buf: null, venc: "", vencTexto: null, paga: false, pagaManual: false };
   $("imp-arquivo").textContent = imp.nome;
   $("imp-senha-wrap").hidden = true; $("imp-corpo").hidden = true;
   $("imp-lista").replaceChildren(); $("imp-resumo").textContent = "";
@@ -2304,8 +2348,10 @@ async function lerPdfImp(senha) {
   statusImp(senha ? "Abrindo o PDF…" : "Lendo o PDF…");
   try {
     const linhas = await linhasDoPdf(imp.buf, senha);
-    imp.cands = lerLinhasExtrato(linhas, referenciaDoTexto(linhas, mesDe(hojeISO())));
+    const ref = referenciaDoTexto(linhas, mesDe(hojeISO()));
+    imp.cands = lerLinhasExtrato(linhas, ref);
     imp.modo = detectarModo(imp.cands, null, linhas.join(" "));
+    imp.vencTexto = vencimentoNoTexto(linhas.join(" "), ref);
     $("imp-senha-wrap").hidden = true;
     mostrarPrevia();
   } catch (e) {
@@ -2325,8 +2371,14 @@ function mostrarPrevia() {
   }
   const memoria = new Map();
   for (const t of estado.transacoes) if (!t.exemplo && t.descricao) memoria.set(semAcento(t.descricao), t.categoria);
-  imp.itens = prepararImportacao(imp.cands, imp.modo, memoria, estado.transacoes);
+  imp.itens = prepararImportacao(imp.cands, imp.modo, memoria, estado.transacoes, faturasConhecidas(estado.transacoes));
   setSeg("imp-modo", imp.modo);
+  $("imp-fatura-box").hidden = imp.modo !== "fatura";
+  if (imp.modo === "fatura") {
+    if (!imp.venc) imp.venc = imp.vencTexto || vencimentoPadrao(imp.cands.filter(c => c.valor > 0)); // só compras, não o pagamento da fatura anterior
+    $("imp-venc").value = imp.venc;
+    atualizarVencimento();
+  }
   statusImp("");
   $("imp-corpo").hidden = false;
   $("imp-lista").replaceChildren(...imp.itens.map(linhaImp));
@@ -2347,6 +2399,12 @@ function linhaImp(it) {
   cat.addEventListener("change", () => { it.categoria = cat.value; });
   return linha;
 }
+/* A fatura só sai da conta no vencimento: os gastos entram nesse mês e ficam "a pagar" até lá. */
+function atualizarVencimento() {
+  if (!imp.pagaManual) imp.paga = imp.venc <= hojeISO();
+  setSeg("imp-paga", imp.paga ? "pago" : "pendente");
+  $("imp-venc-nota").textContent = `Os gastos desta fatura entram em ${mesLongo(mesDe(imp.venc))}, o mês em que ela é paga. A data de cada compra fica guardada no lançamento.`;
+}
 function resumoImp() {
   const sel = imp.itens.filter(i => i.incluir);
   let ent = 0, sai = 0;
@@ -2363,13 +2421,17 @@ function marcarTodosImp(v) {
 function confirmarImportacao() {
   const sel = imp.itens.filter(i => i.incluir);
   if (!sel.length) return;
-  const obs = `Importado de ${imp.nome}`.slice(0, 200), pagamento = imp.modo === "fatura" ? "Crédito" : "";
-  const novos = sel.map(i => ({ id: novoId(), tipo: i.tipo, centavos: i.centavos, categoria: i.categoria, data: i.data, descricao: i.descricao.slice(0, 80), pagamento, status: "pago", obs }));
-  const ultimo = novos.reduce((m, t) => (t.data > m ? t.data : m), "");
+  const fatura = imp.modo === "fatura";
+  if (fatura && !dataValida(imp.venc)) { statusImp("Informe o vencimento da fatura.", true); $("imp-venc").focus(); return; }
+  const obs = (fatura ? `Fatura com vencimento em ${dataBR(imp.venc)}` : `Importado de ${imp.nome}`).slice(0, 200);
+  const novos = sel.map(i => Object.assign({ id: novoId(), tipo: i.tipo, centavos: i.centavos, categoria: i.categoria, data: fatura ? imp.venc : i.data, descricao: i.descricao.slice(0, 80),
+    pagamento: fatura ? "Crédito" : "", status: fatura && !imp.paga ? "pendente" : "pago", obs }, fatura ? { compra: i.data, fatura: imp.venc } : {}));
+  const ultimo = novos.reduce((m, t) => (t.data > m ? t.data : m), ""), n = novos.length;
+  const msg = fatura ? `${n} ${plural(n, "gasto lançado", "gastos lançados")} na fatura de ${mesLongo(mesDe(imp.venc))}.` : `${n} ${plural(n, "lançamento importado", "lançamentos importados")}.`;
   fecharDialogo($("dlg-imp"));
   imp = null;
   if (viewAtual() !== "lancamentos") location.hash = "lancamentos";
-  mudar(() => { estado.transacoes.push(...novos); }, `${novos.length} ${plural(novos.length, "lançamento importado", "lançamentos importados")}.`, true, mesDe(ultimo));
+  mudar(() => { estado.transacoes.push(...novos); }, msg, true, mesDe(ultimo));
 }
 
 /* ---------- Formulário genérico ---------- */
@@ -2681,6 +2743,8 @@ function init() {
   $("f-extrato").addEventListener("change", e => { const f = e.target.files[0]; e.target.value = ""; if (f) abrirImportacao(f); });
   $("imp-senha-wrap").addEventListener("submit", e => { e.preventDefault(); lerPdfImp($("imp-senha").value).catch(err => statusImp((err && err.message) || "Não consegui ler este PDF.", true)); });
   ligarSeg("imp-modo", v => { imp.modo = v; mostrarPrevia(); });
+  ligarSeg("imp-paga", v => { imp.paga = v === "pago"; imp.pagaManual = true; });
+  $("imp-venc").addEventListener("change", e => { if (dataValida(e.target.value)) { imp.venc = e.target.value; atualizarVencimento(); } });
   $("imp-todos").addEventListener("click", () => marcarTodosImp(true));
   $("imp-nenhum").addEventListener("click", () => marcarTodosImp(false));
   $("imp-confirmar").addEventListener("click", confirmarImportacao);

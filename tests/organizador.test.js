@@ -271,8 +271,8 @@ test("conta fixa não aparece em meses anteriores ao cadastro", () => {
 });
 
 /* ---------------- Importação de extratos (bloco IMPORTACAO) ---------------- */
-const I = new Function(`${bloco[1]}\n${importacao[1]}
-  return { valorExtrato, dataExtrato, lerCSV, detectarColunas, linhasCSVParaLancamentos, lerOFX, lerLinhasExtrato, referenciaDoTexto, detectarModo, sugerirCategoria, prepararImportacao };`)();
+const I = new Function(`${bloco[1]}\n${plano[1]}\n${importacao[1]}
+  return { valorExtrato, dataExtrato, lerCSV, detectarColunas, linhasCSVParaLancamentos, lerOFX, lerLinhasExtrato, referenciaDoTexto, detectarModo, sugerirCategoria, prepararImportacao, vencimentoNoTexto, vencimentoPadrao, faturasConhecidas, validarImportacao };`)();
 const doCSV = (texto, ref = "2026-10") => { const l = I.lerCSV(texto), m = I.detectarColunas(l); return { mapa: m, itens: I.linhasCSVParaLancamentos(l, m, ref) }; };
 
 test("valorExtrato entende os formatos de banco", () => {
@@ -355,4 +355,51 @@ test("categoria: memória do usuário vem antes das palavras-chave; repetidos v�
   assert.strictEqual(I.sugerirCategoria("Rendimento poupança", "receita"), "Rendimentos / Investimentos");
   const prev = I.prepararImportacao([{ data: "2026-10-05", valor: -15000, descricao: "PIX" }], "conta", null, [{ data: "2026-10-05", centavos: 15000, tipo: "despesa" }]);
   assert.deepStrictEqual([prev[0].incluir, prev[0].motivo], [false, "Já lançado"]);
+});
+
+test("vencimento da fatura: lido do texto do PDF ou deduzido da última compra", () => {
+  assert.strictEqual(I.vencimentoNoTexto("Fatura de setembro. Vencimento: 10/10/2026. Total R$ 445,40", "2026-09"), "2026-10-10");
+  assert.strictEqual(I.vencimentoNoTexto("Data de vencimento 10 OUT 2026 Valor total", "2026-09"), "2026-10-10");
+  assert.strictEqual(I.vencimentoNoTexto("Pague até o vencimento em 5 de novembro de 2026", "2026-10"), "2026-11-05");
+  assert.strictEqual(I.vencimentoNoTexto("Vence em 15/11", "2026-10"), "2026-11-15");
+  assert.strictEqual(I.vencimentoNoTexto("Fatura do cartão sem data de pagamento", "2026-10"), null);
+  const c = d => ({ data: d, valor: 100, descricao: "x" });
+  assert.strictEqual(I.vencimentoPadrao([c("2026-09-01"), c("2026-09-05")]), "2026-09-10");  // última compra antes do dia 10
+  assert.strictEqual(I.vencimentoPadrao([c("2026-09-03"), c("2026-09-28")]), "2026-10-10");  // depois do dia 10: mês seguinte
+  assert.strictEqual(I.vencimentoPadrao([c("2026-12-20")]), "2027-01-10");
+  assert.strictEqual(I.vencimentoPadrao([]), "");
+});
+
+test("fatura importada não duplica e o pagamento dela na conta não conta de novo", () => {
+  const guardadas = [
+    { data: "2026-11-10", compra: "2026-09-01", fatura: "2026-11-10", centavos: 4590, tipo: "despesa" },
+    { data: "2026-11-10", compra: "2026-09-02", fatura: "2026-11-10", centavos: 32010, tipo: "despesa" },
+    { data: "2026-11-10", compra: "2026-09-03", fatura: "2026-11-10", centavos: 2350, tipo: "despesa" },
+    { data: "2026-11-10", compra: "2026-09-05", fatura: "2026-11-10", centavos: 5590, tipo: "despesa" },
+    { data: "2026-11-10", fatura: "2026-11-10", centavos: 1000, tipo: "receita" }, // estorno não entra no total
+  ];
+  const fat = I.faturasConhecidas(guardadas);
+  assert.deepStrictEqual(fat, [{ venc: "2026-11-10", total: 44540 }]);
+  // reimportar a mesma fatura: a chave usa a data da compra
+  const nova = I.prepararImportacao([{ data: "2026-09-02", valor: 320.10 * 100 | 0, descricao: "Carrefour" }], "fatura", null, guardadas, fat);
+  assert.deepStrictEqual([nova[0].incluir, nova[0].motivo], [false, "Já lançado"]);
+  // pagamento da fatura no extrato da conta
+  const conta = I.prepararImportacao([
+    { data: "2026-11-09", valor: -44540, descricao: "PAGAMENTO DE FATURA CARTAO" },
+    { data: "2026-11-09", valor: -50000, descricao: "PAGAMENTO DE FATURA CARTAO" },
+  ], "conta", null, [], fat);
+  assert.deepStrictEqual([conta[0].incluir, conta[0].motivo], [false, "Fatura já importada: não conta duas vezes"]);
+  assert.strictEqual(conta[1].incluir, true);                       // valor diferente: pode ser outra fatura
+  assert.match(conta[1].motivo, /Pagamento de fatura/);             // avisa, mas deixa decidir
+  const longe = I.prepararImportacao([{ data: "2026-12-30", valor: -44540, descricao: "PAGTO FATURA" }], "conta", null, [], fat);
+  assert.strictEqual(longe[0].incluir, true);                       // mais de 7 dias do vencimento
+});
+
+test("validarImportacao guarda compra e fatura só quando são datas válidas", () => {
+  const v = I.validarImportacao({ transacoes: [
+    { tipo: "despesa", valor: 10, data: "2026-11-10", compra: "2026-09-01", fatura: "2026-11-10" },
+    { tipo: "despesa", valor: 10, data: "2026-11-10", compra: "ontem", fatura: 5 },
+  ] }).transacoes;
+  assert.deepStrictEqual([v[0].compra, v[0].fatura], ["2026-09-01", "2026-11-10"]);
+  assert.deepStrictEqual([v[1].compra, v[1].fatura], [undefined, undefined]);
 });
